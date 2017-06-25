@@ -1,19 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "pid_lib.h"
+#include <PID.h>
+#include <TimeUtil.h>
 
 static char verbose = 0;
 static int whack = -1;
 static double external_error = 0;
-
-void wait(int millis)
-{
-    for (int i = 0; i < millis * 200000; i++)
-    {
-        // do nothing
-    }
-}
 
 int main(int argc, char** argv)
 {
@@ -84,7 +77,7 @@ int main(int argc, char** argv)
         }
     }
     
-    Controller c = pid_init(P, I, D, -1);
+    PID control(P, I, D, -1);
     double velocity = 0;
     int count = 0;
     
@@ -96,12 +89,16 @@ int main(int argc, char** argv)
     {
         printf("Time\tOP\tPV\t");
     }
-    printf("Kd: %.2f\tKi: %.2f\tKd: %.2f\tSetpoint: %.2f\n", c.Kp, c.Ki, c.Kd, setpoint);
-    wait(4000);
+    printf("Kd: %.2f\tKi: %.2f\tKd: %.2f\tSetpoint: %.2f\n",
+        control.Kp, control.Ki, control.Kd, setpoint);
+    waitFor(2, SEC);
     
-    for (double t = 0; t < 100000; t += dt)
+    uint64_t start_time = getUnixTime(MICRO);
+
+    for (int iter = 0; iter < 60/dt; iter++)
     {
-        double response = pid_seek(&c, position, setpoint, dt);
+        double t = iter * dt;
+        double response = control.seek(position, setpoint, dt);
         velocity += (response - external_error) * dt;
         if (count == whack * 100)
         {
@@ -112,7 +109,9 @@ int main(int argc, char** argv)
         printf("%.2f:\t", t);
         if (verbose)
         {
-            printf("%.2f\t%.2f\t%.2f\t%.2f\t", c.prev_p_response, c.prev_i_response, c.prev_d_response, response);
+            printf("%.2f\t%.2f\t%.2f\t%.2f\t",
+                control.p_response, control.i_response,
+                control.d_response, response);
         }
         else
         {
@@ -129,7 +128,8 @@ int main(int argc, char** argv)
                 printf(" ");
         }
         printf("\n");
-        wait(dt * 1000);
+        uint64_t time = start_time + (t + dt) * SEC;
+        waitUntil(time, MICRO);
         count++;
     }
 }

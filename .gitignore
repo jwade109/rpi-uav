@@ -4,6 +4,7 @@ build
 # Ignore any executables
 pid
 takeoff
+time
 
 # Ignore Mac specific files
 .DS_Store
