@@ -4,19 +4,44 @@ LIB = -lm
 INC = -I include
 EIGEN = -I /usr/local/include/eigen3
 
-all: takeoff pid time
+all: pid time kalman
 
-takeoff: build/main.o
-	$(CC) $(CFLAGS) build/main.o -o takeoff $(LIB)
+pid: build/TimeUtil.o build/PID.o build/pidtest.o
+	@echo "Building pid"
+	$(CC) $(CFLAGS) build/TimeUtil.o build/PID.o build/pidtest.o -o pid $(LIB)
 
-build/main.o: src/main.cpp
-	$(CC) -c $(INC) $(EIGEN)  src/main.cpp -o build/main.o
+time: build/TimeUtil.o build/timetest.o
+	@echo "Building time"
+	$(CC) $(CFLAGS) build/TimeUtil.o build/timetest.o -o time $(LIB)
 
-pid: test/pidtest.cpp src/PID.cpp include/PID.h src/TimeUtil.cpp include/TimeUtil.h
-	$(CC) $(CFLAGS) test/pidtest.cpp src/PID.cpp src/TimeUtil.cpp $(INC) $(LIB) -o pid
+kalman: build/Kalman.o build/kalmantest.o build/TimeUtil.o
+	@echo "Building kalman"
+	$(CC) $(CFLAGS) build/Kalman.o build/kalmantest.o build/TimeUtil.o -o kalman $(LIB)
 
-time: test/time.cpp src/TimeUtil.cpp include/TimeUtil.h
-	$(CC) $(CFLAGS) test/time.cpp src/TimeUtil.cpp $(INC) -o time
+build/kalmantest.o: test/kalmantest.cpp
+	@echo "Building kalmantest.o"
+	$(CC) -c $(INC) $(EIGEN) test/kalmantest.cpp -o build/kalmantest.o
+
+build/Kalman.o: src/Kalman.cpp include/Kalman.h
+	@echo "Building Kalman.o"
+	$(CC) -c $(INC) $(EIGEN) src/Kalman.cpp -o build/Kalman.o
+
+build/timetest.o: test/timetest.cpp
+	@echo "Building timetest.o"
+	$(CC) -c $(INC) test/timetest.cpp -o build/timetest.o
+
+build/TimeUtil.o: src/TimeUtil.cpp include/TimeUtil.h
+	@echo "Building TimeUtil.o" 
+	$(CC) -c $(INC) src/TimeUtil.cpp -o build/TimeUtil.o
+
+build/pidtest.o: test/pidtest.cpp
+	@echo "Building pidtest.o"
+	$(CC) -c $(INC) test/pidtest.cpp -o build/pidtest.o
+
+build/PID.o: src/PID.cpp include/PID.h
+	@echo "Building PID.o"
+	$(CC) -c $(INC) src/PID.cpp -o build/PID.o
 
 clean:
-	rm build/* takeoff pid time
+	@echo "Cleaning..."
+	rm build/* pid time kalman

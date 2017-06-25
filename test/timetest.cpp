@@ -4,8 +4,8 @@
 
 int main()
 {
-    double runtime = 11;
-    double dt = 0.01;
+    double runtime = 23;
+    double dt = 0.007;
     int maxiter = runtime/dt;
     uint64_t start = getUnixTime(MICRO);
     std::cout << start << std::endl;

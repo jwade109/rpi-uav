@@ -1,10 +1,11 @@
 # Ignore the build
-build
+build/*
 
 # Ignore any executables
 pid
 takeoff
 time
+kalman
 
 # Ignore Mac specific files
 .DS_Store
