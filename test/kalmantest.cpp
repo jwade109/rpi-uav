@@ -24,7 +24,7 @@ int main(int argc, char* argv[])
 	cout << z(0) << "\t" << z(1) << "\t\t" << x(0) << "\t" << x(1);
         cout << "\t\t" << 10 - x(0) << "\t" << 10 - x(1) << endl;
 
-	waitFor(1, SEC);
+	waitFor(100, MILLI);
     }
     return 0;
 }
