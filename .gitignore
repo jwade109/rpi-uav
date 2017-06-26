@@ -1,5 +1,6 @@
 # Ignore the build
 build/*
+!build/.gitkeep
 
 # Ignore any executables
 pid

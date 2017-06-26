@@ -52,4 +52,4 @@ build/gpiotest.o: test/gpiotest.cpp
 
 clean:
 	@echo "Cleaning..."
-	rm build/* pid time kalman
+	rm build/* pid time kalman gpiotest
