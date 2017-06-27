@@ -1,18 +1,25 @@
 #include <stdio.h>
+#include <iostream>
+#include <fstream>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <PID.h>
 #include <TimeUtil.h>
 
-static char verbose = 0;
-static int whack = -1;
-static double external_error = 0;
+using namespace std;
+
+bool verbose = false;
+bool toFile = false;
+int whack = -1;
+double external_error = 0;
+ofstream dataFile;
 
 int main(int argc, char** argv)
 {
     double position = 0, setpoint = 10, dt = 0.01;
     double P = 1, I = 0.02, D = 2;
-    
+
     for (int i = 1; i < argc; i++)
     {
         if (strcmp(argv[i], "--tune") == 0 || strcmp(argv[i], "-t") == 0)
@@ -63,6 +70,10 @@ int main(int argc, char** argv)
             i++;
             sscanf(argv[i], "%lf", &external_error);
         }
+        else if (strcmp(argv[i], "--to-file") == 0 || strcmp(argv[i], "-f") == 0)
+        {
+            toFile = true;
+        }
         else
         {
             printf("invalid arguments. usage:\n");
@@ -73,10 +84,16 @@ int main(int argc, char** argv)
             printf("-s --setpoint [val]         set setpoint value\n");
             printf("-w --whack [val]            cause purturbation at given time\n");
             printf("-e --external [val]         simulate discrepancy between plant and model\n");
+            printf("-f --to-file                export data to a text file\n");
             return 1;
         }
     }
-    
+
+    if (toFile)
+    {
+        dataFile.open("pid.txt", ios::out);
+    }
+
     PID control(P, I, D, -1);
     double velocity = 0;
     int count = 0;
@@ -129,6 +146,11 @@ int main(int argc, char** argv)
         }
         printf("\n");
         uint64_t time = start_time + (t + dt) * SEC;
+        if (toFile)
+        {
+            dataFile << t << "   " << position << endl;
+            dataFile.flush();
+        }
         waitUntil(time, MICRO);
         count++;
     }
