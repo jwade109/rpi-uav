@@ -3,11 +3,8 @@ build/*
 !build/.gitkeep
 
 # Ignore any executables
-pid
-takeoff
-time
-kalman
-gpiotest
+bin/*
+!bin/.gitkeep
 
 # Ignore Mac specific files
 .DS_Store

@@ -4,19 +4,24 @@ LIB = -lm -lwiringPi -L/usr/local/lib
 INC = -I include
 EIGEN = -I /usr/local/include/eigen3
 
-all: pid time kalman gpiotest
+all: bin/pid bin/time bin/kalman bin/gpiotest
 
-pid: build/TimeUtil.o build/PID.o build/pidtest.o
+pid: bin/pid
+time: bin/time
+kalman: bin/kalman
+gpiotest: bin/gpiotest
+
+bin/pid: build/TimeUtil.o build/PID.o build/pidtest.o
 	@echo "Building pid"
-	$(CC) $(CFLAGS) build/TimeUtil.o build/PID.o build/pidtest.o -o pid $(LIB)
+	$(CC) $(CFLAGS) build/TimeUtil.o build/PID.o build/pidtest.o -o bin/pid $(LIB)
 
-time: build/TimeUtil.o build/timetest.o
+bin/time: build/TimeUtil.o build/timetest.o
 	@echo "Building time"
-	$(CC) $(CFLAGS) build/TimeUtil.o build/timetest.o -o time $(LIB)
+	$(CC) $(CFLAGS) build/TimeUtil.o build/timetest.o -o bin/time $(LIB)
 
-kalman: build/Kalman.o build/kalmantest.o build/TimeUtil.o
+bin/kalman: build/Kalman.o build/kalmantest.o build/TimeUtil.o
 	@echo "Building kalman"
-	$(CC) $(CFLAGS) build/Kalman.o build/kalmantest.o build/TimeUtil.o -o kalman $(LIB)
+	$(CC) $(CFLAGS) build/Kalman.o build/kalmantest.o build/TimeUtil.o -o bin/kalman $(LIB)
 
 build/kalmantest.o: test/kalmantest.cpp
 	@echo "Building kalmantest.o"
@@ -42,9 +47,9 @@ build/PID.o: src/PID.cpp include/PID.h
 	@echo "Building PID.o"
 	$(CC) -c $(INC) src/PID.cpp -o build/PID.o
 
-gpiotest: build/gpiotest.o build/TimeUtil.o
+bin/gpiotest: build/gpiotest.o build/TimeUtil.o
 	@echo "Building gpiotest"
-	$(CC) $(CFLAGS) build/TimeUtil.o build/gpiotest.o -o gpiotest $(LIB)
+	$(CC) $(CFLAGS) build/TimeUtil.o build/gpiotest.o -o bin/gpiotest $(LIB)
 
 build/gpiotest.o: test/gpiotest.cpp
 	@echo "Building gpiotest.cpp"
@@ -52,4 +57,4 @@ build/gpiotest.o: test/gpiotest.cpp
 
 clean:
 	@echo "Cleaning..."
-	rm build/* pid time kalman gpiotest
+	rm build/* bin/*
