@@ -16,8 +16,8 @@
 #ifndef __BMP280_H__
 #define __BMP280_H__
 
-#include "Adafruit_Sensor.h"
-#include <Wire.h>
+#include <wiringPi.h>
+#include <Adafruit_Sensor.h>
 
 /*=========================================================================
     I2C ADDRESS/BITS/SETTINGS
@@ -25,6 +25,8 @@
     #define BMP280_ADDRESS                (0x77)
     #define BMP280_CHIPID                 (0x58)
 /*=========================================================================*/
+
+typedef uint8_t byte;
 
 /*=========================================================================
     REGISTERS
@@ -115,7 +117,7 @@ class Adafruit_BMP280
     Adafruit_BMP280(int8_t cspin);
     Adafruit_BMP280(int8_t cspin, int8_t mosipin, int8_t misopin, int8_t sckpin);
 
-    bool  begin(uint8_t addr = BMP280_ADDRESS, uint8_t chipid = BMP280_CHIPID);
+    bool  begin();
     float readTemperature(void);
     float readPressure(void);
     float readAltitude(float seaLevelhPa = 1013.25);
@@ -133,9 +135,10 @@ class Adafruit_BMP280
     uint16_t  read16_LE(byte reg); // little endian
     int16_t   readS16_LE(byte reg); // little endian
 
-    uint8_t   _i2caddr;
+    uint8_t   i2caddr;
     int32_t   _sensorID;
-    int32_t t_fine;
+    int32_t   t_fine;
+    uint8_t   fd;
 
     int8_t _cs, _mosi, _miso, _sck;
 
