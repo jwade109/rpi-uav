@@ -5,12 +5,16 @@ using namespace std;
 
 int main()
 {
-    Adafruit_BMP280 bmp;
+    BMP280 bmp;
 
-    cout << bmp.begin() << endl;
-    cout << bmp.readTemperature() << endl;
-    cout << bmp.readPressure() << endl;
-    cout << bmp.readAltitude() << endl;
+    int init = bmp.begin();
+    cout << "Init:\n" << init << endl;
+    if (!init) return 1;
+
+    double temp = bmp.readTemperature();
+    cout << "Temperature = " << temp << endl;
+    double pressure = bmp.readPressure();
+    cout << "Pressure = " << pressure << endl;
 
     return 0;
 }
