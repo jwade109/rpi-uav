@@ -16,7 +16,7 @@ int main()
     cout << temp << " *C" << endl;
     double pressure = bmp.readPressure();
     cout << pressure << " Pa" << endl;
-    double altitude = bmp.readAltitude();
+    double altitude = bmp.readAltitude(1017.83);
     cout << altitude << " m" << endl;
 
     return 0;
