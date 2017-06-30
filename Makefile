@@ -4,12 +4,13 @@ LIB = -lm -lwiringPi -L/usr/local/lib
 INC = -I include
 EIGEN = -I /usr/local/include/eigen3
 
-all: bin/pid bin/time bin/kalman bin/gpiotest
+all: bin/pid bin/time bin/kalman bin/gpiotest bin/bmptest
 
 pid: bin/pid
 time: bin/time
 kalman: bin/kalman
 gpiotest: bin/gpiotest
+bmptest: bin/bmptest
 
 bin/pid: build/TimeUtil.o build/PID.o build/pidtest.o
 	@echo "Building pid"
@@ -52,8 +53,20 @@ bin/gpiotest: build/gpiotest.o build/TimeUtil.o
 	$(CC) $(CFLAGS) build/TimeUtil.o build/gpiotest.o -o bin/gpiotest $(LIB)
 
 build/gpiotest.o: test/gpiotest.cpp
-	@echo "Building gpiotest.cpp"
+	@echo "Building gpiotest.o"
 	$(CC) -c $(INC) test/gpiotest.cpp -o build/gpiotest.o
+
+bin/bmptest: build/BMP280.o build/bmptest.o
+	@echo "Building bmptest"
+	$(CC) $(CFLAGS) build/BMP280.o build/bmptest.o -o bin/bmptest $(LIB)
+
+build/BMP280.o: include/Adafruit_Sensor.h include/BMP280.h src/BMP280.cpp
+	@echo "Building BMP280.o"
+	$(CC) -c $(INC) src/BMP280.cpp -o build/BMP280.o
+
+build/bmptest.o: test/bmptest.cpp
+	@echo "Building bmptest.o"
+	$(CC) -c $(INC) test/bmptest.cpp -o build/bmptest.o
 
 clean:
 	@echo "Cleaning..."
