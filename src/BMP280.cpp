@@ -1,6 +1,7 @@
 #include <wiringPiI2C.h>
 #include <BMP280.h>
 #include <math.h>
+#include <stdint.h>
 
 using namespace std;
 

@@ -1,6 +1,7 @@
 #include "I2C.h"
 #include <stdbool.h>
 #include <wiringPi.h>
+#include <stdint.h>
 
 uint8_t i2c::read8(uint8_t fd, uint8_t reg)
 {

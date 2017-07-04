@@ -1,8 +1,9 @@
-#ifndef __BMP280_H__
-#define __BMP280_H__
+#ifndef BMP280_H
+#define BMP280_H
 
 #include <wiringPi.h>
 #include <Adafruit_Sensor.h>
+#include <stdint.h>
 
 #define BMP280_CHIPID                 (0x58)
 

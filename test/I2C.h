@@ -2,6 +2,7 @@
 #define I2C_H
 
 #include <stdbool.h>
+#include <stdint.h>
 
 namespace i2c
 {
