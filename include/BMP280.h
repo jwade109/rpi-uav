@@ -4,10 +4,7 @@
 #include <wiringPi.h>
 #include <Adafruit_Sensor.h>
 
-#define BMP280_ADDRESS                (0x77)
 #define BMP280_CHIPID                 (0x58)
-
-typedef uint8_t byte;
 
 enum
 {
@@ -67,7 +64,7 @@ class BMP280
     public:
 
         BMP280();
-        bool begin();
+        bool begin(uint8_t addr = 0x76);
         float readTemperature(void);
         float readPressure(void);
         float readAltitude(float seaLevelhPa = 1013.25);
@@ -75,13 +72,13 @@ class BMP280
     private:
 
         void readCoefficients(void);
-        void write8(byte reg, byte value);
-        uint8_t read8(byte reg);
-        uint16_t read16(byte reg);
-        uint32_t read24(byte reg);
-        int16_t readS16(byte reg);
-        uint16_t read16_LE(byte reg);
-        int16_t readS16_LE(byte reg);
+        void write8(uint8_t reg, uint8_t value);
+        uint8_t read8(uint8_t reg);
+        uint16_t read16(uint8_t reg);
+        uint32_t read24(uint8_t reg);
+        int16_t readS16(uint8_t reg);
+        uint16_t read16_LE(uint8_t reg);
+        int16_t readS16_LE(uint8_t reg);
 
         int32_t t_fine;
         uint8_t fd;
