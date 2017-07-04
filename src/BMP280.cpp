@@ -20,41 +20,41 @@ bool BMP280::begin(uint8_t addr)
 }
 
 
-void BMP280::write8(byte reg, byte value)
+void BMP280::write8(uint8_t reg, uint8_t value)
 {
     wiringPiI2CWriteReg8(fd, reg, value);
 }
 
-uint8_t BMP280::read8(byte reg)
+uint8_t BMP280::read8(uint8_t reg)
 {
     return wiringPiI2CReadReg8(fd, reg);
 }
 
-uint16_t BMP280::read16(byte reg) // big-endian
+uint16_t BMP280::read16(uint8_t reg) // big-endian
 {
     // wiringPi read is little-endian
     uint16_t val = wiringPiI2CReadReg16(fd, reg);
     return (val >> 8) | (val << 8);
 }
 
-uint16_t BMP280::read16_LE(byte reg) // little-endian
+uint16_t BMP280::read16_LE(uint8_t reg) // little-endian
 {
     return wiringPiI2CReadReg16(fd, reg);
 }
 
 /*
-int16_t BMP280::readS16(byte reg) // unused, BE
+int16_t BMP280::readS16(uint8_t reg) // unused, BE
 {
     return (int16_t) read16(reg);
 }
 */
 
-int16_t BMP280::readS16_LE(byte reg) // little-endian
+int16_t BMP280::readS16_LE(uint8_t reg) // little-endian
 {
     return (int16_t) read16_LE(reg);
 }
 
-uint32_t BMP280::read24(byte reg) // big-endian
+uint32_t BMP280::read24(uint8_t reg) // big-endian
 {
     uint32_t value = read16(reg);
     value <<= 8;
