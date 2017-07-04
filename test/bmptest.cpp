@@ -6,7 +6,7 @@ using namespace std;
 int main()
 {
     BMP280 bmp;
-    if (!bmp.begin(0x77))
+    if (!bmp.begin(0x76))
     {
         cout << "No BMP280 found.\n";
         return 1;
