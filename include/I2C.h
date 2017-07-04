@@ -8,9 +8,11 @@ class I2C
 {
     public:
 
+        I2C();
         I2C(uint8_t addr);
         ~I2C();
 
+        bool ready();
         uint8_t addr();
 
         uint8_t read8(uint8_t reg);
@@ -26,7 +28,7 @@ class I2C
     private:
 
         uint8_t i2c_addr;
-        uint8_t fd;
+        int8_t fd;
 };
 
 #endif

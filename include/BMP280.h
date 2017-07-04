@@ -1,8 +1,8 @@
 #ifndef BMP280_H
 #define BMP280_H
 
-#include <wiringPi.h>
 #include <Adafruit_Sensor.h>
+#include <I2C.h>
 #include <stdint.h>
 
 #define BMP280_CHIPID                 (0x58)
@@ -73,17 +73,9 @@ class BMP280
     private:
 
         void readCoefficients(void);
-        void write8(uint8_t reg, uint8_t value);
-        uint8_t read8(uint8_t reg);
-        uint16_t read16(uint8_t reg);
-        uint32_t read24(uint8_t reg);
-        int16_t readS16(uint8_t reg);
-        uint16_t read16_LE(uint8_t reg);
-        int16_t readS16_LE(uint8_t reg);
 
         int32_t t_fine;
-        uint8_t fd;
-
+        I2C i2c;
         bmp280_calib_data bmp280_calib;
 
 };

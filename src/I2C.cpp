@@ -3,6 +3,12 @@
 #include <wiringPiI2C.h>
 #include <stdint.h>
 
+I2C::I2C()
+{
+    i2c_addr = 0;
+    fd = -1;
+}
+
 I2C::I2C(uint8_t addr)
 {
     i2c_addr = addr;
@@ -10,6 +16,11 @@ I2C::I2C(uint8_t addr)
 }
 
 I2C::~I2C() { }
+
+bool I2C::ready()
+{
+    return fd > 0;
+}
 
 uint8_t I2C::addr()
 {
