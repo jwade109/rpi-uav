@@ -5,7 +5,7 @@
 #include <I2C.h>
 #include <stdint.h>
 
-#define BMP280_CHIPID                 (0x58)
+#define BMP280_CHIPID (0x58)
 
 enum
 {
