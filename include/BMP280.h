@@ -66,9 +66,9 @@ class BMP280
 
         BMP280();
         bool begin(uint8_t addr = 0x76);
-        float readTemperature(void);
-        float readPressure(void);
-        float readAltitude(float seaLevelhPa = 1013.25);
+        float temperature(void);
+        float pressure(void);
+        float altitude(float seaLevelhPa = 1013.25);
 
     private:
 

@@ -1,9 +1,17 @@
 #include <math.h>
-#include "BMP085.h"
+#include <BMP085.h>
+#include <I2C.h>
+#include <stdint.h>
+#include <TimeUtil.h>
 
 #define BMP085_USE_DATASHEET_VALS (0) // Set to 1 for sanity check
 
-void BMP280::readCoefficients(void)
+BMP085::BMP085()
+{
+    i2c = I2C(0);
+}
+
+void BMP085::readCoefficients(void)
 {
     #if BMP085_USE_DATASHEET_VALS
         bmp085_coeffs.ac1 = 408;
@@ -22,7 +30,7 @@ void BMP280::readCoefficients(void)
         bmp085_coeffs.ac1 = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_AC1);
         bmp085_coeffs.ac2 = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_AC2);
         bmp085_coeffs.ac3 = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_AC3);
-        bmp085_coeffs.ac4 = i2c.read16_BE(BMP085_REGISTER_CAL_AC4, &_);
+        bmp085_coeffs.ac4 = i2c.read16_BE(BMP085_REGISTER_CAL_AC4);
         bmp085_coeffs.ac5 = i2c.read16_BE(BMP085_REGISTER_CAL_AC5);
         bmp085_coeffs.ac6 = i2c.read16_BE(BMP085_REGISTER_CAL_AC6);
         bmp085_coeffs.b1 = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_B1);
@@ -33,37 +41,42 @@ void BMP280::readCoefficients(void)
     #endif
 }
 
-int32_t BMP280::readRawTemperature(void)
+int32_t BMP085::readRawTemperature(void)
 {
     #if BMP085_USE_DATASHEET_VALS
         return 27898;
     #else
         i2c.write8(BMP085_REGISTER_CONTROL, BMP085_REGISTER_READTEMPCMD);
-        delay(5);
-        return i2c.read16_BE(BMP085_REGISTER_TEMPDATA, &t);
+        // delay(5)
+        waitFor(5, MILLI);
+        return i2c.read16_BE(BMP085_REGISTER_TEMPDATA);
     #endif
 }
 
-int32_t BMP280::readRawPressure(void)
+int32_t BMP085::readRawPressure(void)
 {
     #if BMP085_USE_DATASHEET_VALS
-        return = 23843;
+        return 23843;
     #else
-        i2c.write8(BMP085_REGISTER_CONTROL, BMP085_REGISTER_READPRESSURECMD + (_bmp085Mode << 6));
+        i2c.write8(BMP085_REGISTER_CONTROL, BMP085_REGISTER_READPRESSURECMD + (bmp085Mode << 6));
         switch(bmp085Mode)
         {
             case ULTRALOWPOWER:
-                delay(5);
+                // delay(5);
+                waitFor(5, MILLI);
                 break;
             case STANDARD:
-                delay(8);
+                // delay(8);
+                waitFor(8, MILLI);
                 break;
             case HIGHRES:
-                delay(14);
+                // delay(14);
+                waitFor(14, MILLI);
                 break;
             case ULTRAHIGHRES:
             default:
-                delay(26);
+                // delay(26);
+                waitFor(26, MILLI);
                 break;
         }
 
@@ -99,7 +112,7 @@ bool BMP085::begin(uint8_t addr, bmp085_mode_t mode)
     return true;
 }
 
-float BMP085::readPressure()
+float BMP085::pressure()
 {
     int32_t  ut = 0, up = 0, compp = 0;
     int32_t  x1, x2, b5, b6, x3, b3, p;
@@ -142,7 +155,7 @@ float BMP085::readPressure()
     return compp;
 }
 
-float BMP085::readTemperature(void)
+float BMP085::temperature(void)
 {
     int32_t UT = readRawTemperature();
 
@@ -161,10 +174,10 @@ float BMP085::readTemperature(void)
     return t;
 }
 
-float BMP280::readAltitude(float seaLevelhPa)
+float BMP085::altitude(float seaLevelhPa)
 {
-    float pressure = readPressure(); // in Si units for Pascal
-    pressure /= 100;
-    float altitude = 44330 * (1.0 - pow(pressure / seaLevelhPa, 0.1903));
+    float press = pressure(); // in Si units for Pascal
+    press /= 100;
+    float altitude = 44330 * (1.0 - pow(press / seaLevelhPa, 0.1903));
     return altitude;
 }

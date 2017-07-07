@@ -61,9 +61,9 @@ class BMP085
 
         BMP085();
         bool begin(uint8_t addr = 0x77, bmp085_mode_t mode = ULTRAHIGHRES);
-        float readTemperature(void);
-        float readPressure(void);
-        float readAltitude(float seaLevelhPa = 1013.25);
+        float temperature(void);
+        float pressure(void);
+        float altitude(float seaLevelhPa = 1013.25);
 
     private:
 

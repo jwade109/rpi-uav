@@ -56,13 +56,17 @@ build/gpiotest.o: test/gpiotest.cpp
 	@echo "Building gpiotest.o"
 	$(CC) -c $(INC) test/gpiotest.cpp -o build/gpiotest.o
 
-bin/bmptest: build/BMP280.o build/bmptest.o build/I2C.o
+bin/bmptest: build/BMP280.o build/BMP085.o build/bmptest.o build/I2C.o build/TimeUtil.o
 	@echo "Building bmptest"
-	$(CC) $(CFLAGS) build/BMP280.o build/I2C.o build/bmptest.o -o bin/bmptest $(LIB)
+	$(CC) $(CFLAGS) build/BMP280.o build/BMP085.o build/I2C.o build/TimeUtil.o build/bmptest.o -o bin/bmptest $(LIB)
 
 build/BMP280.o: include/Adafruit_Sensor.h include/BMP280.h src/BMP280.cpp include/I2C.h src/I2C.cpp
 	@echo "Building BMP280.o"
 	$(CC) -c $(INC) src/BMP280.cpp -o build/BMP280.o
+
+build/BMP085.o: include/Adafruit_Sensor.h include/BMP085.h src/BMP085.cpp include/I2C.h src/I2C.cpp
+	@echo "Building BMP085.o"
+	$(CC) -c $(INC) src/BMP085.cpp -o build/BMP085.o
 
 build/bmptest.o: test/bmptest.cpp
 	@echo "Building bmptest.o"

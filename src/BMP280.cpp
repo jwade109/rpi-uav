@@ -39,7 +39,7 @@ void BMP280::readCoefficients(void)
     bmp280_calib.dig_P9 = (int16_t) i2c.read16_LE(BMP280_REGISTER_DIG_P9);
 }
 
-float BMP280::readTemperature(void)
+float BMP280::temperature(void)
 {
     int32_t var1, var2;
     int32_t adc_T = i2c.read24_BE(BMP280_REGISTER_TEMPDATA);
@@ -54,10 +54,10 @@ float BMP280::readTemperature(void)
     return T/100;
 }
 
-float BMP280::readPressure(void)
+float BMP280::pressure(void)
 {
     int64_t var1, var2, p;
-    readTemperature();
+    temperature();
     int32_t adc_P = i2c.read24_BE(BMP280_REGISTER_PRESSUREDATA);
     adc_P >>= 4;
     var1 = ((int64_t)t_fine) - 128000;
@@ -76,11 +76,11 @@ float BMP280::readPressure(void)
     return (float) p/256;
 }
 
-float BMP280::readAltitude(float seaLevelhPa)
+float BMP280::altitude(float seaLevelhPa)
 {
     float altitude;
-    float pressure = readPressure(); // in Si units for Pascal
-    pressure /= 100;
-    altitude = 44330 * (1.0 - pow(pressure / seaLevelhPa, 0.1903));
+    float press = pressure(); // in Si units for Pascal
+    press /= 100;
+    altitude = 44330 * (1.0 - pow(press / seaLevelhPa, 0.1903));
     return altitude;
 }
