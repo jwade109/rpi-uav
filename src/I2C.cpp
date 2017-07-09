@@ -2,6 +2,7 @@
 #include <stdbool.h>
 #include <wiringPiI2C.h>
 #include <stdint.h>
+#include <string.h>
 
 I2C::I2C()
 {
@@ -25,6 +26,15 @@ bool I2C::ready()
 uint8_t I2C::addr()
 {
     return i2c_addr;
+}
+
+void I2C::readLen(uint8_t reg, uint8_t* buf, uint8_t len)
+{
+    memset(buf, 0, len);
+    for (uint8_t i = 0; i < len; i++)
+    {
+        buf[i] = read8(reg + i);
+    }
 }
 
 uint8_t I2C::read8(uint8_t reg)

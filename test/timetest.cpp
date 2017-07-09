@@ -1,24 +1,35 @@
 #include <iostream>
 #include <inttypes.h>
 #include <TimeUtil.h>
+#include <csignal>
+
+static int intflag = 1;
+
+void handler(int x)
+{
+    intflag = 0;
+}
 
 int main()
 {
+    signal(SIGINT, handler);
+
     double runtime = 23;
     double dt = 0.007;
     int maxiter = runtime/dt;
     uint64_t start = getUnixTime(MICRO);
     std::cout << start << std::endl;
-    for (int i = 0; i < maxiter; i++)
+    for (int i = 0; i < maxiter && intflag; i++)
     {
         double t = i * dt;
         std::cout << i << "\t" << t << std::endl;
         uint64_t time = start + (t + dt) * SEC;
         waitUntil(time, MICRO);
     }
+    if (!intflag) std::cout << std::endl;
     uint64_t end = getUnixTime(MICRO);
-    std::cout << end << std::endl;
-    std::cout << end - start << std::endl;
+    std::cout << ((double) end)/SEC << std::endl;
+    std::cout << ((double) end - start)/SEC << std::endl;
     return 0;
 
     /*

@@ -4,6 +4,7 @@
 #include <Adafruit_Sensor.h>
 #include <utility/imumaths.h>
 #include <stdint.h>
+#include <stdbool.h>
 #include <I2C.h>
 
 #define BNO055_ADDRESS_A (0x28)
@@ -264,7 +265,7 @@ class BNO055
         void setMode(adafruit_bno055_opmode_t mode);
         void getRevInfo(adafruit_bno055_rev_info_t*);
         void displayRevInfo(void);
-        void setExtCrystalUse(boolean usextal);
+        void setExtCrystalUse(bool useExternal);
         void getSystemStatus(uint8_t *system_status,
             uint8_t *self_test_result, uint8_t *system_error);
         void displaySystemStatus(void);
@@ -283,7 +284,7 @@ class BNO055
 
     private:
 
-        bool readLen(adafruit_bno055_reg_t, byte* buffer, uint8_t len);
+        bool readLen(adafruit_bno055_reg_t, uint8_t* buffer, uint8_t len);
 
         I2C i2c;
         adafruit_bno055_opmode_t opmode;

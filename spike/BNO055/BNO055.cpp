@@ -1,6 +1,7 @@
 #include <math.h>
 #include <BNO055.h>
 #include <TimeUtil.h>
+#include <stdio.h>
 
 BNO055::BNO055()
 {
@@ -14,8 +15,11 @@ bool BNO055::begin(uint8_t addr, adafruit_bno055_opmode_t mode)
     /* Make sure we have the right device */
     if(i2c.read8(BNO055_CHIP_ID_ADDR) != BNO055_ID) return false;
 
+
     /* Switch to config mode (just in case since this is the default) */
     setMode(OPERATION_MODE_CONFIG);
+    printf("Just set mode.\n");
+    waitFor(2, SEC);
 
     /* Reset */
     i2c.write8(BNO055_SYS_TRIGGER_ADDR, 0x20);
@@ -26,13 +30,19 @@ bool BNO055::begin(uint8_t addr, adafruit_bno055_opmode_t mode)
     }
     // delay(50);
     waitFor(50, MILLI);
+    printf("Just hit system trigger.\n");
+    waitFor(2, SEC);
 
     /* Set to normal power mode */
     i2c.write8(BNO055_PWR_MODE_ADDR, POWER_MODE_NORMAL);
     // delay(10);
     waitFor(10, MILLI);
+    printf("Just set power mode.\n");
+    waitFor(2, SEC);
 
     i2c.write8(BNO055_PAGE_ID_ADDR, 0);
+    printf("Just write to PAGE_ID_ADDR.");
+    waitFor(2, SEC);
 
     /* Set the output units */
     /*
@@ -52,11 +62,15 @@ bool BNO055::begin(uint8_t addr, adafruit_bno055_opmode_t mode)
     delay(10);
     */
 
-    write8(BNO055_SYS_TRIGGER_ADDR, 0x0);
+    i2c.write8(BNO055_SYS_TRIGGER_ADDR, 0x0);
+    printf("Just wrote to SYS_TRIGGER_ADDR.\n");
+    waitFor(2, SEC);
     // delay(10);
     waitFor(10, MILLI);
     /* Set the requested operating mode (see section 3.3) */
     setMode(mode);
+    printf("Just set the mode.\n");
+    waitFor(2, SEC);
     // delay(20);
     waitFor(20, MILLI);
 
@@ -70,7 +84,7 @@ void BNO055::setMode(adafruit_bno055_opmode_t mode)
     waitFor(30, MILLI);
 }
 
-void BNO055::setExtCrystalUse(boolean useExternal)
+void BNO055::setExtCrystalUse(bool useExternal)
 {
     adafruit_bno055_opmode_t modeback = opmode;
 
@@ -144,16 +158,16 @@ void BNO055::getRevInfo(adafruit_bno055_rev_info_t* info)
     memset(info, 0, sizeof(adafruit_bno055_rev_info_t));
 
     /* Check the accelerometer revision */
-    info->accel_rev = read8(BNO055_ACCEL_REV_ID_ADDR);
+    info->accel_rev = i2c.read8(BNO055_ACCEL_REV_ID_ADDR);
 
     /* Check the magnetometer revision */
-    info->mag_rev   = read8(BNO055_MAG_REV_ID_ADDR);
+    info->mag_rev   = i2c.read8(BNO055_MAG_REV_ID_ADDR);
 
     /* Check the gyroscope revision */
-    info->gyro_rev  = read8(BNO055_GYRO_REV_ID_ADDR);
+    info->gyro_rev  = i2c.read8(BNO055_GYRO_REV_ID_ADDR);
 
     /* Check the SW revision */
-    info->bl_rev    = read8(BNO055_BL_REV_ID_ADDR);
+    info->bl_rev    = i2c.read8(BNO055_BL_REV_ID_ADDR);
 
     a = i2c.read8(BNO055_SW_REV_ID_LSB_ADDR);
     b = i2c.read8(BNO055_SW_REV_ID_MSB_ADDR);
@@ -185,30 +199,33 @@ imu::Vector<3> BNO055::getVector(adafruit_vector_type_t vector_type)
     x = y = z = 0;
 
     /* Read vector data (6 bytes) */
-    readLen((adafruit_bno055_reg_t) vector_type, buffer, 6);
+    i2c.readLen((adafruit_bno055_reg_t) vector_type, buffer, 6);
 
     x = ((int16_t) buffer[0]) | (((int16_t) buffer[1]) << 8);
     y = ((int16_t) buffer[2]) | (((int16_t) buffer[3]) << 8);
     z = ((int16_t) buffer[4]) | (((int16_t) buffer[5]) << 8);
 
+    printf("%08x\t%08x\t%08x\t", (int) x, (int) y, (int) z);
+
     /* Convert the value to an appropriate range (section 3.6.4) */
     /* and assign the value to the Vector type */
+
     switch(vector_type)
     {
         case VECTOR_MAGNETOMETER:
-            /* 1uT = 16 LSB */
+            // 1uT = 16 LSB
             xyz[0] = ((double)x)/16.0;
             xyz[1] = ((double)y)/16.0;
             xyz[2] = ((double)z)/16.0;
             break;
         case VECTOR_GYROSCOPE:
-            /* 1dps = 16 LSB */
+            // 1dps = 16 LSB
             xyz[0] = ((double)x)/16.0;
             xyz[1] = ((double)y)/16.0;
             xyz[2] = ((double)z)/16.0;
             break;
         case VECTOR_EULER:
-            /* 1 degree = 16 LSB */
+            // 1 degree = 16 LSB
             xyz[0] = ((double)x)/16.0;
             xyz[1] = ((double)y)/16.0;
             xyz[2] = ((double)z)/16.0;
@@ -216,7 +233,7 @@ imu::Vector<3> BNO055::getVector(adafruit_vector_type_t vector_type)
         case VECTOR_ACCELEROMETER:
         case VECTOR_LINEARACCEL:
         case VECTOR_GRAVITY:
-            /* 1m/s^2 = 100 LSB */
+            // 1m/s^2 = 100 LSB
             xyz[0] = ((double)x)/100.0;
             xyz[1] = ((double)y)/100.0;
             xyz[2] = ((double)z)/100.0;
@@ -235,7 +252,7 @@ imu::Quaternion BNO055::getQuat(void)
     x = y = z = w = 0;
 
     /* Read quat data (8 bytes) */
-    readLen(BNO055_QUATERNION_DATA_W_LSB_ADDR, buffer, 8);
+    i2c.readLen(BNO055_QUATERNION_DATA_W_LSB_ADDR, buffer, 8);
     w = (((uint16_t) buffer[1]) << 8) | ((uint16_t) buffer[0]);
     x = (((uint16_t) buffer[3]) << 8) | ((uint16_t) buffer[2]);
     y = (((uint16_t) buffer[5]) << 8) | ((uint16_t) buffer[4]);
@@ -253,7 +270,7 @@ bool BNO055::getSensorOffsets(adafruit_bno055_offsets_t &offsets_type)
 {
     if (isFullyCalibrated())
     {
-        adafruit_bno055_opmode_t lastMode = _mode;
+        adafruit_bno055_opmode_t lastMode = opmode;
         setMode(OPERATION_MODE_CONFIG);
         waitFor(25, MILLI);
 
@@ -317,13 +334,4 @@ void BNO055::setSensorOffsets(const adafruit_bno055_offsets_t &offsets_type)
 bool BNO055::isFullyCalibrated(void)
 {
     return getCalibration(0, 0, 0, 0) & 0xFF;
-}
-
-bool BNO055::readLen(adafruit_bno055_reg_t reg, byte * buffer, uint8_t len)
-{
-    for (uint8_t i = 0; i < len; i++)
-    {
-        buffer[i] = i2c.read8(reg + i);
-    }
-    return true;
 }
