@@ -25,7 +25,9 @@ message_t;
 
 message_t data;
 
-void parseMessage(char buffer[1024], message_t &msg);
+void parseMessage(char buffer[1024]);
+
+void printData();
 
 int main(int argc, char** argv)
 {
@@ -56,7 +58,8 @@ int main(int argc, char** argv)
         {
             message = false;
             if (debug) printf("(%s)\n", buffer);
-            parseMessage(buffer, data);
+            parseMessage(buffer);
+            printData();
             memset(buffer, 0, 1024);
             ptr = 0;
         }
@@ -70,18 +73,21 @@ int main(int argc, char** argv)
     return 0;
 }
 
-void parseMessage(char buffer[1024], message_t &msg)
+void printData()
 {
-    memset(&msg, 0, sizeof(msg));
-    char* cursor;
-    msg.millis = strtol(buffer, &cursor, 10);
-    msg.heading = strtod(cursor, &cursor);
-    msg.pitch = strtod(cursor, &cursor);
-    msg.roll = strtod(cursor, &cursor);
-    msg.calib = strtol(cursor, &cursor, 10);
-    msg.altA = strtod(cursor, &cursor);
-    msg.altB = strtod(cursor, NULL);
     printf("%"PRIu64" %lf %lf %lf %02x %lf %lf\n",
-        msg.millis, msg.heading, msg.pitch, msg.roll,
-        msg.calib, msg.altA, msg.altB);
+        data.millis, data.heading, data.pitch, data.roll,
+        data.calib, data.altA, data.altB);
+}
+
+void parseMessage(char buffer[1024])
+{
+    char* cursor;
+    data.millis = strtol(buffer, &cursor, 10);
+    data.heading = strtod(cursor, &cursor);
+    data.pitch = strtod(cursor, &cursor);
+    data.roll = strtod(cursor, &cursor);
+    data.calib = strtol(cursor, &cursor, 10);
+    data.altA = strtod(cursor, &cursor);
+    data.altB = strtod(cursor, NULL);
 }

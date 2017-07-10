@@ -26,6 +26,8 @@ void setup(void)
         }
     }
     Serial.print('#');
+    delay(1000);
+    Serial.print('#');
 
     bno.setExtCrystalUse(true);
 }
