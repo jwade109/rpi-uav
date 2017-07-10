@@ -4,37 +4,38 @@
 #include <Adafruit_BMP085_U.h>
 #include <utility/imumaths.h>
 
-Adafruit_BNO055         bno  = Adafruit_BNO055();
-Adafruit_BMP085_Unified bmpA = Adafruit_BMP085_Unified();
-Adafruit_BMP280         bmpB = Adafruit_BMP280();
+Adafruit_BNO055 bno = Adafruit_BNO055();
+Adafruit_BMP280 bmp = Adafruit_BMP280();
+
+long int last_millis = 0;
 
 void setup(void)
 {
     Serial.begin(115200);
     int x = bno.begin();
-    int y = bmpA.begin();
-    int z = bmpB.begin(0x76);
+    int y = bmp.begin();
 
-    if (x + y + z < 3)
+    if (x + y < 2)
     {
         for(;;)
         {
             Serial.print("! ");
-            Serial.print(x * 100 + y * 10 + z);
+            Serial.print(x * 10 + y);
             Serial.println(" !");
             delay(500);
         }
     }
+
+    bno.setExtCrystalUse(true);
+
     Serial.print('#');
     delay(1000);
     Serial.print('#');
-
-    bno.setExtCrystalUse(true);
 }
 
 void loop(void)
 {
-    // <TIME HDG PITCH ROLL CALIB ALTA ALTB>
+    // <TIME HDG PITCH ROLL CALIB ALT>
 
     Serial.print('<');
 
@@ -42,7 +43,6 @@ void loop(void)
     Serial.print(' ');
 
     imu::Vector<3> euler = bno.getQuat().toEuler();
-
     Serial.print(euler.x() * 180/PI);
     Serial.print(' ');
     Serial.print(euler.y() * 180/PI);
@@ -55,12 +55,7 @@ void loop(void)
     Serial.print((s << 6) + (g << 4) + (a << 2) + m);
     Serial.print(' ');
 
-    float pressure;
-    bmpA.getPressure(&pressure);
-
-    Serial.print(bmpA.pressureToAltitude(101325, pressure));
-    Serial.print(' ');
-    Serial.print(bmpB.readAltitude());
+    Serial.print(bmp.readAltitude());
 
     Serial.println('>');
 }
