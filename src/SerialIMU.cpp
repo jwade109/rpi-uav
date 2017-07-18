@@ -41,7 +41,6 @@ int SerialIMU::begin()
     bool message = false;
     char ch;
     char buffer[MSG_LEN];
-    int cnt = 0;
 
     while (in.get(ch))
     {
