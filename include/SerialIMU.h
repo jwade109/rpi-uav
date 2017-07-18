@@ -26,5 +26,4 @@ class SerialIMU
 
     char* create_shared_memory(size_t size);
     message_t parseMessage(char* buffer);
-    void printMessage(message_t &msg);
 };
