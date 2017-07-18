@@ -58,8 +58,8 @@ int SerialIMU::begin()
             memset(mem, 0, sizeof(message_t) + 1);
             message_t m = parseMessage(buffer);
             memcpy(mem + 1, &m, sizeof(m));
+            mem[0] = 1;
             memset(buffer, 0, MSG_LEN);
-            *mem = 1;
             ptr = 0;
         }
         if (message && begin)
@@ -73,13 +73,7 @@ int SerialIMU::begin()
 
 message_t SerialIMU::get()
 {
-    int read = *mem;
-    if (read)
-    {
-        message_t m = *((message_t*)(mem + 1));
-        last = m;
-        return m;
-    }
+    if (mem[0]) last = *((message_t*)(mem + 1));
     return last;
 }
 
@@ -109,11 +103,4 @@ message_t SerialIMU::parseMessage(char* buffer)
     data.calib = strtol(cursor, &cursor, 10);
     data.alt = strtod(cursor, &cursor);
     return data;
-}
-
-void SerialIMU::printMessage(message_t &msg)
-{
-    printf("%" PRIu64 ", %lf, %lf, %lf, %d, %lf\n",
-        msg.millis, msg.heading, msg.pitch, msg.roll,
-        msg.calib, msg.alt);
 }
