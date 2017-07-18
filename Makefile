@@ -1,15 +1,16 @@
 CC = g++
-CFLAGS = -g
+CFLAGS = -g -std="c++11"
 LIB = -lm -lwiringPi -L/usr/local/lib
 INC = -I include
 EIGEN = -I /usr/local/include/eigen3
 
-all: bin/pid bin/time bin/kalman bin/gpiotest
+all: bin/pid bin/time bin/kalman bin/gpiotest bin/serialtest
 
 pid: bin/pid
 time: bin/time
 kalman: bin/kalman
 gpiotest: bin/gpiotest
+serialtest: bin/serialtest
 
 bin/pid: build/TimeUtil.o build/PID.o build/pidtest.o
 	@echo "Building pid"
@@ -54,6 +55,18 @@ bin/gpiotest: build/gpiotest.o build/TimeUtil.o
 build/gpiotest.o: test/gpiotest.cpp
 	@echo "Building gpiotest.o"
 	$(CC) -c $(INC) test/gpiotest.cpp -o build/gpiotest.o
+
+build/SerialIMU.o: src/SerialIMU.cpp include/SerialIMU.h include/Message.h
+	@echo "Building SerialIMU.o"
+	$(CC) -c $(INC) src/SerialIMU.cpp -o build/SerialIMU.o
+
+build/serialtest.o: test/serialtest.cpp
+	@echo "Building serialtest.o"
+	$(CC) -c $(INC) test/serialtest.cpp -o build/serialtest.o
+
+bin/serialtest: build/serialtest.o build/SerialIMU.o build/TimeUtil.o
+	@echo "Building serialtest"
+	$(CC) $(CFLAGS) build/serialtest.o build/SerialIMU.o build/TimeUtil.o -o bin/serialtest
 
 clean:
 	@echo "Cleaning..."
