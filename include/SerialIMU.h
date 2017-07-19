@@ -9,13 +9,13 @@ class SerialIMU
 {
     public:
 
-    message_t last;
+    Message last;
 
     SerialIMU();
     ~SerialIMU();
 
     int begin();
-    message_t get();
+    Message get();
 
     private:
 
@@ -25,5 +25,5 @@ class SerialIMU
     int child_pid;
 
     char* create_shared_memory(size_t size);
-    message_t parseMessage(char* buffer);
+    Message parseMessage(char* buffer);
 };

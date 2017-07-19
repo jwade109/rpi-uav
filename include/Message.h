@@ -12,6 +12,6 @@ typedef struct
     uint8_t calib;
     double alt;
 }
-message_t;
+Message;
 
 #endif
