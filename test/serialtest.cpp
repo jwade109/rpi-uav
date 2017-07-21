@@ -16,7 +16,7 @@ int main(int argc, char** argv)
     waitFor(1, SEC);
     for (;;)
     {
-        message_t m = imu.get();
+        Message m = imu.get();
         printf("%lf\t%lf\t%lf\n", m.heading, m.pitch, m.roll);
         waitFor(1000/rate, MILLI);
     }

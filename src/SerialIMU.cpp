@@ -5,8 +5,8 @@
 
 SerialIMU::SerialIMU()
 {
-    message_t m;
-    memset(&m, 0, sizeof(message_t));
+    Message m;
+    memset(&m, 0, sizeof(Message));
     last = m;
     child_pid = -1;
 }
@@ -21,8 +21,8 @@ int SerialIMU::begin()
 {
     if (child_pid != -1) return 2;
 
-    mem = (char*) create_shared_memory(sizeof(message_t) + 1);
-    memset(mem, 0, sizeof(message_t) + 1);
+    mem = (char*) create_shared_memory(sizeof(Message) + 1);
+    memset(mem, 0, sizeof(Message) + 1);
     in.open("/dev/ttyACM0");
     if (!in)
     {
@@ -41,7 +41,6 @@ int SerialIMU::begin()
     bool message = false;
     char ch;
     char buffer[MSG_LEN];
-    int cnt = 0;
 
     while (in.get(ch))
     {
@@ -55,11 +54,11 @@ int SerialIMU::begin()
         else if (ch == '>' && begin)
         {
             message = false;
-            memset(mem, 0, sizeof(message_t) + 1);
-            message_t m = parseMessage(buffer);
+            memset(mem, 0, sizeof(Message) + 1);
+            Message m = parseMessage(buffer);
             memcpy(mem + 1, &m, sizeof(m));
+            mem[0] = 1;
             memset(buffer, 0, MSG_LEN);
-            *mem = 1;
             ptr = 0;
         }
         if (message && begin)
@@ -71,15 +70,9 @@ int SerialIMU::begin()
     return 0;
 }
 
-message_t SerialIMU::get()
+Message SerialIMU::get()
 {
-    int read = *mem;
-    if (read)
-    {
-        message_t m = *((message_t*)(mem + 1));
-        last = m;
-        return m;
-    }
+    if (mem[0]) last = *((Message*)(mem + 1));
     return last;
 }
 
@@ -98,10 +91,10 @@ char* SerialIMU::create_shared_memory(size_t size)
     return (char*) mmap(NULL, size, protection, visibility, 0, 0);
 }
 
-message_t SerialIMU::parseMessage(char* buffer)
+Message SerialIMU::parseMessage(char* buffer)
 {
     char* cursor;
-    message_t data;
+    Message data;
     data.millis = strtol(buffer, &cursor, 10);
     data.heading = strtod(cursor, &cursor);
     data.pitch = strtod(cursor, &cursor);
@@ -109,11 +102,4 @@ message_t SerialIMU::parseMessage(char* buffer)
     data.calib = strtol(cursor, &cursor, 10);
     data.alt = strtod(cursor, &cursor);
     return data;
-}
-
-void SerialIMU::printMessage(message_t &msg)
-{
-    printf("%" PRIu64 ", %lf, %lf, %lf, %d, %lf\n",
-        msg.millis, msg.heading, msg.pitch, msg.roll,
-        msg.calib, msg.alt);
 }
