@@ -1,4 +1,5 @@
 #include <BMP085.h>
+#include <TimeUtil.h>
 #include <stdio.h>
 
 int main()
@@ -7,14 +8,15 @@ int main()
 
     int status = bmp.begin(0x77);
 
-    if (status)
+    for (int i = 0; i < 100 && status == 0; i++)
     {
-        printf("BMP085:\n");
-        printf("%lf *C\n", bmp.temperature());
-        printf("%lf Pa\n", bmp.pressure());
-        printf("%lf m\n", bmp.altitude());
+        printf("[%" PRIu64 "] ", getUnixTime(MILLI));
+        printf("%.02lf *C\t", bmp.getTemperature());
+        printf("%.02lf Pa\t", bmp.getPressure());
+        printf("%.02lf m\n", bmp.getAltitude());
+        waitFor(10, MILLI);
     }
-    else printf("No BMP085 found.\n");
+    if (status) printf("No BMP085 found. (%d)\n", status);
 
     return 0;
 }

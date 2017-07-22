@@ -1,16 +1,18 @@
 CC = g++
 CFLAGS = -g -std="c++11"
-LIB = -lm -lwiringPi -L/usr/local/lib
+LIB = -lm -lwiringPi -L/usr/local/lib -lncurses
 INC = -I include
 EIGEN = -I /usr/local/include/eigen3
 
-all: bin/pid bin/time bin/kalman bin/gpiotest bin/serialtest
+all: pid time kalman gpiotest serialtest bmptest control
 
 pid: bin/pid
 time: bin/time
 kalman: bin/kalman
 gpiotest: bin/gpiotest
 serialtest: bin/serialtest
+bmptest: bin/bmptest
+control: bin/control
 
 bin/pid: build/TimeUtil.o build/PID.o build/pidtest.o
 	@echo "Building pid"
@@ -40,6 +42,10 @@ build/TimeUtil.o: src/TimeUtil.cpp include/TimeUtil.h
 	@echo "Building TimeUtil.o"
 	$(CC) -c $(INC) src/TimeUtil.cpp -o build/TimeUtil.o
 
+build/I2C.o: src/I2C.cpp include/I2C.h
+	@echo "Building I2C.o"
+	$(CC) -c $(INC) src/I2C.cpp -o build/I2C.o
+
 build/pidtest.o: test/pidtest.cpp
 	@echo "Building pidtest.o"
 	$(CC) -c $(INC) test/pidtest.cpp -o build/pidtest.o
@@ -67,6 +73,25 @@ build/serialtest.o: test/serialtest.cpp
 bin/serialtest: build/serialtest.o build/SerialIMU.o build/TimeUtil.o
 	@echo "Building serialtest"
 	$(CC) $(CFLAGS) build/serialtest.o build/SerialIMU.o build/TimeUtil.o -o bin/serialtest
+
+build/BMP085.o: src/BMP085.cpp include/BMP085.h
+	@echo "Building BMP085.o"
+	$(CC) -c $(INC) src/BMP085.cpp -o build/BMP085.o
+
+build/bmptest.o: test/bmptest.cpp
+	@echo "Building bmptest.o"
+	$(CC) -c $(INC) test/bmptest.cpp -o build/bmptest.o
+
+bin/bmptest: build/bmptest.o build/BMP085.o build/TimeUtil.o build/I2C.o
+	@echo "Building bmptest"
+	$(CC) $(CFLAGS) build/bmptest.o build/BMP085.o build/TimeUtil.o build/I2C.o -o bin/bmptest $(LIB)
+
+build/control.o: test/control.cpp
+	$(CC) -c $(INC) test/control.cpp -o build/control.o
+
+bin/control: build/control.o build/BMP085.o build/TimeUtil.o build/I2C.o build/SerialIMU.o build/PID.o
+	@echo "Building control"
+	$(CC) $(CFLAGS) build/control.o build/BMP085.o build/TimeUtil.o build/I2C.o build/SerialIMU.o build/PID.o -o bin/control $(LIB)
 
 clean:
 	@echo "Cleaning..."

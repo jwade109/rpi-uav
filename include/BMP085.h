@@ -3,7 +3,7 @@
 
 #include <Adafruit_Sensor.h>
 #include <I2C.h>
-#include <stdint.h>
+#include <stdlib.h>
 
 #define BMP085_CHIPID (0x55)
 
@@ -82,7 +82,7 @@ class BMP085
         int32_t readRawPressure(void);
         void readCoefficients(void);
         int32_t computeB5(int32_t ut);
-        char* create_shared_memory(size_t size);
+        char* createSharedMemory(size_t size);
 };
 
 #endif

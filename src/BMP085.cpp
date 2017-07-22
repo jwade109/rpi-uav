@@ -1,6 +1,9 @@
 #include <math.h>
+#include <string.h>
+#include <unistd.h>
+#include <sys/mman.h>
+#include <signal.h>
 #include <BMP085.h>
-#include <I2C.h>
 #include <TimeUtil.h>
 
 #define BMP085_USE_DATASHEET_VALS (0) // Set to 1 for sanity check
@@ -105,8 +108,8 @@ int BMP085::begin(uint8_t addr, bmp085_mode_t mode)
     if(i2c.read8(BMP085_REGISTER_CHIPID) != BMP085_CHIPID)
         return 3;
 
-    mem = (float*) create_shared_memory(sizeof(float) * 2)
-    memset(mem, 0, sizeof(float) * 2)
+    mem = (float*) createSharedMemory(sizeof(float) * 2);
+    memset(mem, 0, sizeof(float) * 2);
 
     int pid = fork();
     if (pid > 0)
@@ -125,9 +128,8 @@ int BMP085::begin(uint8_t addr, bmp085_mode_t mode)
 
     for (;;)
     {
-        mem[0] = updatePressure();
-        mem[1] = updateTemperature();
-        waitFor(200, MILLI);
+        mem[0] = updateTemperature();
+        mem[1] = updatePressure();
     }
 
     return 0;
@@ -213,7 +215,7 @@ float BMP085::getPressure()
     return mem[1];
 }
 
-char* BMP085::create_shared_memory(size_t size)
+char* BMP085::createSharedMemory(size_t size)
 {
     // Memory buffer will be readable and writable:
     int protection = PROT_READ | PROT_WRITE;
