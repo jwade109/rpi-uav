@@ -1,7 +1,6 @@
 #include <math.h>
 #include <BMP085.h>
 #include <I2C.h>
-#include <stdint.h>
 #include <TimeUtil.h>
 
 #define BMP085_USE_DATASHEET_VALS (0) // Set to 1 for sanity check
@@ -9,6 +8,12 @@
 BMP085::BMP085()
 {
     i2c = I2C(0);
+    child_pid = -1;
+}
+
+BMP085::~BMP085()
+{
+    if (child_pid > 0) kill(child_pid, SIGKILL);
 }
 
 void BMP085::readCoefficients(void)
@@ -47,7 +52,6 @@ int32_t BMP085::readRawTemperature(void)
         return 27898;
     #else
         i2c.write8(BMP085_REGISTER_CONTROL, BMP085_REGISTER_READTEMPCMD);
-        // delay(5)
         waitFor(5, MILLI);
         return i2c.read16_BE(BMP085_REGISTER_TEMPDATA);
     #endif
@@ -62,20 +66,16 @@ int32_t BMP085::readRawPressure(void)
         switch(bmp085Mode)
         {
             case ULTRALOWPOWER:
-                // delay(5);
                 waitFor(5, MILLI);
                 break;
             case STANDARD:
-                // delay(8);
                 waitFor(8, MILLI);
                 break;
             case HIGHRES:
-                // delay(14);
                 waitFor(14, MILLI);
                 break;
             case ULTRAHIGHRES:
             default:
-                // delay(26);
                 waitFor(26, MILLI);
                 break;
         }
@@ -96,23 +96,44 @@ int32_t BMP085::computeB5(int32_t ut)
     return X1 + X2;
 }
 
-bool BMP085::begin(uint8_t addr, bmp085_mode_t mode)
+int BMP085::begin(uint8_t addr, bmp085_mode_t mode)
 {
+    if (child_pid != -1) return 1;
+
     i2c = I2C(addr);
-    if (!i2c.ready()) return false;
+    if (!i2c.ready()) return 2;
+    if(i2c.read8(BMP085_REGISTER_CHIPID) != BMP085_CHIPID)
+        return 3;
+
+    mem = (float*) create_shared_memory(sizeof(float) * 2)
+    memset(mem, 0, sizeof(float) * 2)
+
+    int pid = fork();
+    if (pid > 0)
+    {
+        child_pid = pid;
+        return 0;
+    }
+
     if ((mode > ULTRAHIGHRES) || (mode < 0))
     {
         mode = ULTRAHIGHRES;
     }
 
-    if(i2c.read8(BMP085_REGISTER_CHIPID) != BMP085_CHIPID)
-        return false;
     bmp085Mode = mode;
     readCoefficients();
-    return true;
+
+    for (;;)
+    {
+        mem[0] = updatePressure();
+        mem[1] = updateTemperature();
+        waitFor(200, MILLI);
+    }
+
+    return 0;
 }
 
-float BMP085::pressure()
+float BMP085::updatePressure()
 {
     int32_t  ut = 0, up = 0, compp = 0;
     int32_t  x1, x2, b5, b6, x3, b3, p;
@@ -155,7 +176,7 @@ float BMP085::pressure()
     return compp;
 }
 
-float BMP085::temperature(void)
+float BMP085::updateTemperature(void)
 {
     int32_t UT = readRawTemperature();
 
@@ -174,10 +195,35 @@ float BMP085::temperature(void)
     return t;
 }
 
-float BMP085::altitude(float seaLevelhPa)
+float BMP085::getAltitude(float seaLevelhPa)
 {
-    float press = pressure(); // in Si units for Pascal
+    float press = mem[1]; // in Si units for Pascal
     press /= 100;
     float altitude = 44330 * (1.0 - pow(press / seaLevelhPa, 0.1903));
     return altitude;
+}
+
+float BMP085::getTemperature()
+{
+    return mem[0];
+}
+
+float BMP085::getPressure()
+{
+    return mem[1];
+}
+
+char* BMP085::create_shared_memory(size_t size)
+{
+    // Memory buffer will be readable and writable:
+    int protection = PROT_READ | PROT_WRITE;
+
+    // The buffer will be shared (meaning other processes can access it), but
+    // anonymous (meaning third-party processes cannot obtain an address for it),
+    // so only this process and its children will be able to use it:
+    int visibility = MAP_ANONYMOUS | MAP_SHARED;
+
+    // The remaining parameters to `mmap()` are not important for this use case,
+    // but the manpage for `mmap` explains their purpose.
+    return (char*) mmap(NULL, size, protection, visibility, 0, 0);
 }

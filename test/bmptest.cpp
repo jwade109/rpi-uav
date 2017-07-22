@@ -1,8 +1,6 @@
 #include <BMP085.h>
 #include <stdio.h>
 
-using namespace std;
-
 int main()
 {
     BMP085 bmp;

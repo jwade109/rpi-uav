@@ -25,5 +25,5 @@ class SerialIMU
     int child_pid;
 
     char* create_shared_memory(size_t size);
-    Message parseMessage(char* buffer);
+    Message parseMessage();
 };

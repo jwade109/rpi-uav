@@ -21,13 +21,11 @@ int SerialIMU::begin()
 {
     if (child_pid != -1) return 2;
 
-    mem = (char*) create_shared_memory(sizeof(Message) + 1);
-    memset(mem, 0, sizeof(Message) + 1);
     in.open("/dev/ttyACM0");
-    if (!in)
-    {
-        return 1;
-    }
+    if (!in) return 1;
+
+    mem = create_shared_memory(sizeof(Message) + 1);
+    memset(mem, 0, sizeof(Message) + 1);
 
     int pid = fork();
     if (pid > 0)
@@ -55,7 +53,7 @@ int SerialIMU::begin()
         {
             message = false;
             memset(mem, 0, sizeof(Message) + 1);
-            Message m = parseMessage(buffer);
+            Message m = parseMessage();
             memcpy(mem + 1, &m, sizeof(m));
             mem[0] = 1;
             memset(buffer, 0, MSG_LEN);
@@ -91,7 +89,7 @@ char* SerialIMU::create_shared_memory(size_t size)
     return (char*) mmap(NULL, size, protection, visibility, 0, 0);
 }
 
-Message SerialIMU::parseMessage(char* buffer)
+Message SerialIMU::parseMessage()
 {
     char* cursor;
     Message data;

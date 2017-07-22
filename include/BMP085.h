@@ -60,21 +60,29 @@ class BMP085
     public:
 
         BMP085();
-        bool begin(uint8_t addr = 0x77, bmp085_mode_t mode = ULTRAHIGHRES);
-        float temperature(void);
-        float pressure(void);
-        float altitude(float seaLevelhPa = 1013.25);
+        ~BMP085();
+
+        int begin(uint8_t addr = 0x77, bmp085_mode_t mode = ULTRAHIGHRES);
+        float getTemperature(void);
+        float getPressure(void);
+        float getAltitude(float seaLevelhPa = 1013.25);
 
     private:
+
+        I2C i2c;
+        bmp085_calib_data bmp085_coeffs;
+        uint8_t bmp085Mode;
+        float* mem;
+        int child_pid;
+
+        float updateTemperature();
+        float updatePressure();
 
         int32_t readRawTemperature(void);
         int32_t readRawPressure(void);
         void readCoefficients(void);
         int32_t computeB5(int32_t ut);
-
-        I2C i2c;
-        bmp085_calib_data bmp085_coeffs;
-        uint8_t           bmp085Mode;
+        char* create_shared_memory(size_t size);
 };
 
 #endif
