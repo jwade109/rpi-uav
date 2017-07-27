@@ -19,49 +19,73 @@ SerialIMU::~SerialIMU()
 
 int SerialIMU::begin()
 {
-    if (child_pid != -1) return 2;
+    if (child_pid != -1)
+    {
+        fprintf(stderr, "SerialIMU: Child process already exists\n");
+        return 1;
+    }
 
-    mem = (char*) create_shared_memory(sizeof(Message) + 1);
-    memset(mem, 0, sizeof(Message) + 1);
+    //                 | 1 byte | 1 byte | sizeof(Message) |
+    // memory mapping: | ON/OFF | RD/WRT | MESSAGE ------> |
+    mem = (char*) create_shared_memory(sizeof(Message) + 2);
+    memset(mem, 0, sizeof(Message) + 2);
+    
     in.open("/dev/ttyACM0");
     if (!in)
     {
-        return 1;
+        fprintf(stderr, "SerialIMU: Could not open /dev/ttyACM0\n");
+        return 2;
     }
 
     int pid = fork();
     if (pid > 0)
     {
         child_pid = pid;
-        return 0;
+        while(mem[0] == 0);
+        return mem[0] == 1 ? 0 : 3;
     }
 
     size_t ptr = 0;
-    bool begin = false;
+    mem[0] = 0;
     bool message = false;
     char ch;
     char buffer[MSG_LEN];
 
     while (in.get(ch))
     {
-        if (ch == '#') begin = true;
-        if (ch == '!') begin = false;
-        if (ch == '<' && begin)
+        if (ch == '#') mem[0] = 1;
+        else if (ch == '!')
+        {
+            mem[0] = 2;
+            memset(buffer, 0, MSG_LEN);
+            buffer[0] = '!';
+            in.get(ch);
+            buffer[1] = ch;
+            for (int i = 2; i < MSG_LEN && ch != '!'; i++)
+            {
+                in.get(ch);
+                buffer[i] = ch;
+            }
+            fprintf(stderr, "SerialIMU: Arduino reporting error: \"%s\"\n", buffer);
+            while (1);
+        }
+        else if (ch == '<' && mem[0] == 1)
         {
             message = true;
             in.get(ch);
         }
-        else if (ch == '>' && begin)
+        else if (ch == '>' && mem[0] == 1)
         {
             message = false;
-            memset(mem, 0, sizeof(Message) + 1);
+            memset(mem + 1, 0, sizeof(Message) + 1);
             Message m = parseMessage(buffer);
-            memcpy(mem + 1, &m, sizeof(m));
-            mem[0] = 1;
+            memcpy(mem + 2, &m, sizeof(m));
+            mem[1] = 1;
             memset(buffer, 0, MSG_LEN);
             ptr = 0;
         }
-        if (message && begin)
+
+        if (message && mem[0] == 1)
         {
             buffer[ptr] = ch;
             ++ptr;
@@ -72,7 +96,7 @@ int SerialIMU::begin()
 
 Message SerialIMU::get()
 {
-    if (mem[0]) last = *((Message*)(mem + 1));
+    if (mem[0] == 1 && mem[1]) last = *((Message*)(mem + 2));
     return last;
 }
 

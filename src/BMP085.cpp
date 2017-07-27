@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <sys/mman.h>
 #include <signal.h>
+#include <stdio.h>
+
 #include <BMP085.h>
 #include <TimeUtil.h>
 
@@ -101,12 +103,25 @@ int32_t BMP085::computeB5(int32_t ut)
 
 int BMP085::begin(uint8_t addr, bmp085_mode_t mode)
 {
-    if (child_pid != -1) return 1;
+    if (child_pid != -1)
+    {
+        fprintf(stderr, "BMP085: Child process already exists\n");
+        return 1;
+    }
 
     i2c = I2C(addr);
-    if (!i2c.ready()) return 2;
+    int ret = i2c.ready();
+    if (!ret)
+    {
+        fprintf(stderr, "BMP085: I2C failed to init, returned %d\n", ret);
+        return 2;
+    }
+
     if(i2c.read8(BMP085_REGISTER_CHIPID) != BMP085_CHIPID)
+    {
+        fprintf(stderr, "BMP085: No BMP085 at i2c addr: 0x%02x\n", addr);
         return 3;
+    }
 
     mem = (float*) createSharedMemory(sizeof(float) * 2);
     memset(mem, 0, sizeof(float) * 2);

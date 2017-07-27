@@ -8,7 +8,7 @@ int main()
 
     int status = bmp.begin(0x77);
 
-    for (int i = 0; i < 100 && status == 0; i++)
+    for (; status == 0;)
     {
         printf("[%" PRIu64 "] ", getUnixTime(MILLI));
         printf("%.02lf *C\t", bmp.getTemperature());
