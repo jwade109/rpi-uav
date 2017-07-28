@@ -1,5 +1,6 @@
 CC = g++
 CFLAGS = -g -std="c++11"
+LDFLAGS = -g -c
 LIB = -lm -lwiringPi -L/usr/local/lib -lncurses
 INC = -I include
 EIGEN = -I /usr/local/include/eigen3
@@ -28,31 +29,31 @@ bin/kalman: build/Kalman.o build/kalmantest.o build/TimeUtil.o
 
 build/kalmantest.o: test/kalmantest.cpp
 	@echo "Building kalmantest.o"
-	$(CC) -c $(INC) $(EIGEN) test/kalmantest.cpp -o build/kalmantest.o
+	$(CC) $(LDFLAGS) $(INC) $(EIGEN) test/kalmantest.cpp -o build/kalmantest.o
 
 build/Kalman.o: src/Kalman.cpp include/Kalman.h
 	@echo "Building Kalman.o"
-	$(CC) -c $(INC) $(EIGEN) src/Kalman.cpp -o build/Kalman.o
+	$(CC) $(LDFLAGS) $(INC) $(EIGEN) src/Kalman.cpp -o build/Kalman.o
 
 build/timetest.o: test/timetest.cpp
 	@echo "Building timetest.o"
-	$(CC) -c $(INC) test/timetest.cpp -o build/timetest.o
+	$(CC) $(LDFLAGS) $(INC) test/timetest.cpp -o build/timetest.o
 
 build/TimeUtil.o: src/TimeUtil.cpp include/TimeUtil.h
 	@echo "Building TimeUtil.o"
-	$(CC) -c $(INC) src/TimeUtil.cpp -o build/TimeUtil.o
+	$(CC) $(LDFLAGS) $(INC) src/TimeUtil.cpp -o build/TimeUtil.o
 
 build/I2C.o: src/I2C.cpp include/I2C.h
 	@echo "Building I2C.o"
-	$(CC) -c $(INC) src/I2C.cpp -o build/I2C.o
+	$(CC) $(LDFLAGS) $(INC) src/I2C.cpp -o build/I2C.o
 
 build/pidtest.o: test/pidtest.cpp
 	@echo "Building pidtest.o"
-	$(CC) -c $(INC) test/pidtest.cpp -o build/pidtest.o
+	$(CC) $(LDFLAGS) $(INC) test/pidtest.cpp -o build/pidtest.o
 
 build/PID.o: src/PID.cpp include/PID.h
 	@echo "Building PID.o"
-	$(CC) -c $(INC) src/PID.cpp -o build/PID.o
+	$(CC) $(LDFLAGS) $(INC) src/PID.cpp -o build/PID.o
 
 bin/gpiotest: build/gpiotest.o build/TimeUtil.o
 	@echo "Building gpiotest"
@@ -60,15 +61,15 @@ bin/gpiotest: build/gpiotest.o build/TimeUtil.o
 
 build/gpiotest.o: test/gpiotest.cpp
 	@echo "Building gpiotest.o"
-	$(CC) -c $(INC) test/gpiotest.cpp -o build/gpiotest.o
+	$(CC) $(LDFLAGS) $(INC) test/gpiotest.cpp -o build/gpiotest.o
 
 build/SerialIMU.o: src/SerialIMU.cpp include/SerialIMU.h include/Message.h
 	@echo "Building SerialIMU.o"
-	$(CC) -c $(INC) src/SerialIMU.cpp -o build/SerialIMU.o
+	$(CC) $(LDFLAGS) $(INC) src/SerialIMU.cpp -o build/SerialIMU.o
 
 build/serialtest.o: test/serialtest.cpp
 	@echo "Building serialtest.o"
-	$(CC) -c $(INC) test/serialtest.cpp -o build/serialtest.o
+	$(CC) $(LDFLAGS) $(INC) test/serialtest.cpp -o build/serialtest.o
 
 bin/serialtest: build/serialtest.o build/SerialIMU.o build/TimeUtil.o
 	@echo "Building serialtest"
@@ -76,18 +77,18 @@ bin/serialtest: build/serialtest.o build/SerialIMU.o build/TimeUtil.o
 
 build/BMP085.o: src/BMP085.cpp include/BMP085.h
 	@echo "Building BMP085.o"
-	$(CC) -c $(INC) src/BMP085.cpp -o build/BMP085.o
+	$(CC) $(LDFLAGS) $(INC) src/BMP085.cpp -o build/BMP085.o
 
 build/bmptest.o: test/bmptest.cpp
 	@echo "Building bmptest.o"
-	$(CC) -c $(INC) test/bmptest.cpp -o build/bmptest.o
+	$(CC) $(LDFLAGS) $(INC) test/bmptest.cpp -o build/bmptest.o
 
 bin/bmptest: build/bmptest.o build/BMP085.o build/TimeUtil.o build/I2C.o
 	@echo "Building bmptest"
 	$(CC) $(CFLAGS) build/bmptest.o build/BMP085.o build/TimeUtil.o build/I2C.o -o bin/bmptest $(LIB)
 
 build/control.o: test/control.cpp
-	$(CC) -c $(INC) test/control.cpp -o build/control.o
+	$(CC) $(LDFLAGS) $(INC) test/control.cpp -o build/control.o
 
 bin/control: build/control.o build/BMP085.o build/TimeUtil.o build/I2C.o build/SerialIMU.o build/PID.o
 	@echo "Building control"
