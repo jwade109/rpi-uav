@@ -1,7 +1,8 @@
-#include <Kalman.h>
-#include <TimeUtil.h>
 #include <iostream>
 #include <time.h>
+
+#include <Kalman.h>
+#include <timeutil.h>
 
 using namespace std;
 
@@ -24,7 +25,7 @@ int main(int argc, char* argv[])
 	cout << z(0) << "\t" << z(1) << "\t\t" << x(0) << "\t" << x(1);
         cout << "\t\t" << 10 - x(0) << "\t" << 10 - x(1) << endl;
 
-	waitFor(100, MILLI);
+	waitfor(100, milli);
     }
     return 0;
 }

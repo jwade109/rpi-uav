@@ -4,8 +4,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+
 #include <PID.h>
-#include <TimeUtil.h>
+#include <timeutil.h>
 
 using namespace std;
 
@@ -108,9 +109,9 @@ int main(int argc, char** argv)
     }
     printf("Kd: %.2f\tKi: %.2f\tKd: %.2f\tSetpoint: %.2f\n",
         control.Kp, control.Ki, control.Kd, setpoint);
-    waitFor(2, SEC);
+    waitfor(2, sec);
     
-    uint64_t start_time = getUnixTime(MICRO);
+    uint64_t start_time = unixtime(micro);
 
     for (int iter = 0; iter < 60/dt; iter++)
     {
@@ -145,13 +146,13 @@ int main(int argc, char** argv)
                 printf(" ");
         }
         printf("\n");
-        uint64_t time = start_time + (t + dt) * SEC;
+        uint64_t time = start_time + (t + dt) * sec;
         if (toFile)
         {
             dataFile << t << "   " << position << endl;
             dataFile.flush();
         }
-        waitUntil(time, MICRO);
+        waituntil(time, micro);
         count++;
     }
 }

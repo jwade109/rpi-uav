@@ -1,6 +1,6 @@
-#include <SerialIMU.h>
 #include <stdio.h>
-#include <TimeUtil.h>
+#include <SerialIMU.h>
+#include <timeutil.h>
 
 int main(int argc, char** argv)
 {
@@ -13,13 +13,13 @@ int main(int argc, char** argv)
         fprintf(stderr, "Error initializing IMU: %d\n", start);
         return 1;
     }
-    waitFor(1, SEC);
+    waitfor(1, sec);
     for (;;)
     {
         Message m = imu.get();
         printf("%.02lf\t%.02lf\t%.02lf\t%.02lf\n",
             m.heading, m.pitch, m.roll, m.alt);
-        waitFor(1000/rate, MILLI);
+        waitfor(1000/rate, milli);
     }
     return 0;
 }

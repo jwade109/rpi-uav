@@ -6,7 +6,7 @@
 #include <stdio.h>
 
 #include <BMP085.h>
-#include <TimeUtil.h>
+#include <timeutil.h>
 
 #define BMP085_USE_DATASHEET_VALS (0) // Set to 1 for sanity check
 
@@ -57,7 +57,7 @@ int32_t BMP085::readRawTemperature(void)
         return 27898;
     #else
         i2c.write8(BMP085_REGISTER_CONTROL, BMP085_REGISTER_READTEMPCMD);
-        waitFor(5, MILLI);
+        waitfor(5, milli);
         return i2c.read16_BE(BMP085_REGISTER_TEMPDATA);
     #endif
 }
@@ -71,17 +71,17 @@ int32_t BMP085::readRawPressure(void)
         switch(bmp085Mode)
         {
             case ULTRALOWPOWER:
-                waitFor(5, MILLI);
+                waitfor(5, milli);
                 break;
             case STANDARD:
-                waitFor(8, MILLI);
+                waitfor(8, milli);
                 break;
             case HIGHRES:
-                waitFor(14, MILLI);
+                waitfor(14, milli);
                 break;
             case ULTRAHIGHRES:
             default:
-                waitFor(26, MILLI);
+                waitfor(26, milli);
                 break;
         }
 

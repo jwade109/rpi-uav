@@ -1,6 +1,7 @@
-#include <wiringPi.h>
-#include <TimeUtil.h>
 #include <iostream>
+#include <wiringPi.h>
+
+#include <timeutil.h>
 
 #define LED 1
 
@@ -22,7 +23,7 @@ int main(int argc, char** argv)
         cout << endl;
     }
 
-    waitFor(2, SEC);
+    waitfor(2, sec);
     digitalWrite(LED, 0);
     return argc;
 }
