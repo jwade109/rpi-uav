@@ -19,10 +19,12 @@ void setup(void)
     {
         for(;;)
         {
-            Serial.print("! ");
-            Serial.print(x * 10 + y);
+            Serial.print("! BNO055: ");
+            Serial.print(x);
+            Serial.print(" BMP280: ");
+            Serial.print(y);
             Serial.println(" !");
-            delay(500);
+            delay(1000);
         }
     }
 
