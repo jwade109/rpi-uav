@@ -40,7 +40,6 @@ typedef struct
     uint8_t freq;           // frequency of updates in hz
     double home_alt_imu;    // home point altitude from imu
     double home_alt_bmp;    // home point altitude from bmp085
-    uint64_t imu_time_offset;   // epoch time - arduino time
 
     double hpidg[3];        // pid gains for yaw
     double ppidg[3];        // pid gains for pitch
@@ -49,7 +48,6 @@ typedef struct
     
     double g_lpf_alt;       // gain for alt low-pass filter
     double g_wam_alt;       // weighted average gain towards alta
-    char cmd[CMD_SIZE];     // command if there is one
 }
 params_t;
 
@@ -88,13 +86,13 @@ PID pitch_pid   (PITCH_PID_P, PITCH_PID_I, PITCH_PID_D);
 PID roll_pid    (ROLL_PID_P,  ROLL_PID_I,  ROLL_PID_D );
 PID alt_pid     (ALT_PID_P,   ALT_PID_I,   ALT_PID_D  );
 
-char prompt[CMD_SIZE * 2] = {0};
-char buffer[CMD_SIZE] = {0};
+char* buffer;
 uint8_t wptr = 0;
-char cmd[NUM_CMDS][CMD_SIZE] = {"quit", "faster", "slower", "set alpha"};
+char commands[NUM_CMDS][CMD_SIZE] = {"quit", "faster", "slower", "set alpha"};
 
 int stepno;
 bool paramchange;
+uint64_t time_offset;
 
 int setup();
 void iterate();
@@ -131,13 +129,15 @@ int main()
             execute();
         if (stepno % (params.freq/20) == 0)
             draw();
-        
+
         stepno++;
     }
     fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
     fprintf(events, "Stepno limit reached, terminating\n");
     fflush(events);
     endwin();
+
+    return 0;
 }
 
 int setup()
@@ -190,12 +190,14 @@ int setup()
         fprintf(stderr, "Failed to open events log file\n");
         return 4;
     }
-    fprintf(steplog, "Time,Heading,Pitch,Roll,RelAlt1,RelAlt2,LPFAlt,M1,M2,M3,M4,ch,cmd\n");
-    fprintf(paramlog, "Time,Freq,Offset,HomeAltA,HomeAltB,HP,HI,HD,PP,PI,PD,"
-            "RP,RI,RD,AP,AI,AD,LPFGain,WAMGain\n");
+    fprintf(steplog, "Time Heading Pitch Roll RelAlt1 RelAlt2 LPFAlt M1 M2 M3 M4 Key\n");
+    fprintf(paramlog, "Time Freq Offset HomeAltA HomeAltB HP HI HD PP PI PD "
+            "RP RI RD AP AI AD LPFGain WAMGain Cmd\n");
 
     memset(&params, 0, sizeof(params_t));
-    params.imu_time_offset = unixtime(milli) - imu.get().millis;
+    buffer = (char*) malloc(CMD_SIZE);
+    memset(buffer, 0, CMD_SIZE);
+    time_offset = unixtime(milli) - imu.get().millis;
     params.home_alt_imu = imu.get().alt;
     params.home_alt_bmp = bmp.getAltitude();
     params.g_lpf_alt = ALT_LPF_G;
@@ -295,7 +297,7 @@ void draw()
     mvprintw(2, 1, "Time:     %.03lf", curr.unix_time/1000.0);
     mvprintw(3, 1, "IMU Time: %.03lf %.03lf %.03lf %d",
         curr.msg.millis/1000.0,
-        (curr.unix_time - params.imu_time_offset)/1000.0,
+        (curr.unix_time - time_offset)/1000.0,
         1000.0/(curr.unix_time - prev.unix_time),
         stepno);
     mvprintw(4, 1, "Heading:  %.2lf", curr.msg.heading);
@@ -339,7 +341,6 @@ void draw()
         }
         mvprintw(rc[i], cc[i] - 1, "M%d:%d", draw[i] + 1, curr.motors[draw[i]]);
     }
-    mvprintw(rows - 2, 1, "%s", prompt);
     mvprintw(rows - 1, 1, ":%s", buffer);
 
     uint64_t dt = timer(micro);
@@ -355,13 +356,13 @@ void logstep()
 {
     timer();
 
-    fprintf(steplog, "%" PRIu64 " %.2lf %.2lf %.2lf "
-            "%.2lf %.5lf %.6lf "
-            "%" PRId16 " %" PRId16 " %" PRId16 " %" PRId16 " "
-            "%d\n",
+    fprintf(steplog, "%" PRIu64 " %8.2lf %8.2lf %8.2lf "
+            "%7.2lf %10.5lf %11.6lf "
+            "%3d %3d %3d %3d %4d\n",
             curr.unix_time, curr.msg.heading, curr.msg.pitch, curr.msg.roll,
             curr.msg.alt, curr.altb, curr.dalt_lpf,
-            curr.motors[0], curr.motors[1], curr.motors[2], curr.motors[3],
+            (int) curr.motors[0], (int) curr.motors[1],
+            (int) curr.motors[2], (int) curr.motors[3],
             curr.keypress);
     fflush(steplog);
 
@@ -378,20 +379,20 @@ void logparams()
 {
     timer();
 
-    fprintf(paramlog, "%" PRIu64" %" PRIu8 " %" PRIu64 " "
-            "%.02lf %.05lf "
-            "%.2lf %.2lf %.2lf "
-            "%.2lf %.2lf %.2lf "
-            "%.2lf %.2lf %.2lf "
-            "%.2lf %.2lf %.2lf "
-            "%.2lf %.2lf %s\n",
-            curr.unix_time, params.freq, params.imu_time_offset,
+    fprintf(paramlog, "%" PRIu64" %3d "
+            "%6.2lf %9.5lf "
+            "%6.2lf %6.2lf %6.2lf "
+            "%6.2lf %6.2lf %6.2lf "
+            "%6.2lf %6.2lf %6.2lf "
+            "%6.2lf %6.2lf %6.2lf "
+            "%4.2lf %4.2lf\n",
+            curr.unix_time, (int) params.freq,
             params.home_alt_imu, params.home_alt_bmp,
             heading_pid.Kp, heading_pid.Ki, heading_pid.Kd,
             pitch_pid.Kp,   pitch_pid.Ki,   pitch_pid.Kd,
             roll_pid.Kp,    roll_pid.Ki,    roll_pid.Kd,
             alt_pid.Kp,     alt_pid.Ki,     alt_pid.Kd,
-            params.g_lpf_alt, params.g_wam_alt, params.cmd);
+            params.g_lpf_alt, params.g_wam_alt);
     fflush(paramlog);
     
     paramchange = false;
@@ -432,17 +433,17 @@ bool parse()
     {
         for (int i = 0; i < NUM_CMDS; i++)
         {
-            if (strncmp(buffer, cmd[i], strlen(cmd[i])) == 0)
+            if (strncmp(buffer, commands[i], strlen(commands[i])) == 0)
             {
-                sprintf(params.cmd, buffer);
-                paramchange = true;
                 exec = true;
             }
         }
-        memset(buffer, 0, CMD_SIZE);
-        wptr = 0;
+        if (!exec)
+        {
+            memset(buffer, 0, CMD_SIZE);
+            wptr = 0;
+        }
     }
-    else sprintf(params.cmd, "");
 
     uint64_t dt = timer(micro) + getcht;
     if (dt > 2000)
@@ -459,8 +460,9 @@ bool parse()
 void execute()
 {
     timer();
+    fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
 
-    if (strcmp(params.cmd, "faster") == 0)
+    if (strcmp(buffer, "faster") == 0)
     {
         int freq = params.freq + 1;
         while (1000 % freq > 0)
@@ -470,11 +472,9 @@ void execute()
         if (freq > 250) freq = 250;
         else paramchange = true;
         params.freq = freq;
-        fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
         fprintf(events, "New frequency: %" PRIu8 "\n", params.freq);
-        fflush(events);
     }
-    else if (strcmp(params.cmd, "slower") == 0)
+    else if (strcmp(buffer, "slower") == 0)
     {
         int freq = params.freq - 1;
         while (1000 % freq > 0)
@@ -484,35 +484,34 @@ void execute()
         if (freq < 20) freq = 20;
         else paramchange = true;
         params.freq = freq;
-        fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
         fprintf(events, "New frequency: %" PRIu8 "\n", params.freq);
-        fflush(events);
     }
-    else if (strcmp(params.cmd, "quit") == 0)
+    else if (strcmp(buffer, "quit") == 0)
     {
-        fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
         fprintf(events, "Quitting\n");
         fflush(events);
         endwin();
         exit(1);
     }
-    else if (strncmp(params.cmd, "set alpha ", 10) == 0)
+    else if (strncmp(buffer, "set alpha ", 10) == 0)
     {
-        char* ptr;
-        double arg = strtod(params.cmd + 10, 0);
+        double arg = strtod(buffer + 10, 0);
         params.g_lpf_alt = trim(arg, 0, 1);
         paramchange = true;
-        fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
         fprintf(events, "New lpf alpha: %.4lf\n", params.g_lpf_alt);
-        fflush(events);
     }
+    else fprintf(events, "No valid command...\n");
+
     uint64_t dt = timer(micro);
     if (dt > 1000)
     {
         fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
         fprintf(events, "Exec: %" PRIu64 " us\n", dt);
     }
+
     fflush(events);
+    memset(buffer, 0, CMD_SIZE);
+    wptr = 0;
 }
 
 double trim(double val, double min, double max)
