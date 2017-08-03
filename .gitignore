@@ -1,12 +1,8 @@
 # Ignore the build
-build/*
-!build/.gitkeep
+.obj
 
 # Ignore any executables
-bin/*
-!bin/.gitkeep
+bin
 
 # Ignore Mac specific files
 .DS_Store
-
-bmp

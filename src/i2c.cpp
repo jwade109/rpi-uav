@@ -1,8 +1,8 @@
-#include "I2C.h"
 #include <stdbool.h>
-#include <wiringPiI2C.h>
 #include <stdint.h>
 #include <string.h>
+#include <wiringPiI2C.h>
+#include <i2c.h>
 
 I2C::I2C()
 {

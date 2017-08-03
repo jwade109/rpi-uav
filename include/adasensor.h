@@ -17,10 +17,10 @@
 /* Update by K. Townsend (Adafruit Industries) for lighter typedefs, and
  * extended sensor support to include color, voltage and current */
 
-#include <stdint.h>
+#ifndef ADASENSOR_H
+#define ADASENSOR_H
 
-#ifndef _ADAFRUIT_SENSOR_H
-#define _ADAFRUIT_SENSOR_H
+#include <stdint.h>
 
 /* Intentionally modeled after sensors.h in the Android API:
  * https://github.com/android/platform_hardware_libhardware/blob/master/include/hardware/sensors.h */
@@ -146,4 +146,4 @@ class Adafruit_Sensor {
   bool _autoRange;
 };
 
-#endif
+#endif // ADASENSOR_H

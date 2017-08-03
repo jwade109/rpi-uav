@@ -1,9 +1,11 @@
 #include <string.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <SerialIMU.h>
+#include <ardimu.h>
+#include <unistd.h>
+#include <smem.h>
 
-SerialIMU::SerialIMU()
+Arduino::Arduino()
 {
     Message m;
     memset(&m, 0, sizeof(Message));
@@ -11,29 +13,29 @@ SerialIMU::SerialIMU()
     child_pid = -1;
 }
 
-SerialIMU::~SerialIMU()
+Arduino::~Arduino()
 {
     if (child_pid > 0) kill(child_pid, SIGKILL);
     in.close();
 }
 
-int SerialIMU::begin()
+int Arduino::begin()
 {
     if (child_pid != -1)
     {
-        fprintf(stderr, "SerialIMU: Child process already exists\n");
+        fprintf(stderr, "Arduino: Child process already exists\n");
         return 1;
     }
 
     //                 | 1 byte | 1 byte | sizeof(Message) |
     // memory mapping: | ON/OFF | RD/WRT | MESSAGE ------> |
-    mem = (char*) create_shared_memory(sizeof(Message) + 2);
+    mem = (char*) sharedmem(sizeof(Message) + 2);
     memset(mem, 0, sizeof(Message) + 2);
     
     in.open("/dev/ttyACM0");
     if (!in)
     {
-        fprintf(stderr, "SerialIMU: Could not open /dev/ttyACM0\n");
+        fprintf(stderr, "Arduino: Could not open /dev/ttyACM0\n");
         return 2;
     }
 
@@ -66,7 +68,8 @@ int SerialIMU::begin()
                 in.get(ch);
                 buffer[i] = ch;
             }
-            fprintf(stderr, "SerialIMU: Arduino reporting error: \"%s\"\n", buffer);
+            fprintf(stderr, "Arduino: Arduino reporting error: "
+                    "\"%s\"\n", buffer);
             while (1);
         }
         else if (ch == '<' && mem[0] == 1)
@@ -94,28 +97,13 @@ int SerialIMU::begin()
     return 0;
 }
 
-Message SerialIMU::get()
+Message Arduino::get()
 {
     if (mem[0] == 1 && mem[1]) last = *((Message*)(mem + 2));
     return last;
 }
 
-char* SerialIMU::create_shared_memory(size_t size)
-{
-    // Memory buffer will be readable and writable:
-    int protection = PROT_READ | PROT_WRITE;
-
-    // The buffer will be shared (meaning other processes can access it), but
-    // anonymous (meaning third-party processes cannot obtain an address for it),
-    // so only this process and its children will be able to use it:
-    int visibility = MAP_ANONYMOUS | MAP_SHARED;
-
-    // The remaining parameters to `mmap()` are not important for this use case,
-    // but the manpage for `mmap` explains their purpose.
-    return (char*) mmap(NULL, size, protection, visibility, 0, 0);
-}
-
-Message SerialIMU::parseMessage(char* buffer)
+Message Arduino::parseMessage(char* buffer)
 {
     char* cursor;
     Message data;

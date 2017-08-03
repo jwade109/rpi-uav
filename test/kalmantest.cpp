@@ -1,10 +1,10 @@
 #include <iostream>
 #include <time.h>
-
-#include <Kalman.h>
+#include <kalman.h>
 #include <timeutil.h>
 
 using namespace std;
+using namespace Eigen;
 
 int main(int argc, char* argv[])
 {
@@ -29,33 +29,3 @@ int main(int argc, char* argv[])
     }
     return 0;
 }
-
-/*
-
-#ifndef KALMAN_H
-#define KALMAN_H
-
-#include <Eigen/Dense>
-
-using namespace Eigen;
-
-class KalmanFilter {
-    
-    public:
-    
-        VectorXd X;
-        MatrixXd P;
-        MatrixXd F;
-        MatrixXd H;
-        MatrixXd R;
-        MatrixXd Q;
-        size_t M;
-        size_t N;
-        
-        KalmanFilter(size_t measurements, size_t states);
-        MatrixXd step(const MatrixXd& Z);
-};
-
-#endif
-
-*/

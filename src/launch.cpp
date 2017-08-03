@@ -5,9 +5,10 @@
 #include <stdbool.h>
 
 #include <timeutil.h>
-#include <SerialIMU.h>
-#include <PID.h>
-#include <BMP085.h>
+#include <ardimu.h>
+#include <pid.h>
+#include <bmp.h>
+#include <filebuffer.h>
 
 #define HDG_PID_P           0
 #define HDG_PID_I           0
@@ -70,7 +71,7 @@ typedef struct
 step_t;
 
 int rows, cols;
-FILE* steplog;
+FileBuffer steplog("log/steplog.txt");
 FILE* paramlog;
 FILE* events;
 
@@ -78,8 +79,8 @@ params_t params;
 step_t curr;
 step_t prev;
 
-SerialIMU imu;
-BMP085    bmp;
+Arduino imu;
+BMP085  bmp;
 
 PID heading_pid (HDG_PID_P,   HDG_PID_I,   HDG_PID_D  );
 PID pitch_pid   (PITCH_PID_P, PITCH_PID_I, PITCH_PID_D);
@@ -172,12 +173,16 @@ int setup()
     fflush(stdout);
     waitfor(100);
 
+    /*
     steplog = fopen("log/steplog.txt","w");
     if (steplog == 0)
     {
         fprintf(stderr, "Failed to open step log file\n");
         return 2;
     }
+    */
+
+    steplog.begin();
     paramlog = fopen("log/paramlog.txt","w");
     if (paramlog == 0)
     {
@@ -190,7 +195,7 @@ int setup()
         fprintf(stderr, "Failed to open events log file\n");
         return 4;
     }
-    fprintf(steplog, "Time Heading Pitch Roll RelAlt1 RelAlt2 LPFAlt M1 M2 M3 M4 Key\n");
+    steplog.push("Time Heading Pitch Roll RelAlt1 RelAlt2 LPFAlt M1 M2 M3 M4 Key\n");
     fprintf(paramlog, "Time Freq Offset HomeAltA HomeAltB HP HI HD PP PI PD "
             "RP RI RD AP AI AD LPFGain WAMGain Cmd\n");
 
@@ -356,7 +361,8 @@ void logstep()
 {
     timer();
 
-    fprintf(steplog, "%" PRIu64 " %8.2lf %8.2lf %8.2lf "
+    char str[200];
+    sprintf(str, "%" PRIu64 " %8.2lf %8.2lf %8.2lf "
             "%7.2lf %10.5lf %11.6lf "
             "%3d %3d %3d %3d %4d\n",
             curr.unix_time, curr.msg.heading, curr.msg.pitch, curr.msg.roll,
@@ -364,7 +370,7 @@ void logstep()
             (int) curr.motors[0], (int) curr.motors[1],
             (int) curr.motors[2], (int) curr.motors[3],
             curr.keypress);
-    fflush(steplog);
+    steplog.push(str);
 
     uint64_t dt = timer(micro);
     if (dt > 1000)
@@ -516,5 +522,5 @@ void execute()
 
 double trim(double val, double min, double max)
 {
-    return std::min(max, std::max(min, val));
+    return val > max ? max : val < min ? min : val;
 }

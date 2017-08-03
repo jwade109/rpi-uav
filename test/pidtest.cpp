@@ -5,7 +5,7 @@
 #include <string.h>
 #include <stdbool.h>
 
-#include <PID.h>
+#include <pid.h>
 #include <timeutil.h>
 
 using namespace std;

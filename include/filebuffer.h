@@ -3,9 +3,10 @@
 
 #include <string>
 #include <signal.h>
+#include <stdint.h>
 #include <unistd.h>
-#include <sys/mman.h>
 #include <stdio.h>
+#include <smem.h>
 
 const uint16_t buffer_len = 500;
 
@@ -104,13 +105,6 @@ private:
     FILE* out;
     char* buf;
     uint16_t* dat;
-
-    void* sharedmem(size_t size)
-    {
-        int prot = PROT_READ | PROT_WRITE;
-        int visib = MAP_ANONYMOUS | MAP_SHARED;
-        return mmap(0, size, prot, visib, 0, 0);
-    }
 
     void initbuffer()
     {

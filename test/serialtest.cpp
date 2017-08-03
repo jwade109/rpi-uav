@@ -1,12 +1,12 @@
 #include <stdio.h>
-#include <SerialIMU.h>
+#include <ardimu.h>
 #include <timeutil.h>
 
 int main(int argc, char** argv)
 {
     const int rate = 100; // hz
 
-    SerialIMU imu;
+    Arduino imu;
     int start = imu.begin();
     if (start != 0)
     {

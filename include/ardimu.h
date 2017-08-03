@@ -1,18 +1,19 @@
-#include <unistd.h>
-#include <sys/mman.h>
+#ifndef ARDIMU_H
+#define ARDIMU_H
+
 #include <fstream>
-#include <Message.h>
+#include <message.h>
 
 #define MSG_LEN 100
 
-class SerialIMU
+class Arduino 
 {
     public:
 
     Message last;
 
-    SerialIMU();
-    ~SerialIMU();
+    Arduino();
+    ~Arduino();
 
     int begin();
     Message get();
@@ -24,6 +25,7 @@ class SerialIMU
     char* mem;
     int child_pid;
 
-    char* create_shared_memory(size_t size);
     Message parseMessage(char* buffer);
 };
+
+#endif // ARDIMU_H
