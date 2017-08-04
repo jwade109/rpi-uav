@@ -45,7 +45,7 @@ int FileBuffer::begin()
         return 0;
     }
 
-    while (1) write();
+    while (1) flush();
     return 0;
 }
 

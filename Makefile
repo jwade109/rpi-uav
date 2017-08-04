@@ -22,8 +22,12 @@ bmptest: bin/bmptest
 serialtest: bin/serialtest
 filetest: bin/filetest
 
+# Target executable #
+
 launch.exe: $(SRC_OBJ)
 	$(LINK)
+
+# Test executables #
 
 bin/pidtest: .obj/test/pidtest.o .obj/src/timeutil.o .obj/src/pid.o
 	$(LINK)
@@ -40,8 +44,10 @@ bin/bmptest: .obj/test/bmptest.o .obj/src/bmp.o .obj/src/i2c.o .obj/src/timeutil
 bin/serialtest: .obj/test/serialtest.o .obj/src/ardimu.o .obj/src/timeutil.o .obj/src/smem.o
 	$(LINK)
 
-bin/filetest: .obj/test/filetest.o .obj/src/timeutil.o .obj/src/smem.o
+bin/filetest: .obj/test/filetest.o .obj/src/timeutil.o .obj/src/filebuffer.o .obj/src/smem.o
 	$(LINK)
+
+# Special dependencies #
 
 .obj/src/launch.o: src/launch.cpp
 	$(COMPILE)
@@ -49,8 +55,7 @@ bin/filetest: .obj/test/filetest.o .obj/src/timeutil.o .obj/src/smem.o
 .obj/src/ardimu.o: src/ardimu.cpp include/ardimu.h include/message.h
 	$(COMPILE)
 
-.obj/test/filetest.o: test/filetest.cpp include/filebuffer.h 
-	$(COMPILE)
+# Pattern object recipes #
 
 .obj/src/%.o: src/%.cpp include/%.h
 	$(COMPILE)

@@ -35,6 +35,8 @@ int main()
         waitfor(1, milli);
     }
     waitfor(10, milli);
+    fb.flush();
+    hd.flush();
 
     return 0;
 }
