@@ -3,7 +3,11 @@
 #include <stdlib.h>
 #include <ardimu.h>
 #include <unistd.h>
+#include <termios.h>
+#include <fcntl.h>
 #include <smem.h>
+
+const speed_t baud = B115200;
 
 Arduino::Arduino()
 {
@@ -27,6 +31,23 @@ int Arduino::begin()
         return 1;
     }
 
+    int fd = open("/dev/ttyACM0", O_RDWR);
+    if (fd < 0)
+    {
+        fprintf(stderr, "Arduino: Could not generate file descriptor\n");
+        return 2;
+    }
+    struct termios attr;
+    int rt = -tcgetattr(fd, &attr);
+    rt -= cfsetispeed(&attr, baud);
+    rt -= cfsetospeed(&attr, baud);
+    rt -= tcsetattr(fd, TCSANOW, &attr);
+    if (rt < 0)
+    {
+        fprintf(stderr, "Arduino: Failed to set baud rate\n");
+        return 3;
+    }
+
     //                 | 1 byte | 1 byte | sizeof(Message) |
     // memory mapping: | ON/OFF | RD/WRT | MESSAGE ------> |
     mem = (char*) sharedmem(sizeof(Message) + 2);
@@ -36,7 +57,7 @@ int Arduino::begin()
     if (!in)
     {
         fprintf(stderr, "Arduino: Could not open /dev/ttyACM0\n");
-        return 2;
+        return 4;
     }
 
     int pid = fork();
@@ -68,7 +89,7 @@ int Arduino::begin()
                 in.get(ch);
                 buffer[i] = ch;
             }
-            fprintf(stderr, "Arduino: Arduino reporting error: "
+            fprintf(stderr, "Arduino: Reporting error: "
                     "\"%s\"\n", buffer);
             while (1);
         }
@@ -101,6 +122,16 @@ Message Arduino::get()
 {
     if (mem[0] == 1 && mem[1]) last = *((Message*)(mem + 2));
     return last;
+}
+
+void Arduino::get(float& h, float& p, float& r, float& z, uint8_t& cal)
+{
+    Message m = get();
+    h = m.heading;
+    p = m.pitch;
+    r = m.roll;
+    z = m.alt;
+    cal = m.calib;
 }
 
 Message Arduino::parseMessage(char* buffer)

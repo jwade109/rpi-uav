@@ -17,7 +17,7 @@ int main(int argc, char** argv)
     for (;;)
     {
         Message m = imu.get();
-        printf("%.02lf\t%.02lf\t%.02lf\t%.02lf\n",
+        printf("%.02f\t%.02f\t%.02f\t%.02f\n",
             m.heading, m.pitch, m.roll, m.alt);
         waitfor(1000/rate, milli);
     }

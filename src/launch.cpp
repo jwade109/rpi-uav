@@ -36,37 +36,41 @@
 #define FREQUENCY           50
 #define DRAW_FREQ           20
 
+// sizeof(params_t) = 1 + 2*4 + 4*4*4 + 2*4 = 81 bytes
+
 typedef struct
 {
     uint8_t freq;           // frequency of updates in hz
-    double home_alt_imu;    // home point altitude from imu
-    double home_alt_bmp;    // home point altitude from bmp085
+    float z1h;              // home point altitude from imu
+    float z2h;              // home point altitude from bmp085
 
-    double hpidg[3];        // pid gains for yaw
-    double ppidg[3];        // pid gains for pitch
-    double rpidg[3];        // pid gains for roll
-    double apidg[3];        // pid gains for altitude
+    float apidg[4];         // pid gains for altitude
+    float hpidg[4];         // pid gains for yaw
+    float ppidg[4];         // pid gains for pitch
+    float rpidg[4];         // pid gains for roll
     
-    double g_lpf_alt;       // gain for alt low-pass filter
-    double g_wam_alt;       // weighted average gain towards alta
+    float gz_lpf;           // gain for alt low-pass filter
+    float gz_wam;           // weighted average gain towards alta
+    float mg;               // weight of vehicle as percent of max thrust
 }
 params_t;
 
+// sizeof(step_t) = 8 + 11*4 + 4 + 1 = 57 bytes
+
 typedef struct
 {
-    uint64_t unix_time;     // epoch time in millis
-    Message msg;            // message from arduino
-    double altb;            // alt from external bmp085
-    double dalt_lpf;        // wavg(alta,altb) - home, lpf
+    uint64_t t;                 // epoch time in millis
+    
+    float z1;                   // alt from arduino imu
+    float z2;                   // alt from external bmp085
+    float dz;                   // filtered altitude from home point
 
-    double hpid;            // heading pid response
-    double ppid;            // pitch pid response
-    double rpid;            // roll pid response
-    double apid;            // altitude pid response
-    double mg;              // base motor thrust from F - mg = 0
-    int16_t motors[4];      // stores thrust of each motor
-
-    int keypress;           // keypress of this cycle
+    float h, p, r;              // heading, pitch, roll
+    uint8_t calib;
+    
+    float zov, hov, pov, rov;   // respective pid response
+    
+    uint8_t motors[4];          // stores thrust of each motor
 }
 step_t;
 
@@ -76,32 +80,26 @@ FILE* paramlog;
 FILE* events;
 
 params_t params;
-step_t curr;
-step_t prev;
+step_t sc;
+step_t sp;
 
 Arduino imu;
 BMP085  bmp;
 
-PID heading_pid (HDG_PID_P,   HDG_PID_I,   HDG_PID_D  );
-PID pitch_pid   (PITCH_PID_P, PITCH_PID_I, PITCH_PID_D);
-PID roll_pid    (ROLL_PID_P,  ROLL_PID_I,  ROLL_PID_D );
-PID alt_pid     (ALT_PID_P,   ALT_PID_I,   ALT_PID_D  );
-
-char* buffer;
-uint8_t wptr = 0;
-char commands[NUM_CMDS][CMD_SIZE] = {"quit", "faster", "slower", "set alpha"};
+PID hpid(HDG_PID_P,   HDG_PID_I,   HDG_PID_D  );
+PID ppid(PITCH_PID_P, PITCH_PID_I, PITCH_PID_D);
+PID rpid(ROLL_PID_P,  ROLL_PID_I,  ROLL_PID_D );
+PID zpid(ALT_PID_P,   ALT_PID_I,   ALT_PID_D  );
 
 int stepno;
-bool paramchange;
-uint64_t time_offset;
 
 int setup();
 void iterate();
 void draw();
 void logstep();
+void logstepbin();
 void logparams();
-bool parse();
-void execute();
+
 double trim(double val, double min, double max);
 
 int main()
@@ -114,20 +112,15 @@ int main()
     }
     stepno = 0;
 
-    while (stepno < 1000 * params.freq)
+    while (stepno < 3)
     {
         uint64_t t = unixtime(milli) + 1;
         while (t % (1000/params.freq) > 0) t++;
         waituntil(t, milli);
   
         iterate();
-        bool exec = parse();
-        logstep();
+        logstepbin();
         
-        if (paramchange)
-            logparams();
-        if (exec)
-            execute();
         if (stepno % (params.freq/20) == 0)
             draw();
 
@@ -136,6 +129,7 @@ int main()
     fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
     fprintf(events, "Stepno limit reached, terminating\n");
     fflush(events);
+    steplog.flush();
     endwin();
 
     return 0;
@@ -146,7 +140,6 @@ int setup()
     timer();
 
     printf("Connecting to Arduino IMU...\n");
-    system("stty -F /dev/ttyACM0 115200");
     int imu_start = imu.begin();
     int bmp_start = bmp.begin();
 
@@ -173,15 +166,6 @@ int setup()
     fflush(stdout);
     waitfor(100);
 
-    /*
-    steplog = fopen("log/steplog.txt","w");
-    if (steplog == 0)
-    {
-        fprintf(stderr, "Failed to open step log file\n");
-        return 2;
-    }
-    */
-
     steplog.begin();
     paramlog = fopen("log/paramlog.txt","w");
     if (paramlog == 0)
@@ -200,15 +184,12 @@ int setup()
             "RP RI RD AP AI AD LPFGain WAMGain Cmd\n");
 
     memset(&params, 0, sizeof(params_t));
-    buffer = (char*) malloc(CMD_SIZE);
-    memset(buffer, 0, CMD_SIZE);
-    time_offset = unixtime(milli) - imu.get().millis;
-    params.home_alt_imu = imu.get().alt;
-    params.home_alt_bmp = bmp.getAltitude();
-    params.g_lpf_alt = ALT_LPF_G;
-    params.g_wam_alt = ALT_WAM_G;
+    
+    params.z1h = imu.get().alt;
+    params.z2h = bmp.getAltitude();
+    params.gz_lpf = ALT_LPF_G;
+    params.gz_wam = ALT_WAM_G;
     params.freq = FREQUENCY;
-    paramchange = true;
 
     initscr();
     noecho();
@@ -217,8 +198,8 @@ int setup()
     nodelay(stdscr, 1);
     keypad(stdscr, 1);
 
-    memset(&curr, 0, sizeof(step_t));
-    memset(&prev, 0, sizeof(step_t));
+    memset(&sc, 0, sizeof(step_t));
+    memset(&sc, 0, sizeof(step_t));
 
     uint64_t dt = timer(micro);
     if (dt > 1000)
@@ -235,36 +216,36 @@ void iterate()
 {
     timer();
 
-    memcpy(&prev, &curr, sizeof(step_t));
-    memset(&curr, 0, sizeof(step_t));
+    memcpy(&sp, &sc, sizeof(step_t));
+    memset(&sc, 0, sizeof(step_t));
     
-    curr.unix_time = unixtime(milli);
-    curr.msg = imu.get();
-    curr.altb = bmp.getAltitude();
+    sc.t = unixtime(milli);
+    imu.get(sc.h, sc.r, sc.p, sc.z1, sc.calib);
+    sc.z2 = bmp.getAltitude();
 
-    double da = curr.msg.alt - params.home_alt_imu;
-    double db = curr.altb - params.home_alt_bmp;
-    double average = da * params.g_wam_alt + db * (1 - params.g_wam_alt);
-    curr.dalt_lpf = average * (params.g_lpf_alt) +
-                    prev.dalt_lpf * (1 - params.g_lpf_alt);
-    curr.hpid = heading_pid.seek(curr.msg.heading, 150, 0.025);
-    curr.ppid = pitch_pid.seek(curr.msg.pitch, 0, 0.025);
-    curr.rpid = roll_pid.seek(curr.msg.roll, 0, 0.025);
-    curr.apid = alt_pid.seek(curr.dalt_lpf, 0, 0.025);
-    curr.mg = 35 / (cos(curr.msg.pitch * M_PI/180) * 
-              cos(curr.msg.roll * M_PI/180));
+    double dz1 = sc.z1 - params.z1h;
+    double dz2 = sc.z2 - params.z2h;
+    double zavg = dz1 * params.gz_wam + dz2 * (1 - params.gz_wam);
+    sc.dz = zavg * (params.gz_lpf) + sp.dz * (1 - params.gz_lpf);
+
+    sc.hov = hpid.seek(sc.h,  150, 0.025);
+    sc.pov = ppid.seek(sc.p,  0,   0.025);
+    sc.rov = rpid.seek(sc.r,  0,   0.025);
+    sc.zov = zpid.seek(sc.dz, 0,   0.025);
+
+    double hover = params.mg / (cos(sc.p * M_PI/180) * cos(sc.r * M_PI/180));
 
     double resp[4];
-    resp[0] = -curr.hpid - curr.ppid + curr.rpid + curr.apid + curr.mg;
-    resp[1] =  curr.hpid + curr.ppid + curr.rpid + curr.apid + curr.mg;
-    resp[2] = -curr.hpid + curr.ppid - curr.rpid + curr.apid + curr.mg;
-    resp[3] =  curr.hpid - curr.ppid - curr.rpid + curr.apid + curr.mg;
+    resp[0] = -sc.hov - sc.pov + sc.rov + sc.zov + hover;
+    resp[1] =  sc.hov + sc.pov + sc.rov + sc.zov + hover;
+    resp[2] = -sc.hov + sc.pov - sc.rov + sc.zov + hover;
+    resp[3] =  sc.hov - sc.pov - sc.rov + sc.zov + hover;
         
     for (int i = 0; i < 4; i++)
-        curr.motors[i] = trim(resp[i], 0, 100);
+        sc.motors[i] = trim(resp[i], 0, 100);
 
-    uint64_t dt = curr.unix_time - prev.unix_time;
-    if (dt > 1000/params.freq && prev.unix_time > 0)
+    uint64_t dt = sc.t - sp.t;
+    if (dt > 1000/params.freq && sp.t > 0)
     {
         fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
         fprintf(events, "Skips: dt = %d\n", dt);
@@ -299,54 +280,46 @@ void draw()
     }
 
     mvprintw(0, 0, "Drone Interface (%dx%d)", cols, rows);
-    mvprintw(2, 1, "Time:     %.03lf", curr.unix_time/1000.0);
-    mvprintw(3, 1, "IMU Time: %.03lf %.03lf %.03lf %d",
-        curr.msg.millis/1000.0,
-        (curr.unix_time - time_offset)/1000.0,
-        1000.0/(curr.unix_time - prev.unix_time),
-        stepno);
-    mvprintw(4, 1, "Heading:  %.2lf", curr.msg.heading);
-    mvprintw(5, 1, "Pitch:    %.2lf", curr.msg.pitch);
-    mvprintw(6, 1, "Roll:     %.2lf", curr.msg.roll);
+    mvprintw(2, 1, "Time: %.03lf %.03lf %d",
+        sc.t/1000.0, 1000.0/(sc.t - sp.t), stepno);
+    
+    mvprintw(4, 1, "Heading:  %.2f", sc.h);
+    mvprintw(5, 1, "Pitch:    %.2f", sc.p);
+    mvprintw(6, 1, "Roll:     %.2f", sc.r);
     mvprintw(7, 1, "Calib:    %d %d %d %d",
-        (curr.msg.calib >> 6) % 4, (curr.msg.calib >> 4) % 4,
-        (curr.msg.calib >> 2) % 2, curr.msg.calib % 4);
-    mvprintw(8, 1, "IMU Alt:  %.2lf", curr.msg.alt);
-    mvprintw(9, 1, "RPi Alt:  %.2f %.2f", curr.altb, params.g_wam_alt);
-    mvprintw(10,1, "Combined: %.2f %.2f", curr.dalt_lpf, params.g_lpf_alt);
+        (sc.calib >> 6) % 4, (sc.calib >> 4) % 4,
+        (sc.calib >> 2) % 2, sc.calib % 4);
+    
+    mvprintw(8, 1, "IMU Alt:  %.2f", sc.z1);
+    mvprintw(9, 1, "RPi Alt:  %.2f %.2f", sc.z2, params.gz_wam);
+    mvprintw(10,1, "Combined: %.2f %.2f", sc.dz, params.gz_lpf);
 
-    mvprintw(2, 2*cols/3, "H PID: %.2lf", curr.hpid);
-    mvprintw(3, 2*cols/3, "P PID: %.2lf", curr.ppid);
-    mvprintw(4, 2*cols/3, "R PID: %.2lf", curr.rpid);
-    mvprintw(5, 2*cols/3, "A PID: %.2lf", curr.apid);
-    mvprintw(5, 2*cols/3, "MG:    %.2lf", curr.mg);
+    mvprintw(2, 2*cols/3, "H PID: %.2f", sc.hov);
+    mvprintw(3, 2*cols/3, "P PID: %.2f", sc.pov);
+    mvprintw(4, 2*cols/3, "R PID: %.2f", sc.rov);
+    mvprintw(5, 2*cols/3, "A PID: %.2f", sc.zov);
 
     mvprintw(rc[1] - 2, dcc, "^");
     mvprintw(drc - 2, dcc, "X");
     mvprintw(drc, dcc - 2, "Y-Z");
 
     mvprintw(1, cols/3, "   P    I    D");
-    mvprintw(2, cols/3, "H: %.02lf %.02lf %.02lf",
-        heading_pid.Kp, heading_pid.Ki, heading_pid.Kd);
-    mvprintw(3, cols/3, "P: %.02lf %.02lf %.02lf",
-        pitch_pid.Kp, pitch_pid.Ki, pitch_pid.Kd);
-    mvprintw(4, cols/3, "R: %.02lf %.02lf %.02lf",
-        roll_pid.Kp, roll_pid.Ki, roll_pid.Kd);
-    mvprintw(5, cols/3, "A: %.02lf %.02lf %.02lf",
-        alt_pid.Kp, alt_pid.Ki, alt_pid.Kd);
+    mvprintw(2, cols/3, "H: %.02lf %.02lf %.02lf", hpid.Kp, hpid.Ki, hpid.Kd);
+    mvprintw(3, cols/3, "P: %.02lf %.02lf %.02lf", ppid.Kp, ppid.Ki, ppid.Kd);
+    mvprintw(4, cols/3, "R: %.02lf %.02lf %.02lf", rpid.Kp, rpid.Ki, rpid.Kd);
+    mvprintw(5, cols/3, "A: %.02lf %.02lf %.02lf", zpid.Kp, zpid.Ki, zpid.Kd);
         
     for (int i = 0; i < 4; i++)
     {
         for (int j = rc[i] - motor_bar_height; j <= rc[i] + motor_bar_height; j++)
         {
             int jr = 100*(rc[i] - j)/motor_bar_height;
-            if ((curr.motors[draw[i]] >= jr && jr >= 0) ||
-                (curr.motors[draw[i]] <= jr && jr <= 0))
+            if ((sc.motors[draw[i]] >= jr && jr >= 0) ||
+                (sc.motors[draw[i]] <= jr && jr <= 0))
                 mvprintw(j, cc[i], "#");
         }
-        mvprintw(rc[i], cc[i] - 1, "M%d:%d", draw[i] + 1, curr.motors[draw[i]]);
+        mvprintw(rc[i], cc[i] - 1, "M%d:%d", draw[i] + 1, sc.motors[draw[i]]);
     }
-    mvprintw(rows - 1, 1, ":%s", buffer);
 
     uint64_t dt = timer(micro);
     if (dt > 1000)
@@ -365,11 +338,9 @@ void logstep()
     sprintf(str, "%" PRIu64 " %8.2lf %8.2lf %8.2lf "
             "%7.2lf %10.5lf %11.6lf "
             "%3d %3d %3d %3d %4d\n",
-            curr.unix_time, curr.msg.heading, curr.msg.pitch, curr.msg.roll,
-            curr.msg.alt, curr.altb, curr.dalt_lpf,
-            (int) curr.motors[0], (int) curr.motors[1],
-            (int) curr.motors[2], (int) curr.motors[3],
-            curr.keypress);
+            sc.t, sc.h, sc.p, sc.r, sc.z1, sc.z2, sc.dz,
+            (int) sc.motors[0], (int) sc.motors[1],
+            (int) sc.motors[2], (int) sc.motors[3]);
     steplog.push(str);
 
     uint64_t dt = timer(micro);
@@ -381,10 +352,13 @@ void logstep()
     fflush(events);
 }
 
+void logstepbin()
+{
+    steplog.push((char*) &sc, sizeof(sc));
+}
+
 void logparams()
 {
-    timer();
-
     fprintf(paramlog, "%" PRIu64" %3d "
             "%6.2lf %9.5lf "
             "%6.2lf %6.2lf %6.2lf "
@@ -392,132 +366,14 @@ void logparams()
             "%6.2lf %6.2lf %6.2lf "
             "%6.2lf %6.2lf %6.2lf "
             "%4.2lf %4.2lf\n",
-            curr.unix_time, (int) params.freq,
-            params.home_alt_imu, params.home_alt_bmp,
-            heading_pid.Kp, heading_pid.Ki, heading_pid.Kd,
-            pitch_pid.Kp,   pitch_pid.Ki,   pitch_pid.Kd,
-            roll_pid.Kp,    roll_pid.Ki,    roll_pid.Kd,
-            alt_pid.Kp,     alt_pid.Ki,     alt_pid.Kd,
-            params.g_lpf_alt, params.g_wam_alt);
+            sc.t, (int) params.freq,
+            params.z1h, params.z2h,
+            hpid.Kp, hpid.Ki, hpid.Kd,
+            ppid.Kp, ppid.Ki, ppid.Kd,
+            rpid.Kp, rpid.Ki, rpid.Kd,
+            zpid.Kp, zpid.Ki, zpid.Kd,
+            params.gz_lpf, params.gz_wam);
     fflush(paramlog);
-    
-    paramchange = false;
-    
-    uint64_t dt = timer(micro);
-    if (dt > 1000)
-    {
-        fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
-        fprintf(events, "LogP: %" PRIu64 " us\n", dt);
-    }
-    fflush(events);
-}
-
-bool parse()
-{
-    timer();
-    bool exec = false;
-    int ch = curr.keypress = getch();
-    uint64_t getcht = timer(micro);
-    if (ch > -1)
-    {
-        fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
-        fprintf(events, "Parsing keypress: %d\n", ch);
-        fflush(events);
-    }
-
-    if (31 < ch && ch < 127 && wptr < CMD_SIZE - 1)
-    {
-        buffer[wptr] = ch;
-        wptr++;
-    }
-    else if (ch == KEY_BACKSPACE && wptr > 0)
-    {
-        wptr--;
-        buffer[wptr] = 0;
-    }
-    else if (ch == 10) // enter key
-    {
-        for (int i = 0; i < NUM_CMDS; i++)
-        {
-            if (strncmp(buffer, commands[i], strlen(commands[i])) == 0)
-            {
-                exec = true;
-            }
-        }
-        if (!exec)
-        {
-            memset(buffer, 0, CMD_SIZE);
-            wptr = 0;
-        }
-    }
-
-    uint64_t dt = timer(micro) + getcht;
-    if (dt > 2000)
-    {
-        fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
-        fprintf(events, "Parse: %" PRIu64 " us ", dt);
-        fprintf(events, "(getch() was %" PRIu64 " us)\n", getcht);
-    }
-    fflush(events);
-
-    return exec;
-}
-
-void execute()
-{
-    timer();
-    fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
-
-    if (strcmp(buffer, "faster") == 0)
-    {
-        int freq = params.freq + 1;
-        while (1000 % freq > 0)
-        {
-            freq++;
-        }
-        if (freq > 250) freq = 250;
-        else paramchange = true;
-        params.freq = freq;
-        fprintf(events, "New frequency: %" PRIu8 "\n", params.freq);
-    }
-    else if (strcmp(buffer, "slower") == 0)
-    {
-        int freq = params.freq - 1;
-        while (1000 % freq > 0)
-        {
-            freq--;
-        }
-        if (freq < 20) freq = 20;
-        else paramchange = true;
-        params.freq = freq;
-        fprintf(events, "New frequency: %" PRIu8 "\n", params.freq);
-    }
-    else if (strcmp(buffer, "quit") == 0)
-    {
-        fprintf(events, "Quitting\n");
-        fflush(events);
-        endwin();
-        exit(1);
-    }
-    else if (strncmp(buffer, "set alpha ", 10) == 0)
-    {
-        double arg = strtod(buffer + 10, 0);
-        params.g_lpf_alt = trim(arg, 0, 1);
-        paramchange = true;
-        fprintf(events, "New lpf alpha: %.4lf\n", params.g_lpf_alt);
-    }
-    else fprintf(events, "No valid command...\n");
-
-    uint64_t dt = timer(micro);
-    if (dt > 1000)
-    {
-        fprintf(events, "[%" PRIu64 "] ", unixtime(milli));
-        fprintf(events, "Exec: %" PRIu64 " us\n", dt);
-    }
-
-    fflush(events);
-    memset(buffer, 0, CMD_SIZE);
-    wptr = 0;
 }
 
 double trim(double val, double min, double max)

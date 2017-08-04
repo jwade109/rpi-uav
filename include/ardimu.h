@@ -16,6 +16,7 @@ class Arduino
     ~Arduino();
 
     int begin();
+    void get(float& h, float& p, float& r, float& z, uint8_t& cal);
     Message get();
 
     private:

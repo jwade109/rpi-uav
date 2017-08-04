@@ -6,11 +6,11 @@
 typedef struct
 {
     uint64_t millis;
-    double heading;
-    double pitch;
-    double roll;
+    float heading;
+    float pitch;
+    float roll;
     uint8_t calib;
-    double alt;
+    float alt;
 }
 Message;
 
