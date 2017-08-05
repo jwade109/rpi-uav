@@ -1,7 +1,5 @@
 INC = -I include/ -I /usr/local/include/eigen3
 LIB = -lwiringPi -lncurses
-SRC := $(wildcard src/*.cpp) $(wildcard test/*.cpp)
-OBJ := $(patsubst %.cpp, .obj/%.o, $(SRC))
 SRC_OBJ := $(patsubst src/%.cpp, .obj/src/%.o, $(wildcard src/*.cpp))
 
 CC = g++
