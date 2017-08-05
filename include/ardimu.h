@@ -2,7 +2,18 @@
 #define ARDIMU_H
 
 #include <fstream>
-#include <message.h>
+#include <inttypes.h>
+
+typedef struct
+{
+    uint64_t millis;
+    float heading;
+    float pitch;
+    float roll;
+    uint8_t calib;
+    float alt;
+}
+Message;
 
 #define MSG_LEN 100
 

@@ -12,8 +12,8 @@ OBJ_DIR = mkdir -p .obj/src .obj/test
 LINK = $(BIN_DIR); $(CC) $(L_FLAGS) $@ $^ $(LIB)
 COMPILE = $(OBJ_DIR); $(CC) $(C_FLAGS) $@ $< $(INC)
 
-all: launch.exe pidtest timetest kalmantest bmptest serialtest filetest
-test: pidtest timetest kalmantest bmptest serialtest filetest
+all: launch.exe test
+test: pidtest timetest kalmantest bmptest serialtest filetest filtertest
 
 pidtest: bin/pidtest
 timetest: bin/timetest
@@ -21,6 +21,7 @@ kalmantest: bin/kalmantest
 bmptest: bin/bmptest
 serialtest: bin/serialtest
 filetest: bin/filetest
+filtertest: bin/filtertest
 
 # Target executable #
 
@@ -47,12 +48,12 @@ bin/serialtest: .obj/test/serialtest.o .obj/src/ardimu.o .obj/src/timeutil.o .ob
 bin/filetest: .obj/test/filetest.o .obj/src/timeutil.o .obj/src/filebuffer.o .obj/src/smem.o
 	$(LINK)
 
+bin/filtertest: .obj/test/filtertest.o .obj/src/filters.o .obj/src/timeutil.o
+	$(LINK)
+
 # Special dependencies #
 
 .obj/src/launch.o: src/launch.cpp
-	$(COMPILE)
-
-.obj/src/ardimu.o: src/ardimu.cpp include/ardimu.h include/message.h
 	$(COMPILE)
 
 # Pattern object recipes #
