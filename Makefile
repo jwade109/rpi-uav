@@ -11,7 +11,7 @@ LINK = $(BIN_DIR); $(CC) $(L_FLAGS) $@ $^ $(LIB)
 COMPILE = $(OBJ_DIR); $(CC) $(C_FLAGS) $@ $< $(INC)
 
 all: launch.exe test
-test: pidtest timetest kalmantest bmptest serialtest filetest filtertest
+test: pidtest timetest kalmantest bmptest serialtest filetest filtertest dronetest
 
 pidtest: bin/pidtest
 timetest: bin/timetest
@@ -20,6 +20,7 @@ bmptest: bin/bmptest
 serialtest: bin/serialtest
 filetest: bin/filetest
 filtertest: bin/filtertest
+dronetest: bin/dronetest
 
 # Target executable #
 
@@ -47,6 +48,9 @@ bin/filetest: .obj/test/filetest.o .obj/src/timeutil.o .obj/src/filebuffer.o .ob
 	$(LINK)
 
 bin/filtertest: .obj/test/filtertest.o .obj/src/filters.o .obj/src/timeutil.o
+	$(LINK)
+
+bin/dronetest: .obj/test/dronetest.o .obj/src/drone.o .obj/src/filters.o .obj/src/filebuffer.o .obj/src/pid.o .obj/src/smem.o .obj/src/ardimu.o .obj/src/bmp.o .obj/src/i2c.o .obj/src/timeutil.o
 	$(LINK)
 
 # Special dependencies #
