@@ -4,7 +4,7 @@
 #include <ctime>
 #include <cmath>
 
-// #define DEBUG // if this is defined, external sensors are disabled
+#define DEBUG // if this is defined, external sensors are disabled
 
 Drone::Drone(Iter initial, Param cfg):
 

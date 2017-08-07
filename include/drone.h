@@ -29,18 +29,18 @@ Iter;
 typedef struct
 {
     uint8_t freq;               // frequency of updates in hz
-    float z1h;                  // home point altitude from imu
-    float z2h;                  // home point altitude from bmp085
+    double z1h;                 // home point altitude from imu
+    double z2h;                 // home point altitude from bmp085
 
-    float zpidg[4];             // pid gains for altitude
-    float hpidg[4];             // ' ' for yaw
-    float ppidg[4];             // ' ' for pitch
-    float rpidg[4];             // ' ' for roll
+    double zpidg[4];            // pid gains for altitude
+    double hpidg[4];            // ' ' for yaw
+    double ppidg[4];            // ' ' for pitch
+    double rpidg[4];            // ' ' for roll
 
-    float gz_lpf;               // gain for alt low-pass filter
-    float gz_wam;               // weighted average gain towards alta
+    double gz_lpf;              // gain for alt low-pass filter
+    double gz_wam;              // weighted average gain towards alta
     uint16_t maxmrate;          // max motor thrust rate of change in hz
-    float mg;                   // weight of vehicle as percent of max thrust
+    double mg;                  // weight of vehicle as percent of max thrust
 }
 Param;
 
