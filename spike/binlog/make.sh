@@ -1,1 +1,1 @@
-g++ -g -std=c++11 main.cpp ../../src/smem.cpp ../../src/filebuffer.cpp ../../src/drone.cpp ../../src/ardimu.cpp ../../src/i2c.cpp ../../src/timeutil.cpp ../../src/bmp.cpp ../../src/filters.cpp ../../src/pid.cpp -o binlog -I../../include/ -lwiringPi
+g++ -g -std=c++11 main.cpp ../../src/dtypes.cpp ../../src/smem.cpp ../../src/filebuffer.cpp ../../src/timeutil.cpp -o binlog -I../../include/ -lwiringPi

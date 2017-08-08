@@ -4,9 +4,8 @@
 #include <stdio.h>
 #include <smem.h>
 
-const uint16_t buffer_len = 500;
-
-FileBuffer::FileBuffer(const std::string fn) : filename(fn), child_pid(-1)
+FileBuffer::FileBuffer(const std::string fn, uint16_t len):
+    filename(fn), child_pid(-1), buffer_len(len)
 {
     out = fopen(filename.c_str(), "w");
     if (out == 0)
@@ -89,11 +88,14 @@ uint16_t FileBuffer::available()
 
 void FileBuffer::put(char c)
 {
+    static int x;
     if (full())
     {
-        fprintf(stderr, "Buffer full!\n");
+        x++;
+        fprintf(stderr, "%s: Buffer full! (%d)\n", filename.c_str(), x);
         return;
     }
+    x = 0;
     buf[(*end())] = c;
     *end() = (*end() + 1) % *size();
 }

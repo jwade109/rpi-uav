@@ -8,7 +8,7 @@ class FileBuffer
 {
     public:
 
-    FileBuffer(const std::string fn);
+    FileBuffer(const std::string fn, uint16_t len);
     ~FileBuffer();
 
     int begin();
@@ -24,6 +24,7 @@ class FileBuffer
     FILE* out;
     char* buf;
     uint16_t* dat;
+    uint16_t buffer_len;
 
     void initbuffer();
 

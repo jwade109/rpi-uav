@@ -65,7 +65,7 @@ int Arduino::begin()
     {
         child_pid = pid;
         while(mem[0] == 0);
-        return mem[0] == 1 ? 0 : 3;
+        return mem[0] == 1 ? 0 : 5;
     }
 
     size_t ptr = 0;
@@ -79,7 +79,6 @@ int Arduino::begin()
         if (ch == '#') mem[0] = 1;
         else if (ch == '!')
         {
-            mem[0] = 2;
             memset(buffer, 0, MSG_LEN);
             buffer[0] = '!';
             in.get(ch);
@@ -91,6 +90,7 @@ int Arduino::begin()
             }
             fprintf(stderr, "Arduino: Reporting error: "
                     "\"%s\"\n", buffer);
+            mem[0] = 2;
             while (1);
         }
         else if (ch == '<' && mem[0] == 1)
