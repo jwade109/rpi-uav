@@ -8,8 +8,8 @@
 
 Drone::Drone(Iter initial, Param cfg):
 
-    dat("log/data.bin"),
-    err("log/error.txt"),
+    dat("log/data.bin", 1000),
+    err("log/error.txt", 500),
     
     zpid(cfg.zpidg[0], cfg.zpidg[1], cfg.zpidg[2], (uint16_t) cfg.zpidg[3]),
     hpid(cfg.zpidg[0], cfg.hpidg[1], cfg.hpidg[2], (uint16_t) cfg.hpidg[3]),
@@ -165,7 +165,7 @@ void Drone::gettargets(Iter& state)
 
 void Drone::writeparams(Param cfg)
 {
-    FileBuffer fb("log/params.bin");
+    FileBuffer fb("log/params.bin", 200);
     fb.push("How to write param files? "
             "The world may never know");
     fb.flush();

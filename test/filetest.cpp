@@ -9,7 +9,7 @@ int main()
     int wait = 5;
     unit_t prec = milli;
     
-    FileBuffer fb("log/data.txt"), hd("log/hexdump.bin");
+    FileBuffer fb("log/data.txt", 500), hd("log/hexdump.bin", 500);
     fb.begin();
     hd.begin();
 
