@@ -40,15 +40,6 @@ typedef struct
 }
 Param;
 
-enum pformat_t
-{
-    FREQ        = 0x1,
-    HOMEALT     = 0x2,
-    PID         = 0x4,
-    GAINS       = 0x8,
-    ALL         = 0xff
-};
-
 int tobuffer(Param& prm, char* buffer);
 
 int tobuffer(Iter& it, char* buffer);
@@ -57,8 +48,8 @@ int frombuffer(Param& prm, char* buffer);
 
 int frombuffer(Iter& it, char* buffer);
 
-std::string tostring(Param& prm, pformat_t);
+std::string tostring(Param prm);
 
-std::string tostring(Iter& it);
+std::string tostring(Iter it);
 
 #endif // DTYPES_H

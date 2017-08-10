@@ -1,6 +1,8 @@
 #include <sys/time.h>
 #include <inttypes.h>
 #include <timeutil.h>
+#include <chrono>
+#include <thread>
 
 uint64_t unixtime(unit_t precision)
 {
@@ -14,23 +16,18 @@ uint64_t unixtime(unit_t precision)
 
 void waitfor(uint64_t dt, unit_t unit)
 {
-    uint64_t start = unixtime(micro);
-    uint64_t now = start;
-    dt = dt * unit;
-    while (start + dt > now)
-    {
-        now = unixtime(micro);
-    }
+    if (unit == milli)
+        std::this_thread::sleep_for(std::chrono::milliseconds(dt));
+    else if (unit == micro)
+        std::this_thread::sleep_for(std::chrono::microseconds(dt));
+    else if (unit == sec)
+        std::this_thread::sleep_for(std::chrono::seconds(dt));
 }
 
 void waituntil(uint64_t time, unit_t unit)
 {
     uint64_t now = unixtime(micro);
-    time = time * unit;
-    while(now < time)
-    {
-        now = unixtime(micro);
-    }
+    waitfor(time - now, micro);
 }
 
 uint64_t timer(unit_t unit)

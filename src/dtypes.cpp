@@ -138,47 +138,36 @@ int frombuffer(Iter& it, char* buffer)
     return rptr;
 }
 
-std::string tostring(Param& prm, pformat_t f)
+std::string tostring(Param prm)
 {
     std::string line;
-    if (f & FREQ)
-        line += std::to_string(prm.freq) + " ";
-    if (f & HOMEALT)
-    {
-        line += std::to_string(prm.z1h) + " ";
-        line += std::to_string(prm.z2h) + " ";
-    }
-    if (f & GAINS)
-    {
-        line += std::to_string(prm.zpidg[0]) + " ";
-        line += std::to_string(prm.zpidg[1]) + " ";
-        line += std::to_string(prm.zpidg[2]) + " ";
-        line += std::to_string(prm.zpidg[3]) + " ";
-        line += std::to_string(prm.zpidg[0]) + " ";
-        line += std::to_string(prm.zpidg[1]) + " ";
-        line += std::to_string(prm.zpidg[2]) + " ";
-        line += std::to_string(prm.zpidg[3]) + " ";
-        line += std::to_string(prm.zpidg[0]) + " ";
-        line += std::to_string(prm.zpidg[1]) + " ";
-        line += std::to_string(prm.zpidg[2]) + " ";
-        line += std::to_string(prm.zpidg[3]) + " ";
-        line += std::to_string(prm.zpidg[0]) + " ";
-        line += std::to_string(prm.zpidg[1]) + " ";
-        line += std::to_string(prm.zpidg[2]) + " ";
-        line += std::to_string(prm.zpidg[3]) + " ";
-    }
-    if (f & GAINS)
-    {
-        line += std::to_string(prm.gz_lpf) + " ";
-        line += std::to_string(prm.gz_wam) + " ";
-        line += std::to_string(prm.maxmrate) + " ";
-        line += std::to_string(prm.mg) + " ";
-    }
-    line.pop_back();
+    line += std::to_string(prm.freq) + " ";
+    line += std::to_string(prm.z1h) + " ";
+    line += std::to_string(prm.z2h) + " ";
+    line += std::to_string(prm.zpidg[0]) + " ";
+    line += std::to_string(prm.zpidg[1]) + " ";
+    line += std::to_string(prm.zpidg[2]) + " ";
+    line += std::to_string(prm.zpidg[3]) + " ";
+    line += std::to_string(prm.zpidg[0]) + " ";
+    line += std::to_string(prm.zpidg[1]) + " ";
+    line += std::to_string(prm.zpidg[2]) + " ";
+    line += std::to_string(prm.zpidg[3]) + " ";
+    line += std::to_string(prm.zpidg[0]) + " ";
+    line += std::to_string(prm.zpidg[1]) + " ";
+    line += std::to_string(prm.zpidg[2]) + " ";
+    line += std::to_string(prm.zpidg[3]) + " ";
+    line += std::to_string(prm.zpidg[0]) + " ";
+    line += std::to_string(prm.zpidg[1]) + " ";
+    line += std::to_string(prm.zpidg[2]) + " ";
+    line += std::to_string(prm.zpidg[3]) + " ";
+    line += std::to_string(prm.gz_lpf) + " ";
+    line += std::to_string(prm.gz_wam) + " ";
+    line += std::to_string(prm.maxmrate) + " ";
+    line += std::to_string(prm.mg);
     return line;
 }
 
-std::string tostring(Iter& it)
+std::string tostring(Iter it)
 {
     std::string line;
     line += std::to_string(it.t) + " ";
@@ -200,7 +189,6 @@ std::string tostring(Iter& it)
     line += std::to_string(it.motors[0]) + " ";
     line += std::to_string(it.motors[1]) + " ";
     line += std::to_string(it.motors[2]) + " ";
-    line += std::to_string(it.motors[3]) + " ";
-    line.pop_back();
+    line += std::to_string(it.motors[3]);
     return line;
 }
