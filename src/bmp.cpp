@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
+#include <sys/prctl.h>
 #include <smem.h>
 #include <bmp.h>
 #include <timeutil.h>
@@ -129,6 +130,8 @@ int BMP085::begin(uint8_t addr, bmp085_mode_t mode)
         child_pid = pid;
         return 0;
     }
+
+    prctl(PR_SET_NAME, "bmp");
 
     if ((mode > ULTRAHIGHRES) || (mode < 0))
     {

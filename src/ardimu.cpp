@@ -1,10 +1,11 @@
 #include <string.h>
 #include <signal.h>
 #include <stdlib.h>
-#include <ardimu.h>
 #include <unistd.h>
 #include <termios.h>
 #include <fcntl.h>
+#include <sys/prctl.h>
+#include <ardimu.h>
 #include <smem.h>
 
 const speed_t baud = B115200;
@@ -67,6 +68,8 @@ int Arduino::begin()
         while(mem[0] == 0);
         return mem[0] == 1 ? 0 : 5;
     }
+
+    prctl(PR_SET_NAME, "ardimu");
 
     size_t ptr = 0;
     mem[0] = 0;

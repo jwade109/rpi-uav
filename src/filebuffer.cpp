@@ -3,6 +3,9 @@
 #include <unistd.h>
 #include <stdio.h>
 #include <smem.h>
+#include <sys/prctl.h>
+
+#include <assert.h>
 
 FileBuffer::FileBuffer(const std::string fn, uint16_t len):
     filename(fn), child_pid(-1), buffer_len(len)
@@ -26,6 +29,7 @@ FileBuffer::FileBuffer(const std::string fn, uint16_t len):
 FileBuffer::~FileBuffer()
 {
     if (child_pid > 0) kill(child_pid, SIGKILL);
+    printf("sigkill %d\n", child_pid);
     fclose(out);
 }
 
@@ -40,11 +44,19 @@ int FileBuffer::begin()
     int pid = fork();
     if (pid > 0)
     {
+        printf("new fb daemon pid: %d\n", pid);
         child_pid = pid;
         return 0;
     }
 
-    while (1) flush();
+    // child_pid = getpid();
+    std::string name = "buffer " + filename;
+    prctl(PR_SET_NAME, name.c_str());
+
+    while (1)
+    {
+        flush();
+    }
     return 0;
 }
 
