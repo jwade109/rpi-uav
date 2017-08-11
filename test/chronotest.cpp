@@ -1,4 +1,5 @@
 #include <chrono>
+#include <fstream>
 #include <iostream>
 #include <thread>
 
@@ -31,16 +32,19 @@ int main()
     }
     std::cout << ns3.count() << " ns" << std::endl;
 
-    std::cout << "Print 30 lines at start + 5*i ms" << std::endl;
+    std::ofstream log;
+    log.open("log/test.txt", std::ios::out);
+
+    std::cout << "Print 300 lines at start + 5*i ms" << std::endl;
     auto start = steady_clock::now();
     auto wait = milliseconds(5);
-    for (int i = 0; i < 30; i++)
+    auto time = milliseconds(0);
+    for (int i = 0; i < 300; i++)
     {
-        auto now = duration_cast<milliseconds>(steady_clock::
-            now().time_since_epoch());
-        std::cout << now.count() << std::endl;
-        auto waituntil = start + wait * (i + 1);
-        std::this_thread::sleep_until(waituntil);
+        auto real = duration_cast<milliseconds>(steady_clock::now() - start);
+        log << real.count() << std::endl;
+        time += wait;
+        std::this_thread::sleep_until(start + time);
     }
     std::cout << "Finished." << std::endl;
 
