@@ -1,14 +1,9 @@
-#include <stdio.h>
 #include <stdbool.h>
-#include <stdint.h>
 #include <pid.h>
 
-PID::PID(double Kp, double Ki, double Kd, uint16_t max)
+PID::PID(double Kp, double Ki, double Kd, uint16_t max):
+    Kp(Kp), Ki(Ki), Kd(Kd), max_int(max)
 {
-    this->Kp = Kp;
-    this->Ki = Ki;
-    this->Kd = Kd;
-    max_int = max;
     reset();
 }
 

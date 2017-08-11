@@ -6,7 +6,10 @@
 #include <sys/prctl.h>
 #include <smem.h>
 #include <bmp.h>
-#include <timeutil.h>
+#include <thread>
+#include <chrono>
+
+using namespace std::chrono;
 
 BMP085::BMP085()
 {
@@ -55,7 +58,7 @@ int32_t BMP085::readRawTemperature(void)
         return 27898;
     #else
         i2c.write8(BMP085_REGISTER_CONTROL, BMP085_REGISTER_READTEMPCMD);
-        waitfor(5, milli);
+        std::this_thread::sleep_for(milliseconds(5));
         return i2c.read16_BE(BMP085_REGISTER_TEMPDATA);
     #endif
 }
@@ -69,17 +72,17 @@ int32_t BMP085::readRawPressure(void)
         switch(bmp085Mode)
         {
             case ULTRALOWPOWER:
-                waitfor(5, milli);
+                std::this_thread::sleep_for(milliseconds(5));
                 break;
             case STANDARD:
-                waitfor(8, milli);
+                std::this_thread::sleep_for(milliseconds(8));
                 break;
             case HIGHRES:
-                waitfor(14, milli);
+                std::this_thread::sleep_for(milliseconds(14));
                 break;
             case ULTRAHIGHRES:
             default:
-                waitfor(26, milli);
+                std::this_thread::sleep_for(milliseconds(26));
                 break;
         }
 

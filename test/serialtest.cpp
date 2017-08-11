@@ -1,9 +1,12 @@
 #include <stdio.h>
 #include <ardimu.h>
-#include <timeutil.h>
+#include <chrono>
+#include <thread>
 
 int main(int argc, char** argv)
 {
+    using namespace std::chrono;
+
     const int rate = 100; // hz
 
     Arduino imu;
@@ -13,13 +16,13 @@ int main(int argc, char** argv)
         fprintf(stderr, "Error initializing IMU: %d\n", start);
         return 1;
     }
-    waitfor(1, sec);
+    std::this_thread::sleep_for(seconds(1));
     for (;;)
     {
         Message m = imu.get();
         printf("%.02f\t%.02f\t%.02f\t%.02f\n",
             m.heading, m.pitch, m.roll, m.alt);
-        waitfor(1000/rate, milli);
+        std::this_thread::sleep_for(milliseconds(1000/rate));
     }
     return 0;
 }

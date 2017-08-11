@@ -1,21 +1,31 @@
 #include <stdio.h>
 #include <bmp.h>
-#include <timeutil.h>
+#include <chrono>
+#include <thread>
 
 int main()
 {
+    using namespace std::chrono;
+
     BMP085 bmp;
-
     int status = bmp.begin(0x77);
-
-    uint64_t start = unixtime(milli); 
-    for (; status == 0;)
+    if (status)
     {
-        printf("[%" PRIu64 "] ", unixtime(milli));
+        printf("BMP init error: %d\n", status);
+        return 1;
+    }
+
+    auto start = steady_clock::now();
+    auto wait = milliseconds(10);
+    auto dur = milliseconds(0);
+    while (dur < minutes(2))
+    {
+        printf("[%llu]\t", dur.count());
         printf("%.02lf *C\t", bmp.getTemperature());
         printf("%.02lf Pa\t", bmp.getPressure());
         printf("%.02lf m\n", bmp.getAltitude());
-        waituntil(start+=10, milli);
+        dur += wait;
+        std::this_thread::sleep_until(start + dur);
     }
     if (status) printf("No BMP085 found. (%d)\n", status);
 

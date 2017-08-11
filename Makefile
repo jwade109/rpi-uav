@@ -11,8 +11,10 @@ LINK = $(BIN_DIR); $(CC) $(L_FLAGS) $@ $^ $(LIB)
 COMPILE = $(OBJ_DIR); $(CC) $(C_FLAGS) $@ $< $(INC)
 
 all: launch.exe test
-test: pidtest timetest kalmantest bmptest serialtest filetest filtertest dronetest
+test: pidtest kalmantest bmptest serialtest filtertest dronetest chronotest iostest
 
+chronotest: bin/chronotest
+iostest: bin/iostest
 pidtest: bin/pidtest
 timetest: bin/timetest
 kalmantest: bin/kalmantest
@@ -29,28 +31,34 @@ launch.exe: $(SRC_OBJ)
 
 # Test executables #
 
-bin/pidtest: .obj/test/pidtest.o .obj/src/timeutil.o .obj/src/pid.o
+bin/pidtest: .obj/test/pidtest.o .obj/src/pid.o
 	$(LINK)
 
 bin/timetest: .obj/test/timetest.o .obj/src/timeutil.o
 	$(LINK)
 
-bin/kalmantest: .obj/test/kalmantest.o .obj/src/kalman.o .obj/src/timeutil.o
+bin/kalmantest: .obj/test/kalmantest.o .obj/src/kalman.o 
 	$(LINK)
 
-bin/bmptest: .obj/test/bmptest.o .obj/src/bmp.o .obj/src/i2c.o .obj/src/timeutil.o .obj/src/smem.o
+bin/bmptest: .obj/test/bmptest.o .obj/src/bmp.o .obj/src/i2c.o .obj/src/smem.o
 	$(LINK)
 
-bin/serialtest: .obj/test/serialtest.o .obj/src/ardimu.o .obj/src/timeutil.o .obj/src/smem.o
+bin/serialtest: .obj/test/serialtest.o .obj/src/ardimu.o .obj/src/smem.o
 	$(LINK)
 
 bin/filetest: .obj/test/filetest.o .obj/src/timeutil.o .obj/src/filebuffer.o .obj/src/smem.o
 	$(LINK)
 
-bin/filtertest: .obj/test/filtertest.o .obj/src/filters.o .obj/src/timeutil.o
+bin/filtertest: .obj/test/filtertest.o .obj/src/filters.o
 	$(LINK)
 
 bin/dronetest: .obj/test/dronetest.o .obj/src/drone.o .obj/src/filters.o .obj/src/filebuffer.o .obj/src/pid.o .obj/src/smem.o .obj/src/ardimu.o .obj/src/bmp.o .obj/src/i2c.o .obj/src/timeutil.o
+	$(LINK)
+
+bin/chronotest: .obj/test/chronotest.o
+	$(LINK)
+
+bin/iostest: .obj/test/iostest.o
 	$(LINK)
 
 # Special dependencies #

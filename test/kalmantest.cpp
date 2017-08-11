@@ -1,9 +1,11 @@
 #include <iostream>
 #include <time.h>
 #include <kalman.h>
-#include <timeutil.h>
+#include <chrono>
+#include <thread>
 
 using namespace std;
+using namespace std::chrono;
 using namespace Eigen;
 
 int main(int argc, char* argv[])
@@ -25,7 +27,7 @@ int main(int argc, char* argv[])
 	cout << z(0) << "\t" << z(1) << "\t\t" << x(0) << "\t" << x(1);
         cout << "\t\t" << 10 - x(0) << "\t" << 10 - x(1) << endl;
 
-	waitfor(100, milli);
+        this_thread::sleep_for(milliseconds(100));
     }
     return 0;
 }

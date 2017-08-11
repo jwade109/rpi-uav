@@ -1,25 +1,27 @@
-#include <stdio.h>
 #include <iostream>
+#include <iomanip>
 #include <fstream>
-#include <stdlib.h>
-#include <string.h>
-#include <stdbool.h>
+#include <thread>
+#include <cstdlib>
+#include <cstring>
+#include <cstdbool>
+#include <chrono>
 
 #include <pid.h>
-#include <timeutil.h>
-
-using namespace std;
 
 bool verbose = false;
 bool toFile = false;
 int whack = -1;
-double external_error = 0;
-ofstream dataFile;
+double error_ext = 0;
+std::ofstream dataFile;
 
 int main(int argc, char** argv)
 {
-    double position = 0, setpoint = 10, dt = 0.01;
-    double P = 1, I = 0.02, D = 2;
+    using namespace std::chrono;
+    typedef std::chrono::duration<double> fsec;
+
+    double position = 0, setpoint = 10, P = 1, I = 0.02, D = 2;
+    auto dt = milliseconds(10);
 
     for (int i = 1; i < argc; i++)
     {
@@ -69,7 +71,7 @@ int main(int argc, char** argv)
         else if (strcmp(argv[i], "--external") == 0 || strcmp(argv[i], "-e") == 0)
         {
             i++;
-            sscanf(argv[i], "%lf", &external_error);
+            sscanf(argv[i], "%lf", &error_ext);
         }
         else if (strcmp(argv[i], "--to-file") == 0 || strcmp(argv[i], "-f") == 0)
         {
@@ -77,63 +79,65 @@ int main(int argc, char** argv)
         }
         else
         {
-            printf("invalid arguments. usage:\n");
-            printf("-P [Kp] -I [Ki] -D [Kd]     tune individual controller gains\n");
-            printf("-t --tune [Kp Ki Kd]        tune controller gain values\n");
-            printf("-v --verbose                display P-I-D responses\n");
-            printf("-i --initial [val]          set process variable initial value\n");
-            printf("-s --setpoint [val]         set setpoint value\n");
-            printf("-w --whack [val]            cause purturbation at given time\n");
-            printf("-e --external [val]         simulate discrepancy between plant and model\n");
-            printf("-f --to-file                export data to a text file\n");
+            std::cout << "invalid arguments. usage:"
+                      << "-P [Kp] -I [Ki] -D [Kd]     tune individual controller gains\n"
+                      << "-t --tune [Kp Ki Kd]        tune controller gain values\n"
+                      << "-v --verbose                display P-I-D responses\n"
+                      << "-i --initial [val]          set process variable initial value\n"
+                      << "-s --setpoint [val]         set setpoint value\n"
+                      << "-w --whack [val]            cause purturbation at given time\n"
+                      << "-e --external [val]         simulate discrepancy between plant and model\n"
+                      << "-f --to-file                export data to a text file\n" << std::endl;
             return 1;
         }
     }
 
     if (toFile)
     {
-        dataFile.open("pid.txt", ios::out);
+        dataFile.open("pid.txt", std::ios::out);
     }
 
     PID control(P, I, D, -1);
-    double velocity = 0;
+    double vel = 0;
     int count = 0;
     
     if (verbose)
     {
-        printf("Time\tP\tI\tD\tOP\tPV\t");
+        std::cout << "Time\tP\tI\tD\tOP\tPV\t";
     }
     else
     {
-        printf("Time\tOP\tPV\t");
+        std::cout << "Time\tOP\tPV\t";
     }
-    printf("Kd: %.2f\tKi: %.2f\tKd: %.2f\tSetpoint: %.2f\n",
-        control.Kp, control.Ki, control.Kd, setpoint);
-    waitfor(2, sec);
+    std::cout << "Kd: " << std::setprecision(3) << control.Kp << " "
+              << "Ki: " << std::setprecision(3) << control.Ki << " "
+              << "Kd: " << std::setprecision(3) << control.Kd << " "
+              << "Setpoint: " << std::setprecision(3) << setpoint << std::endl;
+    std::this_thread::sleep_for(seconds(2));
     
-    uint64_t start_time = unixtime(micro);
+    auto start = steady_clock::now();
 
-    for (int iter = 0; iter < 60/dt; iter++)
+    for (auto t = milliseconds(0); t < minutes(1); t += dt)
     {
-        double t = iter * dt;
-        double response = control.seek(position, setpoint, dt);
-        velocity += (response - external_error) * dt;
+        double resp = control.seek(position, setpoint,
+                duration_cast<fsec>(dt).count());
+        vel += (resp - error_ext) * duration_cast<fsec>(dt).count();
         if (count == whack * 100)
         {
             printf("-- WHACK --\n");
-            velocity = -setpoint * 2;
+            vel = -setpoint * 2;
         }
-        position += velocity * dt;
-        printf("%.2f:\t", t);
+        position += vel * duration_cast<fsec>(dt).count();
+        printf("%.2f:\t", duration_cast<fsec>(t).count());
         if (verbose)
         {
             printf("%.2f\t%.2f\t%.2f\t%.2f\t",
                 control.p_response, control.i_response,
-                control.d_response, response);
+                control.d_response, resp);
         }
         else
         {
-            printf("%.2f\t", response);
+            printf("%.2f\t", resp);
         }
         printf("%.2f\t", position);
         for (int i = 0; i < 100; i++)
@@ -146,13 +150,13 @@ int main(int argc, char** argv)
                 printf(" ");
         }
         printf("\n");
-        uint64_t time = start_time + (t + dt) * sec;
         if (toFile)
         {
-            dataFile << t << "   " << position << endl;
+            dataFile << duration_cast<fsec>(t).count()
+                     << "\t" << position << std::endl;
             dataFile.flush();
         }
-        waituntil(time, micro);
+        std::this_thread::sleep_until(start + t + dt);
         count++;
     }
 }
