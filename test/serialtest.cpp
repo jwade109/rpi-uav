@@ -9,7 +9,7 @@ int main(int argc, char** argv)
 
     const int rate = 100; // hz
 
-    Arduino imu;
+    uav::Arduino imu;
     int start = imu.begin();
     if (start != 0)
     {
@@ -19,7 +19,7 @@ int main(int argc, char** argv)
     std::this_thread::sleep_for(seconds(1));
     for (;;)
     {
-        Message m = imu.get();
+        uav::Message m = imu.get();
         printf("%.02f\t%.02f\t%.02f\t%.02f\n",
             m.heading, m.pitch, m.roll, m.alt);
         std::this_thread::sleep_for(milliseconds(1000/rate));

@@ -7,6 +7,13 @@ int main()
 {
     using namespace std::chrono;
 
+    std::cout << "Current epoch time: ";
+    auto epoch = system_clock::now().time_since_epoch();
+    std::cout << duration_cast<seconds>(epoch).count() << " s" << std::endl;
+    std::cout << "Time since boot: ";
+    auto other = steady_clock::now().time_since_epoch();
+    std::cout << duration_cast<seconds>(other).count() << " s" << std::endl;
+
     std::cout << "Wait for 2500 ms:\t" << std::flush;
     steady_clock::time_point t1 = steady_clock::now();
     std::this_thread::sleep_until(t1 + milliseconds(2500));

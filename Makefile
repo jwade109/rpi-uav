@@ -10,8 +10,8 @@ OBJ_DIR = mkdir -p .obj/src .obj/test
 LINK = $(BIN_DIR); $(CC) $(L_FLAGS) $@ $^ $(LIB)
 COMPILE = $(OBJ_DIR); $(CC) $(C_FLAGS) $@ $< $(INC)
 
-all: launch.exe test
-test: pidtest kalmantest bmptest serialtest filtertest dronetest chronotest iostest
+all: launch.exe tests
+tests: pidtest kalmantest bmptest serialtest filtertest ctrltest chronotest iostest
 
 chronotest: bin/chronotest
 iostest: bin/iostest
@@ -22,7 +22,7 @@ bmptest: bin/bmptest
 serialtest: bin/serialtest
 filetest: bin/filetest
 filtertest: bin/filtertest
-dronetest: bin/dronetest
+ctrltest: bin/ctrltest
 
 # Target executable #
 
@@ -52,7 +52,7 @@ bin/filetest: .obj/test/filetest.o .obj/src/timeutil.o .obj/src/filebuffer.o .ob
 bin/filtertest: .obj/test/filtertest.o .obj/src/filters.o
 	$(LINK)
 
-bin/dronetest: .obj/test/dronetest.o .obj/src/drone.o .obj/src/filters.o .obj/src/filebuffer.o .obj/src/pid.o .obj/src/smem.o .obj/src/ardimu.o .obj/src/bmp.o .obj/src/i2c.o .obj/src/timeutil.o
+bin/ctrltest: .obj/test/ctrltest.o .obj/src/control.o .obj/src/dtypes.o .obj/src/filters.o .obj/src/pid.o .obj/src/smem.o .obj/src/ardimu.o .obj/src/bmp.o .obj/src/i2c.o
 	$(LINK)
 
 bin/chronotest: .obj/test/chronotest.o
