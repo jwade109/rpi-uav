@@ -11,13 +11,12 @@ LINK = $(BIN_DIR); $(CC) $(L_FLAGS) $@ $^ $(LIB)
 COMPILE = $(OBJ_DIR); $(CC) $(C_FLAGS) $@ $< $(INC)
 
 all: launch.exe tests
-tests: pidtest kalmantest bmptest serialtest filtertest ctrltest chronotest iostest skipstest
+tests: pidtest bmptest serialtest filtertest ctrltest chronotest iostest skipstest
 
 chronotest: bin/chronotest
 iostest: bin/iostest
 pidtest: bin/pidtest
 timetest: bin/timetest
-kalmantest: bin/kalmantest
 bmptest: bin/bmptest
 serialtest: bin/serialtest
 filetest: bin/filetest
@@ -36,9 +35,6 @@ bin/pidtest: .obj/test/pidtest.o .obj/src/pid.o
 	$(LINK)
 
 bin/timetest: .obj/test/timetest.o .obj/src/timeutil.o
-	$(LINK)
-
-bin/kalmantest: .obj/test/kalmantest.o .obj/src/kalman.o 
 	$(LINK)
 
 bin/bmptest: .obj/test/bmptest.o .obj/src/bmp.o .obj/src/i2c.o .obj/src/smem.o
