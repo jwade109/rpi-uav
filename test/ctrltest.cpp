@@ -5,7 +5,6 @@
 #include <iostream>
 #include <fstream>
 
-#include <dtypes.h>
 #include <control.h>
 
 int main()
@@ -27,24 +26,25 @@ int main()
         return 1;
     }
 
-    std::ofstream fout;
-    fout.open("log/iters.txt", std::ios::out);
-
-    const auto start = chrono::steady_clock::now();
-    auto dur = chrono::milliseconds(0);
-    const auto wait = chrono::milliseconds(1000/prm.freq);
-
-    while (dur < chrono::seconds(30))
+    auto start = chrono::steady_clock::now();
+    auto maxdt = chrono::nanoseconds(0);
+    unsigned long long i = 0;
+    while (i < 1000000)
     {
+        auto t1 = chrono::steady_clock::now();
         c.iterate();
-        uav::State s = c.getstate();
-        fout << tostring(s) << "\n";
-        dur+=wait;
-        std::this_thread::sleep_until(start + dur);
+        i++;
+        chrono::nanoseconds dt = chrono::steady_clock::now() - t1;
+        if (dt > maxdt)
+            maxdt = dt;
     }
+    auto runtime = chrono::steady_clock::now() - start;
 
-    fout.flush();
-    fout.close();
+    std::cout << i << " iterations of Control::iterate() took "
+              << runtime.count()/1000000.0 << " ms ("
+              << 1.0 * runtime.count()/i
+              << " ns avg), with max dt equal to "
+              << maxdt.count()/1000000.0 << " ms" << std::endl;
 
     return 0;
 }

@@ -1,5 +1,5 @@
 INC = -I include/ -I /usr/local/include/eigen3
-LIB = -lwiringPi -lncurses
+LIB = -lwiringPi -lncurses -pthread
 SRC_OBJ := $(patsubst src/%.cpp, .obj/src/%.o, $(wildcard src/*.cpp))
 
 CC = g++
@@ -11,7 +11,7 @@ LINK = $(BIN_DIR); $(CC) $(L_FLAGS) $@ $^ $(LIB)
 COMPILE = $(OBJ_DIR); $(CC) $(C_FLAGS) $@ $< $(INC)
 
 all: launch.exe tests
-tests: pidtest kalmantest bmptest serialtest filtertest ctrltest chronotest iostest
+tests: pidtest kalmantest bmptest serialtest filtertest ctrltest chronotest iostest skipstest
 
 chronotest: bin/chronotest
 iostest: bin/iostest
@@ -23,6 +23,7 @@ serialtest: bin/serialtest
 filetest: bin/filetest
 filtertest: bin/filtertest
 ctrltest: bin/ctrltest
+skipstest: bin/skipstest
 
 # Target executable #
 
@@ -52,13 +53,16 @@ bin/filetest: .obj/test/filetest.o .obj/src/timeutil.o .obj/src/filebuffer.o .ob
 bin/filtertest: .obj/test/filtertest.o .obj/src/filters.o
 	$(LINK)
 
-bin/ctrltest: .obj/test/ctrltest.o .obj/src/control.o .obj/src/dtypes.o .obj/src/filters.o .obj/src/pid.o .obj/src/smem.o .obj/src/ardimu.o .obj/src/bmp.o .obj/src/i2c.o
+bin/ctrltest: .obj/test/ctrltest.o .obj/src/control.o .obj/src/filters.o .obj/src/pid.o .obj/src/smem.o .obj/src/ardimu.o .obj/src/bmp.o .obj/src/i2c.o
 	$(LINK)
 
 bin/chronotest: .obj/test/chronotest.o
 	$(LINK)
 
 bin/iostest: .obj/test/iostest.o
+	$(LINK)
+
+bin/skipstest: .obj/test/skipstest.o
 	$(LINK)
 
 # Special dependencies #

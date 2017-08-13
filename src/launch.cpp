@@ -8,15 +8,30 @@
 
 #include <ncurses.h>
 #include <control.h>
-#include <dtypes.h>
+#include <monitor.h>
 
 namespace chrono = std::chrono;
+bool flush = true;
+bool write = false;
+uav::State towrite;
 
 // void draw(Drone d);
 
+void flush_constantly()
+{
+    while (flush)
+    {
+        if (write)
+        {
+            uav::log::states << uav::tostring(towrite) << std::endl;
+            write = false;
+        }
+    }
+}
+
 int main()
 {
-    uav::Param prm{50, 0, 0, {0, 0, 1}, {0, 0, 0.3},
+    uav::Param prm{125, 0, 0, {0, 0, 1}, {0, 0, 0.3},
              {1, 0, 0.5}, {1, 0, 0.5}, 0.3, 0.65, 500, 41};
 
     uav::State init{0};
@@ -27,23 +42,44 @@ int main()
     std::cout << "Aligning..." << std::endl;
     if (c.align()) return 1;
     
-    std::ofstream fout;
-    fout.open("log/steps.txt", std::ios::out);
+    uav::log::open();
+    uav::log::params << uav::tostring(prm) << std::endl;
+    uav::log::params << uav::tostring(c.getparams()) << std::endl;
+    
+    uav::log::flush();
+
+    std::thread flusher(flush_constantly);
+
+    std::cout << "Alignment complete." << std::endl;
 
     auto start = chrono::steady_clock::now();
     auto runtime = chrono::milliseconds(0);
     auto dt = chrono::milliseconds(1000/prm.freq);
 
-    while (runtime < chrono::minutes(10))
+    int last = 0;
+
+    while (runtime < chrono::seconds(20))
     {
         c.iterate();
-        uav::State s = c.getstate();
-        fout << uav::tostring(s) << std::endl;
+        towrite = c.getstate();
+        write = true;
+        // uav::log::states << uav::tostring(s) + "\n";
+        // if (s.t - last > dt.count())
+        //     uav::log::events << s.t << " " << s.t - last << "\n";
 
-        runtime+=dt;
-        std::this_thread::sleep_until(start + runtime);
+        auto now = chrono::steady_clock::now();
+
+        while (start + runtime <= now)
+            runtime+=dt;
+
+       // std::this_thread::sleep_until(start + runtime);
     }
-    fout.flush();
+
+    flush = false;
+    flusher.join();
+
+    uav::log::flush();
+    uav::log::close();
 
     return 0;
 }
