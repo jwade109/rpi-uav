@@ -4,14 +4,14 @@ SRC_OBJ := $(patsubst src/%.cpp, .obj/src/%.o, $(wildcard src/*.cpp))
 
 CC = g++
 L_FLAGS = -g -o
-C_FLAGS = -g -c -std=c++11 -o
+C_FLAGS = -g -c -std=c++11 -Wall -Wpedantic -o
 BIN_DIR = mkdir -p bin
 OBJ_DIR = mkdir -p .obj/src .obj/test
 LINK = $(BIN_DIR); $(CC) $(L_FLAGS) $@ $^ $(LIB)
 COMPILE = $(OBJ_DIR); $(CC) $(C_FLAGS) $@ $< $(INC)
 
 all: launch.exe tests
-tests: pidtest bmptest serialtest filtertest ctrltest chronotest iostest skipstest
+tests: pidtest bmptest serialtest filtertest ctrltest chronotest iostest skipstest monitortest
 
 chronotest: bin/chronotest
 iostest: bin/iostest
@@ -23,6 +23,7 @@ filetest: bin/filetest
 filtertest: bin/filtertest
 ctrltest: bin/ctrltest
 skipstest: bin/skipstest
+monitortest: bin/monitortest
 
 # Target executable #
 
@@ -59,6 +60,9 @@ bin/iostest: .obj/test/iostest.o
 	$(LINK)
 
 bin/skipstest: .obj/test/skipstest.o
+	$(LINK)
+
+bin/monitortest: .obj/test/monitortest.o .obj/src/monitor.o
 	$(LINK)
 
 # Special dependencies #

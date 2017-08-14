@@ -5,33 +5,27 @@
 #include <cassert>
 #include <string.h>
 #include <stdbool.h>
+#include <signal.h>
 
 #include <ncurses.h>
 #include <control.h>
 #include <monitor.h>
 
 namespace chrono = std::chrono;
-bool flush = true;
-bool write = false;
-uav::State towrite;
+bool cont = true;
 
 // void draw(Drone d);
 
-void flush_constantly()
+void sigint(int signal)
 {
-    while (flush)
-    {
-        if (write)
-        {
-            uav::log::states << uav::tostring(towrite) << std::endl;
-            write = false;
-        }
-    }
+    cont = false;
 }
 
 int main()
 {
-    uav::Param prm{125, 0, 0, {0, 0, 1}, {0, 0, 0.3},
+    signal(SIGINT, sigint);
+
+    uav::Param prm{uav::F100Hz, 0, 0, {0, 0, 1}, {0, 0, 0.3},
              {1, 0, 0.5}, {1, 0, 0.5}, 0.3, 0.65, 500, 41};
 
     uav::State init{0};
@@ -40,46 +34,42 @@ int main()
     uav::Control c(init, prm);
 
     std::cout << "Aligning..." << std::endl;
-    if (c.align()) return 1;
-    
-    uav::log::open();
-    uav::log::params << uav::tostring(prm) << std::endl;
-    uav::log::params << uav::tostring(c.getparams()) << std::endl;
-    
-    uav::log::flush();
-
-    std::thread flusher(flush_constantly);
-
+    if (c.align())
+    {
+        std::cout << "Failed to align!" << std::endl;
+        return 1;
+    }
     std::cout << "Alignment complete." << std::endl;
+    
+    uav::Monitor log;
+    log.open();
+    log.params.put(uav::tostring(prm) + "\n");
+    log.params.put(uav::tostring(c.getparams()) + "\n");
+    log.flush();
 
     auto start = chrono::steady_clock::now();
-    auto runtime = chrono::milliseconds(0);
-    auto dt = chrono::milliseconds(1000/prm.freq);
+    auto runtime = chrono::microseconds(0);
+    auto dt = chrono::microseconds(1000000/(int) prm.freq);
 
-    int last = 0;
-
-    while (runtime < chrono::seconds(20))
+    while (runtime < chrono::minutes(3) && cont)
     {
         c.iterate();
-        towrite = c.getstate();
-        write = true;
-        // uav::log::states << uav::tostring(s) + "\n";
-        // if (s.t - last > dt.count())
-        //     uav::log::events << s.t << " " << s.t - last << "\n";
+        uav::State s = c.getstate();
+        log.states.put(uav::tostring(s) + "\n");
 
         auto now = chrono::steady_clock::now();
 
         while (start + runtime <= now)
             runtime+=dt;
 
-       // std::this_thread::sleep_until(start + runtime);
+        now = chrono::steady_clock::now();
+        while (now < start + runtime)
+            now = chrono::steady_clock::now();
     }
+    std::cout << "Done." << std::endl;
 
-    flush = false;
-    flusher.join();
-
-    uav::log::flush();
-    uav::log::close();
+    log.flush();
+    log.close();
 
     return 0;
 }

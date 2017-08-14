@@ -152,7 +152,7 @@ namespace uav
     std::string tostring(uav::Param prm)
     {
         std::string line;
-        line += std::to_string(prm.freq) + " ";
+        line += std::to_string((int) prm.freq) + " ";
         line += std::to_string(prm.z1h) + " ";
         line += std::to_string(prm.z2h) + " ";
         line += std::to_string(prm.zpidg[0]) + " ";

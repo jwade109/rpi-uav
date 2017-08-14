@@ -1,40 +1,66 @@
 #include <iostream>
 #include <fstream>
 #include <chrono>
-#include <ctime>
 #include <string>
+#include <malloc.h>
+#include <assert.h>
 
 #include <monitor.h>
 
+const size_t sl = 1000*1000, pl = 20, el = 10*1000;
+std::string sbuf[sl], pbuf[pl], ebuf[el];
+
 namespace uav
 {
-    namespace log
+    Monitor::Monitor():
+        states(sbuf, sl),
+        params(pbuf, pl),
+        events(ebuf, el)
     {
-        std::ofstream states;
+    }
 
-        std::ofstream params;
+    Monitor::~Monitor()
+    {
+        flush();
+        close();
+    }
 
-        std::ofstream events;
+    int Monitor::open(bool append)
+    {
+        auto flags = std::ios::out | std::ios::binary;
+        if (append) flags |= std::ios::app;
 
-        void open()
+        fstates.open("log/states.txt", flags);
+        fparams.open("log/params.txt", flags);
+        fevents.open("log/events.txt", flags);
+
+        return 0;
+    }
+
+    void Monitor::flush()
+    {
+        while (states.available())
         {
-            states.open("log/states.txt", std::ios::out);
-            params.open("log/params.txt", std::ios::out);
-            events.open("log/events.txt", std::ios::out);
+            fstates << states.get();
+        }
+        while (params.available())
+        {
+            fparams << params.get();
+        }
+        while (events.available())
+        {
+            fevents << events.get();
         }
 
-        void flush()
-        {
-            states.flush();
-            params.flush();
-            events.flush();
-        }
+        fstates.flush();
+        fparams.flush();
+        fevents.flush();
+    }
 
-        void close()
-        {
-            states.close();
-            params.close();
-            events.close();
-        }
+    void Monitor::close()
+    {
+        fstates.close();
+        fparams.close();
+        fevents.close();
     }
 }

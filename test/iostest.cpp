@@ -4,6 +4,7 @@
 #include <thread>
 #include <fstream>
 #include <string>
+#include <malloc.h>
 
 int main()
 {
@@ -14,18 +15,31 @@ int main()
     log.open("log/log.txt");
 
     auto start = steady_clock::now();
-    auto wait = milliseconds(5);
-    int count = 0;
-    for (auto i = milliseconds(0); i < seconds(2); i += wait)
+    auto runtime = microseconds(0);
+    auto dt = milliseconds(2);
+    auto maxtime = seconds(30);
+
+    size_t n = maxtime.count() * 1000 / dt.count();
+    uint64_t* buffer = (uint64_t*) malloc(sizeof(uint64_t) * n);
+
+    size_t count = 0;
+
+    while (runtime < maxtime && count < n)
     {
         auto now = steady_clock::now();
-        log << count << " " << duration_cast<milliseconds>(now - start).count()
-            << " Well perhaps fstream holds the answer to"
-               " reliable logging since a very nasty bug"
-               " threatens the future of filebuffer! Let's"
-               " try going faster and writing more to"
-               " this newfangled c++ construct" << endl;
-        std::this_thread::sleep_until(start + i + wait);
+        buffer[count] = duration_cast<milliseconds>(now - start).count();
+        while (start + runtime < now)
+            runtime += dt;
+
+        while (now < start + runtime)
+            now = steady_clock::now();
         count++;
     }
+
+    for (size_t i = 0; i < count; i++)
+    {
+        log << buffer[i] << "\n";
+    }
+    log.close();
+    return 0;
 }

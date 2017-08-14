@@ -14,6 +14,19 @@
 
 namespace uav
 {
+    enum Freq : uint8_t
+    {
+        F10Hz = 10,
+        F20Hz = 20,
+        F25Hz = 25,
+        F40Hz = 40,
+        F50Hz = 50,
+        F100Hz = 100,
+        F125Hz = 125,
+        F200Hz = 200,
+        F250Hz = 250
+    };
+
     typedef struct
     {
         uint64_t t;                 // epoch time in millis
@@ -34,7 +47,7 @@ namespace uav
 
     typedef struct
     {
-        uint8_t freq;           // frequency of updates in hz
+        Freq freq;           // frequency of updates in hz
         double z1h;             // home point altitude from imu
         double z2h;             // home point altitude from bmp085
 

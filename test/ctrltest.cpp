@@ -14,7 +14,7 @@ int main()
     uav::State init = {0};
 
     // example configuration
-    uav::Param prm = {20, 0, 0, {0, 0, 0.35, -1}, {0, 0, 1, -1},
+    uav::Param prm = {uav::F20Hz, 0, 0, {0, 0, 0.35, -1}, {0, 0, 1, -1},
                 {1, 0, 1, -1}, {1, 0, 1, -1}, 0.3, 0.65, 250, 37};
 
     assert(!uav::Control::debug());
