@@ -47,7 +47,7 @@ namespace uav
 
     typedef struct
     {
-        Freq freq;           // frequency of updates in hz
+        Freq freq;              // frequency of updates in hz
         double z1h;             // home point altitude from imu
         double z2h;             // home point altitude from bmp085
 
