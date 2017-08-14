@@ -13,8 +13,8 @@ class RateLimiter
 
     private:
 
-    float value;
     float max;
+    float value;
 };
 
 class LowPassFilter

@@ -42,7 +42,7 @@ int main(int argc, char** argv)
               << "ms). Correct? [y/n] " << std::flush;
     std::string r;
     std::getline(std::cin, r);
-    int dt;
+    unsigned int dt;
     if (!(r == "" || r == "y"))
     {    
         std::cerr << "Correct dt (ms): " << std::flush;

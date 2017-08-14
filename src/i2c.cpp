@@ -63,5 +63,5 @@ uint32_t I2C::read24_BE(uint8_t reg)
 
 bool I2C::write8(uint8_t reg, uint8_t data)
 {
-    wiringPiI2CWriteReg8(fd, reg, data);
+    return wiringPiI2CWriteReg8(fd, reg, data);
 }

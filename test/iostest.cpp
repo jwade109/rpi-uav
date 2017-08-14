@@ -13,11 +13,16 @@ int main()
 
     ofstream log, hex;
     log.open("log/log.txt");
+    if (!log)
+    {
+        std::cout << "Failed to open log" << std::endl;
+        return 1;
+    }
 
     auto start = steady_clock::now();
     auto runtime = microseconds(0);
     auto dt = milliseconds(2);
-    auto maxtime = seconds(30);
+    auto maxtime = seconds(3);
 
     size_t n = maxtime.count() * 1000 / dt.count();
     uint64_t* buffer = (uint64_t*) malloc(sizeof(uint64_t) * n);

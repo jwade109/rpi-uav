@@ -1,5 +1,5 @@
 INC = -I include/ -I /usr/local/include/eigen3
-LIB = -lwiringPi -lncurses -pthread
+LIB = -lwiringPi -lncurses
 SRC_OBJ := $(patsubst src/%.cpp, .obj/src/%.o, $(wildcard src/*.cpp))
 
 CC = g++
@@ -10,8 +10,13 @@ OBJ_DIR = mkdir -p .obj/src .obj/test
 LINK = $(BIN_DIR); $(CC) $(L_FLAGS) $@ $^ $(LIB)
 COMPILE = $(OBJ_DIR); $(CC) $(C_FLAGS) $@ $< $(INC)
 
+.PHONY: install
+
 all: launch.exe tests
 tests: pidtest bmptest serialtest filtertest ctrltest chronotest iostest skipstest monitortest
+
+install:
+	yes | sudo apt-get install libncurses5-dev wiringpi
 
 chronotest: bin/chronotest
 iostest: bin/iostest
@@ -81,4 +86,5 @@ bin/monitortest: .obj/test/monitortest.o .obj/src/monitor.o
 clean:
 	-@rm -r -f .obj 2>/dev/null || true
 	-@rm -r -f bin 2>/dev/null || true
+	-@rm log/* 2>/dev/null || true
 	-@rm launch.exe 2>/dev/null || true
