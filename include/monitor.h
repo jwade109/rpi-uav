@@ -111,25 +111,16 @@ namespace etk
 
 namespace uav
 {
-    class Monitor
+    namespace log
     {
-        public:
-
-        etk::RingBuffer<std::string, true> states;
-        etk::RingBuffer<std::string, true> params;
-        etk::RingBuffer<std::string, true> events;
-
-        Monitor();
-        ~Monitor();
+        extern etk::RingBuffer<std::string, true> states;
+        extern etk::RingBuffer<std::string, true> params;
+        extern etk::RingBuffer<std::string, true> events;
 
         int open(bool append = false);
         void flush();
         void close();
-
-        private:
-
-        std::ofstream fstates, fparams, fevents;
-    };
+    }
 }
 
 

@@ -1,10 +1,13 @@
 #include <cassert>
 #include <cstring>
+#include <sstream>
+#include <iomanip>
 #include <ctime>
 #include <cmath>
 #include <thread>
 #include <chrono>
 
+#include <monitor.h>
 #include <control.h>
 
 // #define DEBUG // if this is defined, external sensors are disabled
@@ -149,68 +152,57 @@ namespace uav
         return rptr;
     }
 
-    std::string tostring(uav::Param prm)
+    std::string to_string(uav::Param prm)
     {
-        std::string line;
-        line += std::to_string((int) prm.freq) + " ";
-        line += std::to_string(prm.z1h) + " ";
-        line += std::to_string(prm.z2h) + " ";
-        line += std::to_string(prm.zpidg[0]) + " ";
-        line += std::to_string(prm.zpidg[1]) + " ";
-        line += std::to_string(prm.zpidg[2]) + " ";
-        line += std::to_string(prm.zpidg[3]) + " ";
-        line += std::to_string(prm.zpidg[0]) + " ";
-        line += std::to_string(prm.zpidg[1]) + " ";
-        line += std::to_string(prm.zpidg[2]) + " ";
-        line += std::to_string(prm.zpidg[3]) + " ";
-        line += std::to_string(prm.zpidg[0]) + " ";
-        line += std::to_string(prm.zpidg[1]) + " ";
-        line += std::to_string(prm.zpidg[2]) + " ";
-        line += std::to_string(prm.zpidg[3]) + " ";
-        line += std::to_string(prm.zpidg[0]) + " ";
-        line += std::to_string(prm.zpidg[1]) + " ";
-        line += std::to_string(prm.zpidg[2]) + " ";
-        line += std::to_string(prm.zpidg[3]) + " ";
-        line += std::to_string(prm.gz_lpf) + " ";
-        line += std::to_string(prm.gz_wam) + " ";
-        line += std::to_string(prm.maxmrate) + " ";
-        line += std::to_string(prm.mg);
-        return line;
+        std::stringstream line;
+        line << (int) prm.freq << " " << prm.z1h << " "
+             << prm.z2h << " " << prm.zpidg[0] << " "
+             << prm.zpidg[1] << " " << prm.zpidg[2] << " "
+             << prm.zpidg[3] << " " << prm.hpidg[0] << " "
+             << prm.hpidg[1] << " " << prm.hpidg[2] << " "
+             << prm.hpidg[3] << " " << prm.ppidg[0] << " "
+             << prm.ppidg[1] << " " << prm.ppidg[2] << " "
+             << prm.ppidg[3] << " " << prm.rpidg[0] << " "
+             << prm.rpidg[1] << " " << prm.rpidg[2] << " "
+             << prm.rpidg[3] << " " << prm.gz_lpf << " "
+             << prm.gz_wam << " " << prm.maxmrate << " " << prm.mg;
+        return line.str();
     }
 
-    std::string tostring(uav::State it)
+    std::string to_string(uav::State it)
     {
-        std::string line;
-        line += std::to_string(it.t) + " ";
-        line += std::to_string(it.z1) + " ";
-        line += std::to_string(it.z2) + " ";
-        line += std::to_string(it.dz) + " ";
-        line += std::to_string(it.h) + " ";
-        line += std::to_string(it.p) + " ";
-        line += std::to_string(it.r) + " ";
-        line += std::to_string(it.calib) + " ";
-        line += std::to_string(it.tz) + " ";
-        line += std::to_string(it.th) + " ";
-        line += std::to_string(it.tp) + " ";
-        line += std::to_string(it.tr) + " ";
-        line += std::to_string(it.zov) + " ";
-        line += std::to_string(it.hov) + " ";
-        line += std::to_string(it.pov) + " ";
-        line += std::to_string(it.rov) + " ";
-        line += std::to_string(it.motors[0]) + " ";
-        line += std::to_string(it.motors[1]) + " ";
-        line += std::to_string(it.motors[2]) + " ";
-        line += std::to_string(it.motors[3]);
-        return line;
+        using namespace std;
+        stringstream line;
+        line << setw(8) << left << (uint64_t) it.t
+             << setw(8) << left << it.z1
+             << setw(12) << left << it.z2
+             << setw(12) << left << it.dz
+             << setw(7) << left << it.h
+             << setw(7) << left << it.p
+             << setw(7) << left << it.r
+             << setw(4) << left << (int) it.calib
+             << setw(5) << left << (int) it.tz
+             << setw(5) << left << (int) it.th
+             << setw(5) << left << (int) it.tp
+             << setw(5) << left << (int) it.tr
+             << setw(12) << left << it.zov
+             << setw(12) << left << it.hov
+             << setw(12) << left << it.pov
+             << setw(12) << left << it.rov
+             << setw(4) << left << (int) it.motors[0]
+             << setw(4) << left << (int) it.motors[1]
+             << setw(4) << left << (int) it.motors[2]
+             << setw(4) << left << (int) it.motors[3];
+        return line.str();
     }
     
     Control::Control(uav::State initial, uav::Param cfg):
 
         zpid(cfg.zpidg[0], cfg.zpidg[1],
             cfg.zpidg[2], (uint16_t) cfg.zpidg[3]),
-        hpid(cfg.zpidg[0], cfg.hpidg[1],
+        hpid(cfg.hpidg[0], cfg.hpidg[1],
             cfg.hpidg[2], (uint16_t) cfg.hpidg[3]),
-        ppid(cfg.zpidg[0], cfg.ppidg[1],
+        ppid(cfg.ppidg[0], cfg.ppidg[1],
             cfg.ppidg[2], (uint16_t) cfg.ppidg[3]),
         rpid(cfg.rpidg[0], cfg.rpidg[1],
             cfg.rpidg[2], (uint16_t) cfg.rpidg[3]),
@@ -265,16 +257,30 @@ namespace uav
         prm.z2h /= samples;
         #endif
 
+        #ifdef DEBUG
+        uav::log::events.put("Starting in debug mode.\n");
+        #endif
+        uav::log::events.put("Alignment completed.\n");
+
         return 0;
     }
 
-    int Control::iterate()
+    int Control::iterate(bool block)
     {
+        static bool first(true);
         prev = curr;
-        curr = {0};
 
         auto now = chrono::steady_clock::now();
-        if (iters == 0) tstart = now;
+        if (first) tstart = now;
+        else if (block)
+        {
+            // wait until the correct time to iterate, which is
+            // tstart + millis(prev.t + 1000/prm.freq)
+
+            uint64_t ts = prev.t + 1000/prm.freq;
+            while (now < tstart + chrono::milliseconds(ts))
+                now = chrono::steady_clock::now();
+        }
 
         curr.t = chrono::duration_cast<chrono::milliseconds>(
                  now - tstart).count();
@@ -282,9 +288,10 @@ namespace uav
         double dt = chrono::milliseconds(
                 curr.t - prev.t).count()/1000.0;
 
-        if (iters == 0 || dt == 0)
+        if (!first && dt <= 0)
         {
-            iters++;
+            uav::log::events.put(std::to_string(curr.t) + 
+                                 " Error: dt <= 0\n");
             return 1;
         }
         
@@ -292,12 +299,45 @@ namespace uav
         // need to add NaN and sanity checks here
         imu.get(curr.h, curr.p, curr.r, curr.z1, curr.calib);
         curr.z2 = bmp.getAltitude();
+
+        // expected values for curr.h are (-180,+180)
+        if (curr.h <= -180 || curr.h >= 180)
+        {
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! hdg = " + std::to_string(curr.h) + "\n");
+        }
+        // curr.p is expected to be [-90,+90]
+        if (curr.p < -90 || curr.p > 90)
+        {
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! pitch = " + std::to_string(curr.h) + "\n");
+        }
+        // curr.r should be (-180,+180)?
+        if (curr.r <= -180 || curr.r >= 180)
+        {
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! roll = " + std::to_string(curr.r) + "\n");
+        }
+        // assume during normal operation, neither altitude will stray
+        // more than 50 meters from its respective home point
+        if (curr.z1 < prm.z1h - 50 || curr.z1 > prm.z1h + 50)
+        {
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! z1 = " + std::to_string(curr.z1) + "\n");
+        }
+        if (curr.z2 < prm.z2h - 50 || curr.z2 > prm.z2h + 50)
+        {
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! z2 = " + std::to_string(curr.z2) + "\n");
+        }
+            
+
         #else
         curr.h = 10;
         curr.p = 4;
         curr.r = -3;
-        curr.z1 = 11;
-        curr.z2 = 9;
+        curr.z1 = prm.z1h + 3;
+        curr.z2 = prm.z2h + 1;
         #endif
 
         // once readings are verified, filter altitude
@@ -308,6 +348,14 @@ namespace uav
 
         // get target position and attitude from controller
         gettargets(curr);
+
+        if (first)
+        {
+            first = false;
+            uav::log::events.put(std::to_string(curr.t) +
+                                 " First iter\n");
+            return 2;
+        }
         
         // assumed that at this point, z, h, r, and p are
         // all trustworthy. process pid controller responses

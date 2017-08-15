@@ -55,7 +55,7 @@ bin/filetest: .obj/test/filetest.o .obj/src/timeutil.o .obj/src/filebuffer.o .ob
 bin/filtertest: .obj/test/filtertest.o .obj/src/filters.o
 	$(LINK)
 
-bin/ctrltest: .obj/test/ctrltest.o .obj/src/control.o .obj/src/filters.o .obj/src/pid.o .obj/src/smem.o .obj/src/ardimu.o .obj/src/bmp.o .obj/src/i2c.o
+bin/ctrltest: .obj/test/ctrltest.o .obj/src/control.o .obj/src/filters.o .obj/src/pid.o .obj/src/smem.o .obj/src/ardimu.o .obj/src/bmp.o .obj/src/i2c.o .obj/src/monitor.o
 	$(LINK)
 
 bin/chronotest: .obj/test/chronotest.o

@@ -11,7 +11,6 @@
 #include <control.h>
 #include <monitor.h>
 
-namespace chrono = std::chrono;
 bool cont = true;
 
 // void draw(Drone d);
@@ -23,9 +22,12 @@ void sigint(int signal)
 
 int main()
 {
+    namespace chrono = std::chrono;
+    namespace log = uav::log;
+    
     signal(SIGINT, sigint);
 
-    uav::Param prm{uav::F100Hz, 0, 0, {0, 0, 1}, {0, 0, 0.3},
+    uav::Param prm{uav::F20Hz, 0, 0, {0, 0, 1}, {0, 0, 0.3},
              {1, 0, 0.5}, {1, 0, 0.5}, 0.3, 0.65, 500, 41};
 
     uav::State init{0};
@@ -41,35 +43,29 @@ int main()
     }
     std::cout << "Alignment complete." << std::endl;
     
-    uav::Monitor log;
-    log.open();
-    log.params.put(uav::tostring(prm) + "\n");
-    log.params.put(uav::tostring(c.getparams()) + "\n");
-    log.flush();
+    log::open();
+    log::params.put(uav::to_string(prm) + "\n");
+    log::params.put(uav::to_string(c.getparams()) + "\n");
+    log::flush();
 
-    auto start = chrono::steady_clock::now();
-    auto runtime = chrono::microseconds(0);
-    auto dt = chrono::microseconds(1000000/(int) prm.freq);
+    std::cout << uav::pheader << std::endl;
+    std::cout << uav::to_string(c.getparams()) << std::endl;
+    std::cout << uav::sheader << std::endl;
 
-    while (runtime < chrono::minutes(3) && cont)
+    auto start = chrono::steady_clock::now(), now = start;
+    while ((now < start + chrono::seconds(60)) && cont)
     {
-        c.iterate();
+        c.iterate(true);
         uav::State s = c.getstate();
-        log.states.put(uav::tostring(s) + "\n");
-
-        auto now = chrono::steady_clock::now();
-
-        while (start + runtime <= now)
-            runtime+=dt;
-
+        std::string str = uav::to_string(s);
+        log::states.put(str + "\n");
+        std::cout << str << "\r" << std::flush;
         now = chrono::steady_clock::now();
-        while (now < start + runtime)
-            now = chrono::steady_clock::now();
     }
-    std::cout << "Done." << std::endl;
+    std::cout << "\nDone." << std::endl;
 
-    log.flush();
-    log.close();
+    log::flush();
+    log::close();
 
     return 0;
 }

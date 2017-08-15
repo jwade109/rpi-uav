@@ -17,6 +17,8 @@ int main()
     uav::Param prm = {uav::F20Hz, 0, 0, {0, 0, 0.35, -1}, {0, 0, 1, -1},
                 {1, 0, 1, -1}, {1, 0, 1, -1}, 0.3, 0.65, 250, 37};
 
+    std::cout << uav::sheader << std::endl << uav::pheader << std::endl;
+
     assert(!uav::Control::debug());
 
     uav::Control c(init, prm);
@@ -32,7 +34,7 @@ int main()
     while (i < 1000000)
     {
         auto t1 = chrono::steady_clock::now();
-        c.iterate();
+        c.iterate(false);
         i++;
         chrono::nanoseconds dt = chrono::steady_clock::now() - t1;
         if (dt > maxdt)

@@ -38,7 +38,7 @@ namespace uav
         float h, p, r;              // heading, pitch, roll
         uint8_t calib;              // calibration status
 
-        float tz, th, tp, tr;       // targets for 4 degrees of freedom
+        uint16_t tz, th, tp, tr;    // targets for 4 degrees of freedom
 
         float zov, hov, pov, rov;   // respective pid response
         uint8_t motors[4];
@@ -62,6 +62,32 @@ namespace uav
     }
     Param;
 
+    const std::string pheader("FREQ Z1H Z2H "
+                        "ZPID[0] [1] [2] [3] HPID[0] [1] [2] [3] "
+                        "PPID[0] [1] [2] [3] RPID[0] [1] [2] [3] "
+                        "GZLPF GZWAM MAXM MG");
+
+    const std::string sheader("Time    "
+                              "z1h     "
+                              "z2h         "
+                              "dz          "
+                              "hdg    "
+                              "pitch  "
+                              "roll   "
+                              "cal "
+                              "tz   "
+                              "th   "
+                              "tp   "
+                              "tr   "
+                              "zov         "
+                              "hov         "
+                              "pov         "
+                              "rov         "
+                              "m1  "
+                              "m2  "
+                              "m3  "
+                              "m4");
+
     int tobuffer(Param& prm, char* buffer);
 
     int tobuffer(State& it, char* buffer);
@@ -70,9 +96,9 @@ namespace uav
 
     int frombuffer(State& it, char* buffer);
 
-    std::string tostring(Param prm);
+    std::string to_string(Param prm);
 
-    std::string tostring(State it);
+    std::string to_string(State it);
     
     class Control
     {
@@ -82,7 +108,7 @@ namespace uav
         ~Control();
 
         int align();
-        int iterate();
+        int iterate(bool block = false);
     
         uav::State getstate();
         void setstate(uav::State state);
@@ -109,4 +135,4 @@ namespace uav
     };
 }
 
-#endif // DRONE_H
+#endif // CONTROL_H
