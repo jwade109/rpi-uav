@@ -13,8 +13,6 @@
 
 bool cont = true;
 
-// void draw(Drone d);
-
 void sigint(int signal)
 {
     cont = false;
@@ -44,8 +42,10 @@ int main()
     std::cout << "Alignment complete." << std::endl;
     
     log::open();
+    log::params.put(uav::pheader + "\n");
     log::params.put(uav::to_string(prm) + "\n");
     log::params.put(uav::to_string(c.getparams()) + "\n");
+    log::states.put(uav::sheader + "\n");
     log::flush();
 
     std::cout << uav::pheader << std::endl;

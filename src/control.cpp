@@ -6,6 +6,7 @@
 #include <cmath>
 #include <thread>
 #include <chrono>
+#include <bitset>
 
 #include <monitor.h>
 #include <control.h>
@@ -81,6 +82,8 @@ namespace uav
         wptr += sizeof(it.rov);
         memcpy(buffer + wptr, it.motors, sizeof(it.motors[0]) * 4);
         wptr += (sizeof(it.motors[0]) * 4);
+        memcpy(buffer + wptr, &it.err, sizeof(it.err));
+        wptr += sizeof(it.err);
         return wptr;
     }
 
@@ -149,6 +152,8 @@ namespace uav
         rptr += sizeof(it.rov);
         memcpy(it.motors, buffer + rptr, sizeof(it.motors[0]) * 4);
         rptr += (sizeof(it.motors[0]) * 4);
+        memcpy(&it.err, buffer + rptr, sizeof(it.err));
+        rptr += sizeof(it.err);
         return rptr;
     }
 
@@ -173,26 +178,30 @@ namespace uav
     {
         using namespace std;
         stringstream line;
-        line << setw(8) << left << (uint64_t) it.t
-             << setw(8) << left << it.z1
-             << setw(12) << left << it.z2
-             << setw(12) << left << it.dz
-             << setw(7) << left << it.h
-             << setw(7) << left << it.p
-             << setw(7) << left << it.r
-             << setw(4) << left << (int) it.calib
-             << setw(5) << left << (int) it.tz
-             << setw(5) << left << (int) it.th
-             << setw(5) << left << (int) it.tp
-             << setw(5) << left << (int) it.tr
-             << setw(12) << left << it.zov
-             << setw(12) << left << it.hov
-             << setw(12) << left << it.pov
-             << setw(12) << left << it.rov
-             << setw(4) << left << (int) it.motors[0]
-             << setw(4) << left << (int) it.motors[1]
-             << setw(4) << left << (int) it.motors[2]
-             << setw(4) << left << (int) it.motors[3];
+        line << left
+             << setw(8) << (uint64_t) it.t
+             << setw(15) << it.z1
+             << setw(15) << it.z2
+             << setw(15) << it.dz
+             << setw(7) << it.h
+             << setw(7) << it.p
+             << setw(7) << it.r
+             << hex
+             << setw(4) << (int) it.calib
+             << dec
+             // << setw(5) << left << (int) it.tz
+             // << setw(5) << left << (int) it.th
+             // << setw(5) << left << (int) it.tp
+             // << setw(5) << left << (int) it.tr
+             // << setw(12) << left << it.zov
+             // << setw(12) << left << it.hov
+             // << setw(12) << left << it.pov
+             // << setw(12) << left << it.rov
+             << setw(4) << (int) it.motors[0]
+             << setw(4) << (int) it.motors[1]
+             << setw(4) << (int) it.motors[2]
+             << setw(4) << (int) it.motors[3]
+             << setw(10) << left << std::bitset<9>(it.err);
         return line.str();
     }
     
@@ -217,7 +226,6 @@ namespace uav
         prm = cfg;
         curr = initial;
         prev = {0};
-        iters = 0;
     }
 
     Control::~Control() { }
@@ -267,16 +275,15 @@ namespace uav
 
     int Control::iterate(bool block)
     {
+        static int count;
         static bool first(true);
+        std::bitset<16> error(0);
         prev = curr;
 
         auto now = chrono::steady_clock::now();
         if (first) tstart = now;
         else if (block)
         {
-            // wait until the correct time to iterate, which is
-            // tstart + millis(prev.t + 1000/prm.freq)
-
             uint64_t ts = prev.t + 1000/prm.freq;
             while (now < tstart + chrono::milliseconds(ts))
                 now = chrono::steady_clock::now();
@@ -292,66 +299,122 @@ namespace uav
         {
             uav::log::events.put(std::to_string(curr.t) + 
                                  " Error: dt <= 0\n");
+            error[0] = 1;
             return 1;
         }
         
         #ifndef DEBUG
-        // need to add NaN and sanity checks here
-        imu.get(curr.h, curr.p, curr.r, curr.z1, curr.calib);
-        curr.z2 = bmp.getAltitude();
-
-        // expected values for curr.h are (-180,+180)
-        if (curr.h <= -180 || curr.h >= 180)
-        {
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! hdg = " + std::to_string(curr.h) + "\n");
-        }
-        // curr.p is expected to be [-90,+90]
-        if (curr.p < -90 || curr.p > 90)
-        {
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! pitch = " + std::to_string(curr.h) + "\n");
-        }
-        // curr.r should be (-180,+180)?
-        if (curr.r <= -180 || curr.r >= 180)
-        {
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! roll = " + std::to_string(curr.r) + "\n");
-        }
-        // assume during normal operation, neither altitude will stray
-        // more than 50 meters from its respective home point
-        if (curr.z1 < prm.z1h - 50 || curr.z1 > prm.z1h + 50)
-        {
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! z1 = " + std::to_string(curr.z1) + "\n");
-        }
-        if (curr.z2 < prm.z2h - 50 || curr.z2 > prm.z2h + 50)
-        {
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! z2 = " + std::to_string(curr.z2) + "\n");
-        }
-            
-
+        float z1raw;
+        imu.get(curr.h, curr.p, curr.r, z1raw, curr.calib);
+        count++;
+        curr.z1 = z1raw - prm.z1h;
+        curr.z2 = bmp.getAltitude() - prm.z2h;
         #else
         curr.h = 10;
         curr.p = 4;
         curr.r = -3;
-        curr.z1 = prm.z1h + 3;
-        curr.z2 = prm.z2h + 1;
+        curr.z1 = 3;
+        curr.z2 = 1;
         #endif
 
+        // if an altitude measurement is deemed invalid, use the
+        // other barometer's measurement, or the most recent valid
+        // measurement
+        //
+        // for invalid attitude readings, use the previous measurement
+        
+        // assume during normal operation, neither altitude will stray
+        // more than 50 meters from its respective home point
+        if (curr.z1 < -50 || curr.z1 > 50)
+        {
+            error[1] = 1;
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! z1 = " + std::to_string(curr.z1) + "\n");
+        }
+        if (curr.z2 < -50 || curr.z2 > 50)
+        {
+            error[2] = 1;
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! z2 = " + std::to_string(curr.z2) + "\n");
+        }
+        // decision tree for correcting bad alt measurements
+        if (error[1] && error[2]) // uh-oh, both altimeters are bad
+        {
+            curr.z1 = prev.z1;
+            curr.z2 = prev.z2;
+        }
+        else if (error[1]) // z1 is bad, z2 is good
+            curr.z1 = curr.z2;
+        else if (error[2]) // z2 is bad, z1 is good
+            curr.z2 = curr.z1;
+
+        // verify that all attitudes are normal or zero
+        // expected values for curr.h are (-180,+180)
+        if (curr.h <= -180 || curr.h >= 180 || !std::isfinite(curr.h))
+        {
+            error[3] = 1;
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! hdg = " + std::to_string(curr.h) + "\n");
+            curr.h = prev.h;
+        }
+        // curr.p is expected to be [-90,+90]
+        if (curr.p < -90 || curr.p > 90 || !std::isfinite(curr.p))
+        {
+            error[4] = 1;
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! pitch = " + std::to_string(curr.p) + "\n");
+            curr.p = prev.p;
+        }
+        // curr.r should be (-180,+180)
+        if (curr.r <= -180 || curr.r >= 180 || !std::isfinite(curr.r))
+        {
+            error[5] = 1;
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! roll = " + std::to_string(curr.r) + "\n");
+            curr.r = prev.r;
+        }
+
         // once readings are verified, filter altitude
-        float dz1 = curr.z1 - prm.z1h;
-        float dz2 = curr.z2 - prm.z2h;
-        float zavg = dz1 * prm.gz_wam + dz2 * (1 - prm.gz_wam);
+        float zavg = curr.z1 * prm.gz_wam + curr.z2 * (1 - prm.gz_wam);
         curr.dz = zlpf.step(zavg);
 
         // get target position and attitude from controller
         gettargets(curr);
 
+        // targets should not exceed the normal range for measured values
+        if (curr.tz < -50 || curr.tz > 50)
+        {
+            error[6] = 1;
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! alt target = " + std::to_string(curr.th) + "\n");
+            curr.tz = prev.tz;
+        }
+        if (curr.th <= -180 || curr.th >= 180)
+        {
+            error[7] = 1;
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! hdg target = " + std::to_string(curr.th) + "\n");
+            curr.th = prev.th;
+        }
+        if (curr.tp < -90 || curr.tp > 90)
+        {
+            error[8] = 1;
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! pitch target = " + std::to_string(curr.th) + "\n");
+            curr.tp = prev.tp;
+        }
+        if (curr.tr <= -180 || curr.tr >= 180)
+        {
+            error[9] = 1;
+            uav::log::events.put(std::to_string(curr.t) +
+                    " Error! roll target = " + std::to_string(curr.tr) + "\n");
+            curr.tr = prev.tr;
+        }
+
         if (first)
         {
             first = false;
+            curr.err = (uint16_t) error.to_ulong();
             uav::log::events.put(std::to_string(curr.t) +
                                  " First iter\n");
             return 2;
@@ -385,7 +448,7 @@ namespace uav
         curr.motors[2] = mr3.step(raw[2], dt);
         curr.motors[3] = mr4.step(raw[3], dt);
 
-        iters++;
+        curr.err = (uint16_t) error.to_ulong();
 
         return 0;
     }

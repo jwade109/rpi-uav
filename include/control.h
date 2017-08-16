@@ -42,6 +42,9 @@ namespace uav
 
         float zov, hov, pov, rov;   // respective pid response
         uint8_t motors[4];
+        uint16_t err;               // bitmask for storing error codes
+        // 0 | 1  | 2  | 3 | 4 | 5 | 6  | 7  | 8  | 9  | ...
+        // t | z1 | z2 | h | p | r | tz | th | tp | tr | ...
     }
     State;
 
@@ -62,31 +65,32 @@ namespace uav
     }
     Param;
 
-    const std::string pheader("FREQ Z1H Z2H "
-                        "ZPID[0] [1] [2] [3] HPID[0] [1] [2] [3] "
-                        "PPID[0] [1] [2] [3] RPID[0] [1] [2] [3] "
-                        "GZLPF GZWAM MAXM MG");
+    const std::string pheader("freq z1h z2h "
+                        "zpid(0..3) hpid(0..3) "
+                        "ppid(0..3) rpid(0..3) "
+                        "gzlpf gzwam maxmr mg");
 
     const std::string sheader("Time    "
-                              "z1h     "
-                              "z2h         "
-                              "dz          "
+                              "z1h            "
+                              "z2h            "
+                              "dz             "
                               "hdg    "
                               "pitch  "
                               "roll   "
                               "cal "
-                              "tz   "
-                              "th   "
-                              "tp   "
-                              "tr   "
-                              "zov         "
-                              "hov         "
-                              "pov         "
-                              "rov         "
+                              // "tz   "
+                              // "th   "
+                              // "tp   "
+                              // "tr   "
+                              // "zov         "
+                              // "hov         "
+                              // "pov         "
+                              // "rov         "
                               "m1  "
                               "m2  "
                               "m3  "
-                              "m4");
+                              "m4  "
+                              "err              ");
 
     int tobuffer(Param& prm, char* buffer);
 
@@ -118,7 +122,6 @@ namespace uav
 
         private:
 
-        unsigned long long iters;
         std::chrono::steady_clock::time_point tstart;
 
         uav::Arduino imu;
