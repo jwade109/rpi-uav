@@ -89,4 +89,6 @@ clean:
 	-@rm -r -f bin 2>/dev/null || true
 	-@rm launch.exe 2>/dev/null || true
 
+ifneq ($(MAKECMDGOALS), clean)
 -include $(DEP)
+endif

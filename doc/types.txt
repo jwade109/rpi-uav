@@ -1,0 +1,51 @@
+Field			Type			Size		Offset
+
+=== uav::State === (63 bytes) ==========
+t			uint64_t		8		0
+z1			float			4		8
+z2			float			4		12
+dz			float			4		16
+h			float			4		20
+p			float			4		24
+r			float			4		28
+calib			uint8_t			1		32
+tz			uint16_t		2		33
+th			uint16_t		2		35
+tp			uint16_t		2		37
+tr			uint16_t		2		39
+zov			float			4		41
+hov			float			4		45
+pov			float			4		49
+rov			float			4		53
+motors[0]		uint8_t			1		57
+motors[1]		uint8_t			1		58
+motors[2]		uint8_t			1		59
+motors[3]		uint8_t			1		60
+err			uint16_t		2		61
+========================================
+
+=== uav::Param === (171 bytes) =========
+freq			uint8_t			1		0
+z1h			double			8		1
+z2h			double			8		9
+zpidg[0]		double			8		17
+zpidg[1]		double			8		25
+zpidg[2]		double			8		33
+zpidg[3]		double			8		41
+hpidg[0]		double			8		49
+hpidg[1]		double			8		57
+hpidg[2]		double			8		65
+hpidg[3]		double			8		73
+ppidg[0]		double			8		81
+ppidg[1]		double			8		89
+ppidg[2]		double			8		97
+ppidg[3]		double			8		105
+rpidg[0]		double			8		113
+rpidg[1]		double			8		121
+rpidg[2]		double			8		129
+rpidg[3]		double			8		137
+gz_lpf			double			8		145
+gz_wam			double			8		153
+maxmrate		uint16_t		2		161
+mg			double			8		163
+========================================
