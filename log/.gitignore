@@ -2,3 +2,4 @@
 *.bin
 *.dat
 *.prm
+!export.txt
