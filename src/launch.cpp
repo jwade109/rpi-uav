@@ -22,17 +22,16 @@ int main()
 {
     namespace chrono = std::chrono;
     namespace log = uav::log;
-    
+
     signal(SIGINT, sigint);
 
-    uav::Param prm{uav::F20Hz, 0, 0, {0, 0, 1}, {0, 0, 0.3},
+    // initialize the controller
+    uav::Param prm{uav::F100Hz, 0, 0, {0, 0, 1}, {0, 0, 0.3},
              {1, 0, 0.5}, {1, 0, 0.5}, 0.3, 0.65, 500, 41};
-
     uav::State init{0};
-
-    assert(!uav::Control::debug());
     uav::Control c(init, prm);
 
+    // begin imu, bmp, and get home altitudes
     std::cout << "Aligning..." << std::endl;
     if (c.align())
     {
@@ -40,30 +39,39 @@ int main()
         return 1;
     }
     std::cout << "Alignment complete." << std::endl;
-    
+
+    // write the new parameters to a file
     log::open();
-    log::params.put(uav::pheader + "\n");
-    log::params.put(uav::to_string(prm) + "\n");
-    log::params.put(uav::to_string(c.getparams()) + "\n");
-    log::states.put(uav::sheader + "\n");
+    log::params.put(c.getparams());
     log::flush();
 
-    std::cout << uav::pheader << std::endl;
+    // print the params
     std::cout << uav::to_string(c.getparams()) << std::endl;
-    std::cout << uav::sheader << std::endl;
+
+    uint64_t mask = 0b111110000000011111111;
+
+    std::cout << uav::sheader(mask) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
     while ((now < start + chrono::seconds(60)) && cont)
     {
+        // iterate the controller,
+        // enable internal timing management
         c.iterate(true);
         uav::State s = c.getstate();
-        std::string str = uav::to_string(s);
-        log::states.put(str + "\n");
-        std::cout << str << "\r" << std::flush;
+        log::states.put(s);
+
+        // print the controller state
+        std::cout << uav::to_string(s, mask);
+        if (s.err)  std::cout << "!!!";
+        else        std::cout << "   ";
+        std::cout << "\r" << std::flush;
+
         now = chrono::steady_clock::now();
     }
     std::cout << "\nDone." << std::endl;
 
+    // flush the log buffers
     log::flush();
     log::close();
 
@@ -77,7 +85,7 @@ void draw(Drone d)
     Iter sc = d.getstate();
 
     int cols = 50, rows = 30;
-    
+
     int s = cols/6;
     int cc[4] = {s, 2*s, 4*s, 5*s};
     int rc[4] = {3*rows/4, rows/2, rows/2, 3*rows/4};
@@ -94,14 +102,14 @@ void draw(Drone d)
 
     mvprintw(0, 0, "Drone Interface (%dx%d)", cols, rows);
     mvprintw(2, 1, "Time: %.03lf", sc.t/1000.0);
-    
+
     mvprintw(4, 1, "Heading:  %.2f", sc.h);
     mvprintw(5, 1, "Pitch:    %.2f", sc.p);
     mvprintw(6, 1, "Roll:     %.2f", sc.r);
     mvprintw(7, 1, "Calib:    %d %d %d %d",
         (sc.calib >> 6) % 4, (sc.calib >> 4) % 4,
         (sc.calib >> 2) % 2, sc.calib % 4);
-    
+
     mvprintw(8, 1, "IMU Alt:  %.2f", sc.z1);
     mvprintw(9, 1, "RPi Alt:  %.2f %.2f", sc.z2, params.gz_wam);
     mvprintw(10,1, "Combined: %.2f %.2f", sc.dz, params.gz_lpf);
@@ -124,7 +132,7 @@ void draw(Drone d)
             params.rpidg[0], params.rpidg[1], params.rpidg[2]);
     mvprintw(5, cols/3, "Z: %.02lf %.02lf %.02lf",
             params.zpidg[0], params.zpidg[1], params.zpidg[2]);
-        
+
     for (int i = 0; i < 4; i++)
     {
         for (int j = rc[i] - motorbarh; j <= rc[i] + motorbarh; j++)

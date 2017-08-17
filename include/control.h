@@ -65,45 +65,6 @@ namespace uav
     }
     Param;
 
-    const std::string pheader("freq z1h z2h "
-                        "zpid(0..3) hpid(0..3) "
-                        "ppid(0..3) rpid(0..3) "
-                        "gzlpf gzwam maxmr mg");
-
-    const std::string sheader("Time    "
-                              "z1h            "
-                              "z2h            "
-                              "dz             "
-                              "hdg    "
-                              "pitch  "
-                              "roll   "
-                              "cal "
-                              // "tz   "
-                              // "th   "
-                              // "tp   "
-                              // "tr   "
-                              // "zov         "
-                              // "hov         "
-                              // "pov         "
-                              // "rov         "
-                              "m1  "
-                              "m2  "
-                              "m3  "
-                              "m4  "
-                              "err              ");
-
-    int tobuffer(Param& prm, char* buffer);
-
-    int tobuffer(State& it, char* buffer);
-
-    int frombuffer(Param& prm, char* buffer);
-
-    int frombuffer(State& it, char* buffer);
-
-    std::string to_string(Param prm);
-
-    std::string to_string(State it);
-    
     class Control
     {
         public:
