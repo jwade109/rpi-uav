@@ -1,7 +1,9 @@
-#include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <string>
+#include <assert.h>
+
+#include <monitor.h>
 
 int main(int argc, char** argv)
 {
@@ -11,31 +13,34 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    std::ifstream log;
-    log.open(argv[1], std::ios::in);
-    if (!log)
+    std::ifstream bin;
+    bin.open(argv[1], std::ios::in | std::ios::binary);
+    if (!bin)
     {
         std::cerr << "Invalid filename." << std::endl;
         return 2;
     }
 
-    unsigned long long ts, first, last, i = 0;
-    while (log)
+    std::streampos fsize = bin.tellg();
+    bin.seekg(0, std::ios::end);
+    fsize = bin.tellg() - fsize;
+    bin.seekg(0, std::ios::beg);
+
+    assert(fsize % uav::statelen == 0);
+
+    char* bytes = new char[fsize];
+    bin.read(bytes, fsize);
+    int off = 0, n = 0;
+    uint64_t first, last;
+    while (off < fsize)
     {
-        log >> ts;
-        if (log.eof())
-        {
-            last = ts;
-            break;
-        }
-        if (i == 0) first = ts;
-        while (log.get() != '\n' && !log.eof());
-        if (log.eof())
-            last = ts;
-        i++;
+        last = *((uint64_t*) (bytes + off));
+        if (n == 0) first = last;
+        off += uav::statelen;
+        n++;
     }
-    std::cout << first << " " << last << " " << i << std::endl;
-    unsigned long long avgdt = (last - first)/(i - 2);
+    std::cout << first << " " << last << " " << n << std::endl;
+    uint64_t avgdt = (last - first)/(n - 2);
 
     std::cerr << "Detected frequency of " << 1000.0/avgdt
               << " Hz (dt = " << avgdt
@@ -44,7 +49,7 @@ int main(int argc, char** argv)
     std::getline(std::cin, r);
     unsigned int dt;
     if (!(r == "" || r == "y"))
-    {    
+    {
         std::cerr << "Correct dt (ms): " << std::flush;
         std::cin >> dt;
     }
@@ -57,23 +62,16 @@ int main(int argc, char** argv)
               << 1000/dt << " Hz" << std::endl;
 
     unsigned int maxdt = 0, mindt = -1;
-    unsigned long long prev, skips = i = 0;
-
-    log.clear();
-    log.seekg(0, std::ios::beg);
+    unsigned long long ts, prev, skips = 0;
 
     std::cout.setf(std::ios::fixed, std::ios::floatfield);
     std::cout.precision(3);
 
-    while (log)
+    for (int i = 0; i < n; i++)
     {
         if (i > 0) prev = ts;
-        log >> ts;
-        if (log.eof())
-        {
-            break;
-        }
-        
+        ts = *((uint64_t*) (bytes + i * uav::statelen));
+
         if (i > 0 && ts - prev > maxdt) maxdt = ts - prev;
         if (i > 0 && ts - prev < mindt) mindt = ts - prev;
 
@@ -84,15 +82,26 @@ int main(int argc, char** argv)
                       << ": dt = " << ts - prev << std::endl;
             skips++;
         }
-
-        // skip until the next line
-        while (log.get() != '\n' && !log.eof());
-        i++;
     }
+
     std::cout << "Finished. " << skips << " timing errors over "
-              << i << " iterations, or " << (last - first + dt)/1000.0
+              << n << " iterations, or " << (last - first + dt)/1000.0
               << " seconds." << std::endl
               << "Max dt: " << maxdt
               << ", min dt: " << mindt << std::endl;
+
+    delete[] bytes;
 }
 
+/*
+
+#include <iostream>
+#include <iomanip>
+#include <fstream>
+#include <string>
+
+int main(int argc, char** argv)
+{
+
+}
+*/

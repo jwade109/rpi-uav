@@ -13,9 +13,8 @@ LIB = -lncurses -lwiringPi
 INC = -I include/
 LINK = $(CC) $(LF) $^ -o $@ $(LIB)
 
-all: launch.exe tests
-tests: chronotest iostest pidtest bmptest serialtest \
-	filtertest ctrltest skipstest monitortest
+all: launch.exe utilities
+utilities: pidtest bmptest serialtest skips bin2txt
 
 install:
 	yes | sudo apt-get install libncurses5-dev wiringpi
@@ -25,17 +24,11 @@ install:
 launch.exe: $(SOBJ)
 	$(LINK)
 
-chronotest: bin/chronotest
-iostest: bin/iostest
 pidtest: bin/pidtest
-timetest: bin/timetest
 bmptest: bin/bmptest
 serialtest: bin/serialtest
-filetest: bin/filetest
-filtertest: bin/filtertest
-ctrltest: bin/ctrltest
-skipstest: bin/skipstest
-monitortest: bin/monitortest
+skips: bin/skips
+bin2txt: bin/bin2txt
 
 ### Test executables ###
 
@@ -46,28 +39,14 @@ bin/bmptest: .build/test/bmptest.o .build/src/bmp.o \
 	.build/src/i2c.o .build/src/smem.o
 	$(LINK)
 
-bin/serialtest: .build/test/serialtest.o .build/src/ardimu.o .build/src/smem.o
+bin/serialtest: .build/test/serialtest.o .build/src/ardimu.o \
+	.build/src/smem.o
 	$(LINK)
 
-bin/filtertest: .build/test/filtertest.o .build/src/filters.o
+bin/skips: .build/test/skips.o
 	$(LINK)
 
-bin/ctrltest: .build/test/ctrltest.o .build/src/control.o \
-	.build/src/filters.o .build/src/pid.o .build/src/smem.o \
-	.build/src/ardimu.o .build/src/bmp.o .build/src/i2c.o \
-	.build/src/monitor.o
-	$(LINK)
-
-bin/chronotest: .build/test/chronotest.o
-	$(LINK)
-
-bin/iostest: .build/test/iostest.o
-	$(LINK)
-
-bin/skipstest: .build/test/skipstest.o
-	$(LINK)
-
-bin/monitortest: .build/test/monitortest.o .build/src/monitor.o
+bin/bin2txt: .build/test/bin2txt.o .build/src/monitor.o
 	$(LINK)
 
 ### Pattern recipes ###
