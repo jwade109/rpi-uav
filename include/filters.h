@@ -5,32 +5,32 @@ class RateLimiter
 {
     public:
 
-    RateLimiter(float max, float initial = 0);
+    RateLimiter(double max, double initial = 0);
     ~RateLimiter();
 
-    float step(float sample, float dt);
-    float get();
+    double step(double sample, double dt);
+    double get();
 
     private:
 
-    float max;
-    float value;
+    double max;
+    double value;
 };
 
 class LowPassFilter
 {
     public:
 
-    LowPassFilter(float alpha, float initial = 0);
+    LowPassFilter(double rc, double initial = 0);
     ~LowPassFilter();
 
-    float step(float sample);
-    float get();
+    double step(double sample, double dt);
+    double get();
 
     private:
 
-    float a;
-    float accumulator;
+    double rc;
+    double accumulator;
 };
 
 #endif // FILTERS_H

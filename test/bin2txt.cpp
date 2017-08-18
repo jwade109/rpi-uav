@@ -41,15 +41,17 @@ int main(int argc, char** argv)
     fsize = bin.tellg() - fsize;
     bin.seekg(0, std::ios::beg);
 
-    assert(fsize % uav::statelen == 0);
-
     char* bytes = new char[fsize];
     for (int i = 0; i < fsize; i++)
     {
         bin.read(bytes + i, 1);
     }
-    int n = 0;
-    txt << uav::sheader(mask) << std::endl;
+    uav::Param p;
+    uav::frombuffer(p, bytes);
+    txt << uav::pheader() << std::endl;
+    txt << uav::to_string(p) << std::endl << std::endl;
+    txt << uav::sheader(mask) << std::endl; 
+    int n = uav::paramlen;
     while (n < fsize)
     {
         uav::State s;
@@ -58,7 +60,6 @@ int main(int argc, char** argv)
         txt << uav::to_string(s, mask) << std::endl;
         n += uav::statelen;
     }
-    txt << std::endl;
     delete[] bytes;
 }
 

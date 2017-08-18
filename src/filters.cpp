@@ -1,13 +1,13 @@
 #include <filters.h>
 
-RateLimiter::RateLimiter(float maxrate, float initial):
+RateLimiter::RateLimiter(double maxrate, double initial):
     max(maxrate), value(initial) { }
 
 RateLimiter::~RateLimiter() { }
 
-float RateLimiter::step(float sample, float dt)
+double RateLimiter::step(double sample, double dt)
 {
-    float rate = (sample - value)/dt;
+    double rate = (sample - value)/dt;
     if (rate > max)
         value += max * dt;
     else if (rate < -max)
@@ -16,23 +16,24 @@ float RateLimiter::step(float sample, float dt)
     return value;
 }
 
-float RateLimiter::get()
+double RateLimiter::get()
 {
     return value;
 }
 
-LowPassFilter::LowPassFilter(float alpha, float initial):
-    a(alpha), accumulator(initial) { }
+LowPassFilter::LowPassFilter(double rc, double initial):
+    rc(rc), accumulator(initial) { }
 
 LowPassFilter::~LowPassFilter() { }
 
-float LowPassFilter::step(float sample)
+double LowPassFilter::step(double sample, double dt)
 {
-    accumulator = sample * a + accumulator * (1 - a);
+    double a = dt/(rc + dt);
+    accumulator = a * sample + (1 - a) * accumulator;
     return accumulator;
 }
 
-float LowPassFilter::get()
+double LowPassFilter::get()
 {
     return accumulator;
 }

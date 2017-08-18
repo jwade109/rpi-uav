@@ -26,8 +26,8 @@ int main()
     signal(SIGINT, sigint);
 
     // initialize the controller
-    uav::Param prm{uav::F100Hz, 0, 0, {0, 0, 1}, {0, 0, 0.3},
-             {1, 0, 0.5}, {1, 0, 0.5}, 0.3, 0.65, 500, 41};
+    uav::Param prm{uav::F250Hz, 0, 0, {0, 0, 1}, {0, 0, 0.3},
+             {1, 0, 0.5}, {1, 0, 0.5}, 0.1, 0.65, 500, 41};
     uav::State init{0};
     uav::Control c(init, prm);
 
@@ -42,18 +42,17 @@ int main()
 
     // write the new parameters to a file
     log::open();
-    log::params.put(c.getparams());
-    log::flush();
+    log::param = c.getparams();
 
     // print the params
     std::cout << uav::to_string(c.getparams()) << std::endl;
 
-    uint64_t mask = 0b111110000000011111111;
+    uint64_t mask = 0b111110000000111111111;
 
     std::cout << uav::sheader(mask) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
-    while ((now < start + chrono::seconds(60)) && cont)
+    while ((now < start + chrono::seconds(1)) && cont)
     {
         // iterate the controller,
         // enable internal timing management

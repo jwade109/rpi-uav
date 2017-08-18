@@ -120,8 +120,8 @@ namespace uav
 
     namespace log
     {
+        extern uav::Param param;
         extern etk::RingBuffer<uav::State, true> states;
-        extern etk::RingBuffer<uav::Param, true> params;
         extern etk::RingBuffer<std::string, true> events;
 
         int open(bool append = false);

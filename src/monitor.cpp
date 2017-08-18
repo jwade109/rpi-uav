@@ -9,18 +9,18 @@
 
 #include <monitor.h>
 
-const size_t sl = 1000*1000, pl = 20, el = 10*1000;
+const size_t sl = 1000*1000, pl = 1, el = 10*1000;
 uav::State sbuf[sl];
 uav::Param pbuf[pl];
 std::string ebuf[el];
-std::ofstream fstates, fparams, fevents;
+std::ofstream fdata, fevents;
 
 namespace uav
 {
     namespace log
     {
+        uav::Param param;
         etk::RingBuffer<uav::State, true> states(sbuf, sl);
-        etk::RingBuffer<uav::Param, true> params(pbuf, pl);
         etk::RingBuffer<std::string, true> events(ebuf, el);
 
         int open(bool append)
@@ -28,8 +28,7 @@ namespace uav
             auto flags = std::ios::out | std::ios::binary;
             if (append) flags |= std::ios::app;
 
-            fstates.open("log/states.bin", flags);
-            fparams.open("log/params.txt", flags);
+            fdata.open("log/states.bin", flags);
             fevents.open("log/events.txt", flags);
 
             return 0;
@@ -37,31 +36,29 @@ namespace uav
 
         void flush()
         {
+            char pbuffer[uav::paramlen];
+            int sz = uav::tobuffer(param, pbuffer);
+            std::cout << std::endl << sz << std::endl;
+            fdata.write(pbuffer, sz);
             while (states.available())
             {
                 uav::State s = states.get();
-                char buffer[uav::statelen];
-                int sz = uav::tobuffer(s, buffer);
-                fstates.write(buffer, sz);
-            }
-            while (params.available())
-            {
-                fparams << uav::to_string(params.get()) << "\n";
+                char sbuffer[uav::statelen];
+                int sz = uav::tobuffer(s, sbuffer);
+                fdata.write(sbuffer, sz);
             }
             while (events.available())
             {
                 fevents << events.get();
             }
 
-            fstates.flush();
-            fparams.flush();
+            fdata.flush();
             fevents.flush();
         }
 
         void close()
         {
-            fstates.close();
-            fparams.close();
+            fdata.close();
             fevents.close();
         }
     }
@@ -83,8 +80,8 @@ namespace uav
         wptr += (sizeof(prm.ppidg[0]) * 4);
         memcpy(buffer + wptr, prm.rpidg, sizeof(prm.rpidg[0]) * 4);
         wptr += (sizeof(prm.rpidg[0]) * 4);
-        memcpy(buffer + wptr, &prm.gz_lpf, sizeof(prm.gz_lpf));
-        wptr += sizeof(prm.gz_lpf);
+        memcpy(buffer + wptr, &prm.gz_rc, sizeof(prm.gz_rc));
+        wptr += sizeof(prm.gz_rc);
         memcpy(buffer + wptr, &prm.gz_wam, sizeof(prm.gz_wam));
         wptr += sizeof(prm.gz_wam);
         memcpy(buffer + wptr, &prm.maxmrate, sizeof(prm.maxmrate));
@@ -153,8 +150,8 @@ namespace uav
         rptr += (sizeof(prm.ppidg[0]) * 4);
         memcpy(prm.rpidg, buffer + rptr, sizeof(prm.rpidg[0]) * 4);
         rptr += (sizeof(prm.rpidg[0]) * 4);
-        memcpy(&prm.gz_lpf, buffer + rptr, sizeof(prm.gz_lpf));
-        rptr += sizeof(prm.gz_lpf);
+        memcpy(&prm.gz_rc, buffer + rptr, sizeof(prm.gz_rc));
+        rptr += sizeof(prm.gz_rc);
         memcpy(&prm.gz_wam, buffer + rptr, sizeof(prm.gz_wam));
         rptr += sizeof(prm.gz_wam);
         memcpy(&prm.maxmrate, buffer + rptr, sizeof(prm.maxmrate));
@@ -209,7 +206,7 @@ namespace uav
     std::string pheader()
     {
         return "freq z1h z2h zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
-               "gz_lpf gz_wam maxmrate mg";
+               "gz_rc gz_wam maxmrate mg";
     }
 
     std::string sheader(uint64_t mask)
@@ -271,7 +268,7 @@ namespace uav
         for (int i = 0; i < 4; i++)
             line << prm.rpidg[i] << " ";
 
-        line << prm.gz_lpf << " ";
+        line << prm.gz_rc << " ";
         line << prm.gz_wam << " ";
         line << prm.maxmrate << " ";
         line << prm.mg << " ";

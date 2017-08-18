@@ -58,8 +58,8 @@ namespace uav
         double hpidg[4];        // ' ' for yaw
         double ppidg[4];        // ' ' for pitch
         double rpidg[4];        // ' ' for roll
-        double gz_lpf;          // gain for alt low-pass filter
-        double gz_wam;          // weighted average gain towards alta
+        double gz_rc;           // RC time constant for alt low-pass filter
+        double gz_wam;          // weighted average gain towards z1
         uint16_t maxmrate;      // max motor thrust rate of change in hz
         double mg;              // weight of vehicle as ratio of max thrust
     }

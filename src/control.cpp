@@ -28,7 +28,7 @@ namespace uav
         rpid(cfg.rpidg[0], cfg.rpidg[1],
             cfg.rpidg[2], (uint16_t) cfg.rpidg[3]),
 
-        zlpf(cfg.gz_lpf, initial.dz),
+        zlpf(cfg.gz_rc, initial.dz),
 
         mr1(cfg.maxmrate, initial.motors[0]),
         mr2(cfg.maxmrate, initial.motors[1]),
@@ -102,7 +102,7 @@ namespace uav
         }
 
         curr.t = chrono::duration_cast<chrono::milliseconds>(
-                 now - tstart).count();
+                now - tstart).count();
 
         double dt = chrono::milliseconds(
                 curr.t - prev.t).count()/1000.0;
@@ -114,7 +114,7 @@ namespace uav
             error[0] = 1;
             return 1;
         }
-        
+
         #ifndef DEBUG
         float z1raw;
         imu.get(curr.h, curr.p, curr.r, z1raw, curr.calib);
@@ -125,8 +125,8 @@ namespace uav
         curr.h = 10;
         curr.p = 4;
         curr.r = -3;
-        curr.z1 = 3;
-        curr.z2 = 1;
+        curr.z1 = 25;
+        curr.z2 = 19;
         #endif
 
         // if an altitude measurement is deemed invalid, use the
@@ -188,7 +188,7 @@ namespace uav
 
         // once readings are verified, filter altitude
         float zavg = curr.z1 * prm.gz_wam + curr.z2 * (1 - prm.gz_wam);
-        curr.dz = zlpf.step(zavg);
+        curr.dz = zlpf.step(zavg, dt);
 
         // get target position and attitude from controller
         gettargets(curr);
