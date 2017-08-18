@@ -8,7 +8,6 @@
 #include <chrono>
 
 #include <pid.h>
-#include <filters.h>
 #include <ardimu.h>
 #include <bmp.h>
 
@@ -87,13 +86,11 @@ namespace uav
 
         uav::Arduino imu;
         uav::BMP085 bmp;
-        
+
         uav::State curr, prev;
         uav::Param prm;
 
         PID zpid, hpid, ppid, rpid;
-        LowPassFilter zlpf;
-        RateLimiter mr1, mr2, mr3, mr4;
 
         void gettargets(uav::State& state);
     };

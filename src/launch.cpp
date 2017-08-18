@@ -52,7 +52,7 @@ int main()
     std::cout << uav::sheader(mask) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
-    while ((now < start + chrono::seconds(1)) && cont)
+    while ((now < start + chrono::seconds(10)) && cont)
     {
         // iterate the controller,
         // enable internal timing management

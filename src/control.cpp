@@ -11,7 +11,7 @@
 #include <monitor.h>
 #include <control.h>
 
-// #define DEBUG // if this is defined, external sensors are disabled
+#define DEBUG // if this is defined, external sensors are disabled
 
 namespace chrono = std::chrono;
 
@@ -26,14 +26,7 @@ namespace uav
         ppid(cfg.ppidg[0], cfg.ppidg[1],
             cfg.ppidg[2], (uint16_t) cfg.ppidg[3]),
         rpid(cfg.rpidg[0], cfg.rpidg[1],
-            cfg.rpidg[2], (uint16_t) cfg.rpidg[3]),
-
-        zlpf(cfg.gz_rc, initial.dz),
-
-        mr1(cfg.maxmrate, initial.motors[0]),
-        mr2(cfg.maxmrate, initial.motors[1]),
-        mr3(cfg.maxmrate, initial.motors[2]),
-        mr4(cfg.maxmrate, initial.motors[3])
+            cfg.rpidg[2], (uint16_t) cfg.rpidg[3])
     {
         prm = cfg;
         curr = initial;
@@ -44,10 +37,10 @@ namespace uav
 
     int Control::align()
     {
+        #ifndef DEBUG
         const int samples = 100; // altitude samples for home point
         const auto wait = chrono::milliseconds(10);
 
-        #ifndef DEBUG
         int ret1 = imu.begin();
         int ret2 = bmp.begin();
         if (ret1 | ret2)
@@ -87,7 +80,6 @@ namespace uav
 
     int Control::iterate(bool block)
     {
-        static int count;
         static bool first(true);
         std::bitset<16> error(0);
         prev = curr;
@@ -187,8 +179,11 @@ namespace uav
         }
 
         // once readings are verified, filter altitude
-        float zavg = curr.z1 * prm.gz_wam + curr.z2 * (1 - prm.gz_wam);
-        curr.dz = zlpf.step(zavg, dt);
+        {
+	    double zavg = curr.z1 * prm.gz_wam + curr.z2 * (1 - prm.gz_wam);
+            double a = dt/(prm.gz_rc + dt);
+            curr.dz = a * zavg + (1 - a) * prev.dz;
+	}
 
         // get target position and attitude from controller
         gettargets(curr);
@@ -253,12 +248,15 @@ namespace uav
 
         // for each raw response, trim to [0, 100] and limit rate
         for (int i = 0; i < 4; i++)
+        {
             raw[i] = raw[i] > 100 ? 100 : raw[i] < 0 ? 0 : raw[i];
-
-        curr.motors[0] = mr1.step(raw[0], dt);
-        curr.motors[1] = mr2.step(raw[1], dt);
-        curr.motors[2] = mr3.step(raw[2], dt);
-        curr.motors[3] = mr4.step(raw[3], dt);
+            if (raw[i] > prev.motors[i] + prm.maxmrate * dt)
+                curr.motors[i] = prev.motors[i] + prm.maxmrate * dt;
+            else if (raw[i] < prev.motors[i] - prm.maxmrate * dt)
+                curr.motors[i] = prev.motors[i] - prm.maxmrate * dt;
+            else
+                curr.motors[i] = raw[i];
+        }
 
         curr.err = (uint16_t) error.to_ulong();
 
