@@ -8,7 +8,6 @@
 #include <chrono>
 #include <bitset>
 
-#include <monitor.h>
 #include <control.h>
 
 #define DEBUG // if this is defined, external sensors are disabled
@@ -59,8 +58,6 @@ namespace uav
         auto start = chrono::steady_clock::now();
         for (int i = 0; i < samples; i++)
         {
-            // need to verify that these are valid readings
-            // and that overflow does not occur
             prm.z1h += imu.get().alt;
             prm.z2h += bmp.getAltitude();
             start+=wait;
@@ -69,11 +66,6 @@ namespace uav
         prm.z1h /= samples;
         prm.z2h /= samples;
         #endif
-
-        #ifdef DEBUG
-        uav::log::events.put("Starting in debug mode.\n");
-        #endif
-        uav::log::events.put("Alignment completed.\n");
 
         return 0;
     }
@@ -96,13 +88,13 @@ namespace uav
         curr.t = chrono::duration_cast<chrono::milliseconds>(
                 now - tstart).count();
 
+        uav::log::debug.push_back(uav::log::ts(curr.t) + " Iterating");
+
         double dt = chrono::milliseconds(
                 curr.t - prev.t).count()/1000.0;
 
         if (!first && dt <= 0)
         {
-            uav::log::events.put(std::to_string(curr.t) + 
-                                 " Error: dt <= 0\n");
             error[0] = 1;
             return 1;
         }
@@ -132,14 +124,10 @@ namespace uav
         if (curr.z1 < -50 || curr.z1 > 50)
         {
             error[1] = 1;
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! z1 = " + std::to_string(curr.z1) + "\n");
         }
         if (curr.z2 < -50 || curr.z2 > 50)
         {
             error[2] = 1;
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! z2 = " + std::to_string(curr.z2) + "\n");
         }
         // decision tree for correcting bad alt measurements
         if (error[1] && error[2]) // uh-oh, both altimeters are bad
@@ -157,33 +145,27 @@ namespace uav
         if (curr.h <= -180 || curr.h >= 180 || !std::isfinite(curr.h))
         {
             error[3] = 1;
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! hdg = " + std::to_string(curr.h) + "\n");
             curr.h = prev.h;
         }
         // curr.p is expected to be [-90,+90]
         if (curr.p < -90 || curr.p > 90 || !std::isfinite(curr.p))
         {
             error[4] = 1;
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! pitch = " + std::to_string(curr.p) + "\n");
             curr.p = prev.p;
         }
         // curr.r should be (-180,+180)
         if (curr.r <= -180 || curr.r >= 180 || !std::isfinite(curr.r))
         {
             error[5] = 1;
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! roll = " + std::to_string(curr.r) + "\n");
             curr.r = prev.r;
         }
 
         // once readings are verified, filter altitude
         {
-	    double zavg = curr.z1 * prm.gz_wam + curr.z2 * (1 - prm.gz_wam);
+            double zavg = curr.z1 * prm.gz_wam + curr.z2 * (1 - prm.gz_wam);
             double a = dt/(prm.gz_rc + dt);
             curr.dz = a * zavg + (1 - a) * prev.dz;
-	}
+        }
 
         // get target position and attitude from controller
         gettargets(curr);
@@ -192,29 +174,21 @@ namespace uav
         if (curr.tz < -50 || curr.tz > 50)
         {
             error[6] = 1;
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! alt target = " + std::to_string(curr.th) + "\n");
             curr.tz = prev.tz;
         }
         if (curr.th <= -180 || curr.th >= 180)
         {
             error[7] = 1;
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! hdg target = " + std::to_string(curr.th) + "\n");
             curr.th = prev.th;
         }
         if (curr.tp < -90 || curr.tp > 90)
         {
             error[8] = 1;
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! pitch target = " + std::to_string(curr.th) + "\n");
             curr.tp = prev.tp;
         }
         if (curr.tr <= -180 || curr.tr >= 180)
         {
             error[9] = 1;
-            uav::log::events.put(std::to_string(curr.t) +
-                    " Error! roll target = " + std::to_string(curr.tr) + "\n");
             curr.tr = prev.tr;
         }
 
@@ -222,8 +196,6 @@ namespace uav
         {
             first = false;
             curr.err = (uint16_t) error.to_ulong();
-            uav::log::events.put(std::to_string(curr.t) +
-                                 " First iter\n");
             return 2;
         }
         

@@ -46,7 +46,7 @@ bin/serialtest: .build/test/serialtest.o .build/src/ardimu.o \
 bin/skips: .build/test/skips.o
 	$(LINK)
 
-bin/bin2txt: .build/test/bin2txt.o .build/src/monitor.o
+bin/bin2txt: .build/test/bin2txt.o .build/src/uavcore.o
 	$(LINK)
 
 ### Pattern recipes ###

@@ -3,67 +3,12 @@
 #include <cstring>
 #include <sstream>
 #include <bitset>
-#include <chrono>
-#include <malloc.h>
-#include <assert.h>
 
-#include <monitor.h>
-
-const size_t sl = 1000*1000, pl = 1, el = 10*1000;
-uav::State sbuf[sl];
-uav::Param pbuf[pl];
-std::string ebuf[el];
-std::ofstream fdata, fevents;
+#include <uavcore.h>
 
 namespace uav
 {
-    namespace log
-    {
-        uav::Param param;
-        etk::RingBuffer<uav::State, true> states(sbuf, sl);
-        etk::RingBuffer<std::string, true> events(ebuf, el);
-
-        int open(bool append)
-        {
-            auto flags = std::ios::out | std::ios::binary;
-            if (append) flags |= std::ios::app;
-
-            fdata.open("log/states.bin", flags);
-            fevents.open("log/events.txt", flags);
-
-            return 0;
-        }
-
-        void flush()
-        {
-            char pbuffer[uav::paramlen];
-            int sz = uav::tobuffer(param, pbuffer);
-            std::cout << std::endl << sz << std::endl;
-            fdata.write(pbuffer, sz);
-            while (states.available())
-            {
-                uav::State s = states.get();
-                char sbuffer[uav::statelen];
-                int sz = uav::tobuffer(s, sbuffer);
-                fdata.write(sbuffer, sz);
-            }
-            while (events.available())
-            {
-                fevents << events.get();
-            }
-
-            fdata.flush();
-            fevents.flush();
-        }
-
-        void close()
-        {
-            fdata.close();
-            fevents.close();
-        }
-    }
-
-    int tobuffer(uav::Param& prm, char* buffer)
+    int to_buffer(uav::Param& prm, char buffer[paramlen])
     {
         int wptr = 0;
         memcpy(buffer, &prm.freq, sizeof(prm.freq));
@@ -91,7 +36,7 @@ namespace uav
         return wptr;
     }
 
-    int tobuffer(uav::State& it, char* buffer)
+    int to_buffer(uav::State& it, char buffer[statelen])
     {
         int wptr = 0;
         memcpy(buffer, &it.t, sizeof(it.t));
@@ -133,7 +78,7 @@ namespace uav
         return wptr;
     }
 
-    int frombuffer(uav::Param& prm, char* buffer)
+    int from_buffer(uav::Param& prm, char buffer[paramlen])
     {
         int rptr = 0;
         memcpy(&prm.freq, buffer, sizeof(prm.freq));
@@ -161,7 +106,7 @@ namespace uav
         return rptr;
     }
 
-    int frombuffer(uav::State& it, char* buffer)
+    int from_buffer(uav::State& it, char buffer[statelen])
     {
         int rptr = 0;
         memcpy(&it.t, buffer, sizeof(it.t));
@@ -318,5 +263,19 @@ namespace uav
         if (b[20]) line << setw(10) << std::bitset<9>(it.err);
 
         return line.str();
+    }
+
+    namespace log
+    {
+        std::deque<std::string> debug, warn, fatal;
+
+        std::string ts(uint64_t ms)
+        {
+            using namespace std;
+            std::stringstream s;
+            s.setf(ios::fixed);
+            s << "[" << setprecision(3) << ms/1000.0 << "]";
+            return s.str();
+        }
     }
 }

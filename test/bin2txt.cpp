@@ -6,7 +6,7 @@
 #include <bitset>
 #include <algorithm>
 
-#include <monitor.h>
+#include <uavcore.h>
 
 int main(int argc, char** argv)
 {
@@ -42,12 +42,9 @@ int main(int argc, char** argv)
     bin.seekg(0, std::ios::beg);
 
     char* bytes = new char[fsize];
-    for (int i = 0; i < fsize; i++)
-    {
-        bin.read(bytes + i, 1);
-    }
+    bin.read(bytes, fsize);
     uav::Param p;
-    uav::frombuffer(p, bytes);
+    uav::from_buffer(p, bytes);
     txt << uav::pheader() << std::endl;
     txt << uav::to_string(p) << std::endl << std::endl;
     txt << uav::sheader(mask) << std::endl; 
@@ -55,7 +52,7 @@ int main(int argc, char** argv)
     while (n < fsize)
     {
         uav::State s;
-        int ret = frombuffer(s, bytes + n);
+        int ret = from_buffer(s, bytes + n);
         assert(ret == uav::statelen);
         txt << uav::to_string(s, mask) << std::endl;
         n += uav::statelen;
