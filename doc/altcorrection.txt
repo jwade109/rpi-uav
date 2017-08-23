@@ -1,0 +1,16 @@
+z: altitude in meters
+p: pressure in pascals
+slp: sea level pressure, or ground pressure
+
+z = 44330 * (1.0 - p / slp)^0.1903 // where p and slp are in Pascals
+
+ground: z_g = 0 by definition
+0 = 44330 * (1.0 - p_g / slp)^0.1903
+p_g = slp
+
+vehicle: z_v is unknown, slp changes with time, but can be measured with p_g
+
+Corrected vehicle altitude:
+z_v = 44330 * (1.0 - p_v / p_g)^0.1903
+
+double zv = 44330 * pow((1.0 - pv() / pg(), 0.1903);

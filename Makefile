@@ -35,12 +35,10 @@ bin2txt: bin/bin2txt
 bin/pidtest: .build/test/pidtest.o .build/src/pid.o
 	$(LINK)
 
-bin/bmptest: .build/test/bmptest.o .build/src/bmp.o \
-	.build/src/i2c.o .build/src/smem.o
+bin/bmptest: .build/test/bmptest.o .build/src/bmp.o .build/src/i2c.o
 	$(LINK)
 
-bin/serialtest: .build/test/serialtest.o .build/src/ardimu.o \
-	.build/src/smem.o
+bin/serialtest: .build/test/serialtest.o .build/src/ardimu.o
 	$(LINK)
 
 bin/skips: .build/test/skips.o
