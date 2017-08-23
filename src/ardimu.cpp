@@ -1,45 +1,31 @@
-#include <string.h>
-#include <signal.h>
-#include <stdlib.h>
-#include <unistd.h>
+#include <iostream>
+#include <cstring>
 #include <termios.h>
 #include <fcntl.h>
-#include <sys/prctl.h>
 
 #include <ardimu.h>
-#include <smem.h>
 
 namespace uav
 {
     const speed_t baud = B115200;
 
-    Arduino::Arduino()
-    {
-        Message m;
-        memset(&m, 0, sizeof(Message));
-        last = m;
-        child_pid = -1;
-    }
+    Arduino::Arduino(): data{0}, cont(true), init(-1) { }
 
     Arduino::~Arduino()
     {
-        if (child_pid > 0) kill(child_pid, SIGKILL);
+        cont = false;
+        parser.join();
         in.close();
     }
 
     int Arduino::begin()
     {
-        if (child_pid != -1)
-        {
-            fprintf(stderr, "Arduino: Child process already exists\n");
-            return 1;
-        }
-
         int fd = open("/dev/ttyACM0", O_RDWR);
         if (fd < 0)
         {
-            fprintf(stderr, "Arduino: Could not generate file descriptor\n");
-            return 2;
+            std::cerr << "Arduino: Could not generate "
+                         "file descriptor" << std::endl;
+            return 1;
         }
         struct termios attr;
         int rt = -tcgetattr(fd, &attr);
@@ -48,86 +34,30 @@ namespace uav
         rt -= tcsetattr(fd, TCSANOW, &attr);
         if (rt < 0)
         {
-            fprintf(stderr, "Arduino: Failed to set baud rate\n");
-            return 3;
+            std::cerr << "Arduino: Failed to set "
+                         "baud rate" << std::endl;
+            return 2;
         }
 
-        //                 | 1 byte | 1 byte | sizeof(Message) |
-        // memory mapping: | ON/OFF | RD/WRT | MESSAGE ------> |
-        mem = (char*) sharedmem(sizeof(Message) + 2);
-        memset(mem, 0, sizeof(Message) + 2);
-        
         in.open("/dev/ttyACM0");
         if (!in)
         {
-            fprintf(stderr, "Arduino: Could not open /dev/ttyACM0\n");
-            return 4;
+            std::cerr << "Arduino: Could not open "
+                         "/dev/ttyACM0" << std::endl;
+            return 3;
         }
 
-        int pid = fork();
-        if (pid > 0)
-        {
-            child_pid = pid;
-            while(mem[0] == 0);
-            return mem[0] == 1 ? 0 : 5;
-        }
+        parser = std::thread(&Arduino::parse, this);
 
-        prctl(PR_SET_NAME, "ardimu");
+        while (init < 0);
+        if (init) return 4;
 
-        size_t ptr = 0;
-        mem[0] = 0;
-        bool message = false;
-        char ch;
-        char buffer[MSG_LEN];
-
-        while (in.get(ch))
-        {
-            if (ch == '#') mem[0] = 1;
-            else if (ch == '!')
-            {
-                memset(buffer, 0, MSG_LEN);
-                buffer[0] = '!';
-                in.get(ch);
-                buffer[1] = ch;
-                for (int i = 2; i < MSG_LEN && ch != '!'; i++)
-                {
-                    in.get(ch);
-                    buffer[i] = ch;
-                }
-                fprintf(stderr, "Arduino: Reporting error: "
-                        "\"%s\"\n", buffer);
-                mem[0] = 2;
-                while (1);
-            }
-            else if (ch == '<' && mem[0] == 1)
-            {
-                message = true;
-                in.get(ch);
-            }
-            else if (ch == '>' && mem[0] == 1)
-            {
-                message = false;
-                memset(mem + 1, 0, sizeof(Message) + 1);
-                Message m = parseMessage(buffer);
-                memcpy(mem + 2, &m, sizeof(m));
-                mem[1] = 1;
-                memset(buffer, 0, MSG_LEN);
-                ptr = 0;
-            }
-
-            if (message && mem[0] == 1)
-            {
-                buffer[ptr] = ch;
-                ++ptr;
-            }
-        }
         return 0;
     }
 
-    Message Arduino::get()
+    const Message& Arduino::get()
     {
-        if (mem[0] == 1 && mem[1]) last = *((Message*)(mem + 2));
-        return last;
+        return data;
     }
 
     void Arduino::get(float& h, float& p, float& r, float& z, uint8_t& cal)
@@ -140,16 +70,58 @@ namespace uav
         cal = m.calib;
     }
 
-    Message Arduino::parseMessage(char* buffer)
+    void Arduino::parse()
     {
-        char* cursor;
-        Message data;
-        data.millis = strtol(buffer, &cursor, 10);
-        data.heading = strtod(cursor, &cursor);
-        data.pitch = strtod(cursor, &cursor);
-        data.roll = strtod(cursor, &cursor);
-        data.calib = strtol(cursor, &cursor, 10);
-        data.alt = strtod(cursor, &cursor);
-        return data;
+        size_t ptr = 0;
+        bool message = false;
+        char ch;
+        char buffer[msg_len];
+
+        while (in.get(ch) && cont)
+        {
+            if (ch == '#') init = 0;
+            else if (ch == '!')
+            {
+                memset(buffer, 0, msg_len);
+                buffer[0] = '!';
+                in.get(ch);
+                buffer[1] = ch;
+                for (int i = 2; i < msg_len && ch != '!'; i++)
+                {
+                    in.get(ch);
+                    buffer[i] = ch;
+                }
+                fprintf(stderr, "Arduino: Reporting error: "
+                        "\"%s\"\n", buffer);
+                cont = false;
+                init = 1;
+            }
+            else if (ch == '<')
+            {
+                message = true;
+                in.get(ch);
+            }
+            else if (ch == '>')
+            {
+                message = false;
+                Message d;
+                char* cursor;
+                d.millis = strtol(buffer, &cursor, 10);
+                d.heading = strtod(cursor, &cursor);
+                d.pitch = strtod(cursor, &cursor);
+                d.roll = strtod(cursor, &cursor);
+                d.calib = strtol(cursor, &cursor, 10);
+                d.alt = strtod(cursor, &cursor);
+                data = d;
+                memset(buffer, 0, msg_len);
+                ptr = 0;
+            }
+
+            if (message)
+            {
+                buffer[ptr] = ch;
+                ++ptr;
+            }
+        }
     }
 }

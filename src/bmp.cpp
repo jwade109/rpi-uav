@@ -1,142 +1,104 @@
-#include <math.h>
-#include <string.h>
-#include <unistd.h>
-#include <signal.h>
-#include <stdio.h>
-#include <sys/prctl.h>
-#include <smem.h>
-#include <bmp.h>
+#include <iostream>
 #include <thread>
 #include <chrono>
+#include <math.h>
+#include <stdio.h>
+
+#include <bmp.h>
 
 using namespace std::chrono;
 
 namespace uav
 {
-    BMP085::BMP085()
-    {
-        i2c = I2C(0);
-        child_pid = -1;
-    }
+    BMP085::BMP085(): slp(1013.25), temp(0),
+        press(0), alt(0), cont(true) { }
 
     BMP085::~BMP085()
     {
-        if (child_pid > 0) kill(child_pid, SIGKILL);
+        cont = false;
+        reader.join();
     }
 
     void BMP085::readCoefficients(void)
     {
-        #ifdef BMP085_USE_DATASHEET_VALS
-            bmp085_coeffs.ac1 = 408;
-            bmp085_coeffs.ac2 = -72;
-            bmp085_coeffs.ac3 = -14383;
-            bmp085_coeffs.ac4 = 32741;
-            bmp085_coeffs.ac5 = 32757;
-            bmp085_coeffs.ac6 = 23153;
-            bmp085_coeffs.b1  = 6190;
-            bmp085_coeffs.b2  = 4;
-            bmp085_coeffs.mb  = -32768;
-            bmp085_coeffs.mc  = -8711;
-            bmp085_coeffs.md  = 2868;
-            bmp085Mode        = 0;
-        #else
-            bmp085_coeffs.ac1 = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_AC1);
-            bmp085_coeffs.ac2 = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_AC2);
-            bmp085_coeffs.ac3 = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_AC3);
-            bmp085_coeffs.ac4 = i2c.read16_BE(BMP085_REGISTER_CAL_AC4);
-            bmp085_coeffs.ac5 = i2c.read16_BE(BMP085_REGISTER_CAL_AC5);
-            bmp085_coeffs.ac6 = i2c.read16_BE(BMP085_REGISTER_CAL_AC6);
-            bmp085_coeffs.b1 = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_B1);
-            bmp085_coeffs.b2 = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_B2);
-            bmp085_coeffs.mb = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_MB);
-            bmp085_coeffs.mc = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_MC);
-            bmp085_coeffs.md = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_MD);
-        #endif
+        bmp085_coeffs.ac1 = (int16_t) i2c.read16_BE(
+                BMP085_REGISTER_CAL_AC1);
+        bmp085_coeffs.ac2 = (int16_t) i2c.read16_BE(
+                BMP085_REGISTER_CAL_AC2);
+        bmp085_coeffs.ac3 = (int16_t) i2c.read16_BE(
+                BMP085_REGISTER_CAL_AC3);
+        bmp085_coeffs.ac4 = i2c.read16_BE(BMP085_REGISTER_CAL_AC4);
+        bmp085_coeffs.ac5 = i2c.read16_BE(BMP085_REGISTER_CAL_AC5);
+        bmp085_coeffs.ac6 = i2c.read16_BE(BMP085_REGISTER_CAL_AC6);
+        bmp085_coeffs.b1 = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_B1);
+        bmp085_coeffs.b2 = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_B2);
+        bmp085_coeffs.mb = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_MB);
+        bmp085_coeffs.mc = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_MC);
+        bmp085_coeffs.md = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_MD);
     }
 
     int32_t BMP085::readRawTemperature(void)
     {
-        #ifdef BMP085_USE_DATASHEET_VALS
-            return 27898;
-        #else
-            i2c.write8(BMP085_REGISTER_CONTROL, BMP085_REGISTER_READTEMPCMD);
-            std::this_thread::sleep_for(milliseconds(5));
-            return i2c.read16_BE(BMP085_REGISTER_TEMPDATA);
-        #endif
+        i2c.write8(BMP085_REGISTER_CONTROL, BMP085_REGISTER_READTEMPCMD);
+        std::this_thread::sleep_for(milliseconds(5));
+        return i2c.read16_BE(BMP085_REGISTER_TEMPDATA);
     }
 
     int32_t BMP085::readRawPressure(void)
     {
-        #ifdef BMP085_USE_DATASHEET_VALS
-            return 23843;
-        #else
-            i2c.write8(BMP085_REGISTER_CONTROL, BMP085_REGISTER_READPRESSURECMD + (bmp085Mode << 6));
-            switch(bmp085Mode)
-            {
-                case ULTRALOWPOWER:
-                    std::this_thread::sleep_for(milliseconds(5));
-                    break;
-                case STANDARD:
-                    std::this_thread::sleep_for(milliseconds(8));
-                    break;
-                case HIGHRES:
-                    std::this_thread::sleep_for(milliseconds(14));
-                    break;
-                case ULTRAHIGHRES:
-                default:
-                    std::this_thread::sleep_for(milliseconds(26));
-                    break;
-            }
+        i2c.write8(BMP085_REGISTER_CONTROL,
+                   BMP085_REGISTER_READPRESSURECMD + (bmp085Mode << 6));
+        switch(bmp085Mode)
+        {
+            case ULTRALOWPOWER:
+                std::this_thread::sleep_for(milliseconds(5));
+                break;
+            case STANDARD:
+                std::this_thread::sleep_for(milliseconds(8));
+                break;
+            case HIGHRES:
+                std::this_thread::sleep_for(milliseconds(14));
+                break;
+            case ULTRAHIGHRES:
+            default:
+                std::this_thread::sleep_for(milliseconds(26));
+                break;
+        }
 
-            uint16_t p16 = i2c.read16_BE(BMP085_REGISTER_PRESSUREDATA);
-            int32_t p32 = (uint32_t) p16 << 8;
-            uint8_t p8 = i2c.read8(BMP085_REGISTER_PRESSUREDATA+2);
-            p32 += p8;
-            p32 >>= (8 - bmp085Mode);
-            return p32;
-        #endif
+        uint16_t p16 = i2c.read16_BE(BMP085_REGISTER_PRESSUREDATA);
+        int32_t p32 = (uint32_t) p16 << 8;
+        uint8_t p8 = i2c.read8(BMP085_REGISTER_PRESSUREDATA+2);
+        p32 += p8;
+        p32 >>= (8 - bmp085Mode);
+        return p32;
     }
 
     int32_t BMP085::computeB5(int32_t ut)
     {
-        int32_t X1 = (ut - (int32_t) bmp085_coeffs.ac6) * ((int32_t) bmp085_coeffs.ac5) >> 15;
-        int32_t X2 = ((int32_t) bmp085_coeffs.mc << 11) / (X1 + (int32_t) bmp085_coeffs.md);
+        int32_t X1 = (ut - (int32_t) bmp085_coeffs.ac6) *
+            ((int32_t) bmp085_coeffs.ac5) >> 15;
+        int32_t X2 = ((int32_t) bmp085_coeffs.mc << 11) /
+            (X1 + (int32_t) bmp085_coeffs.md);
         return X1 + X2;
     }
 
     int BMP085::begin(uint8_t addr, bmp085_mode_t mode)
     {
-        if (child_pid != -1)
-        {
-            fprintf(stderr, "BMP085: Child process already exists\n");
-            return 1;
-        }
-
         i2c = I2C(addr);
         int ret = i2c.ready();
         if (!ret)
         {
-            fprintf(stderr, "BMP085: I2C failed to init, returned %d\n", ret);
-            return 2;
+            std::cerr << "BMP085: I2C failed to init: "
+                      << ret << std::endl;
+            return 1;
         }
 
         if(i2c.read8(BMP085_REGISTER_CHIPID) != BMP085_CHIPID)
         {
-            fprintf(stderr, "BMP085: No BMP085 at i2c addr: 0x%02x\n", addr);
-            return 3;
+            std::cerr << "BMP085: No BMP085 at i2c addr: "
+                      << std::hex << addr << std::dec << std::endl;
+            return 2;
         }
-
-        mem = (float*) sharedmem(sizeof(float) * 2);
-        memset(mem, 0, sizeof(float) * 2);
-
-        int pid = fork();
-        if (pid > 0)
-        {
-            child_pid = pid;
-            return 0;
-        }
-
-        prctl(PR_SET_NAME, "bmp");
 
         if ((mode > ULTRAHIGHRES) || (mode < 0))
         {
@@ -146,11 +108,7 @@ namespace uav
         bmp085Mode = mode;
         readCoefficients();
 
-        for (;;)
-        {
-            mem[0] = updateTemperature();
-            mem[1] = updatePressure();
-        }
+        reader = std::thread(&BMP085::work, this);
 
         return 0;
     }
@@ -217,21 +175,30 @@ namespace uav
         return t;
     }
 
-    float BMP085::getAltitude(float seaLevelhPa)
+    float BMP085::getAltitude()
     {
-        float press = mem[1]; // in Si units for Pascal
-        press /= 100;
-        float altitude = 44330 * (1.0 - pow(press / seaLevelhPa, 0.1903));
-        return altitude;
+        return alt;
     }
 
-    float BMP085::getTemperature()
+    float BMP085::getTemperature() 
     {
-        return mem[0];
+        return temp;
     }
 
     float BMP085::getPressure()
     {
-        return mem[1];
+        return press;
+    }
+
+    void BMP085::work()
+    {
+        while (cont)
+        {
+            float t = updateTemperature();
+            float p = updatePressure();
+            temp = t;
+            press = p;
+            alt = 44330 * (1.0 - pow(0.01 * press / slp, 0.1903));
+        }
     }
 }

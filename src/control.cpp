@@ -10,7 +10,7 @@
 
 #include <control.h>
 
-#define DEBUG // if this is defined, external sensors are disabled
+// #define DEBUG // if this is defined, external sensors are disabled
 
 namespace chrono = std::chrono;
 
@@ -102,7 +102,6 @@ namespace uav
         #ifndef DEBUG
         float z1raw;
         imu.get(curr.h, curr.p, curr.r, z1raw, curr.calib);
-        count++;
         curr.z1 = z1raw - prm.z1h;
         curr.z2 = bmp.getAltitude() - prm.z2h;
         #else

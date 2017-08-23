@@ -30,7 +30,7 @@ int main(int argc, char** argv)
         uav::Message m = imu.get();
         std::cout << now.count() << "\t" << m.heading << "\t"
                   << m.pitch << "\t" << m.roll << "\t" << m.alt
-                  << "\r" << std::flush;
+                  << std::endl;
 
         runtime+=dt;
         auto ptr = steady_clock::now();

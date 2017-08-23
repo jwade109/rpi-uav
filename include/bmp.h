@@ -1,6 +1,7 @@
 #ifndef BMP_H
 #define BMP_H
 
+#include <thread>
 #include <adasensor.h>
 #include <i2c.h>
 #include <stdlib.h>
@@ -61,29 +62,35 @@ namespace uav
     {
         public:
 
+        float slp;
+
         BMP085();
         ~BMP085();
 
         int begin(uint8_t addr = 0x77, bmp085_mode_t mode = ULTRAHIGHRES);
-        float getTemperature(void);
-        float getPressure(void);
-        float getAltitude(float seaLevelhPa = 1013.25);
+        float getTemperature();
+        float getPressure();
+        float getAltitude(); // default slp 1013.25 hPa
 
         private:
+
+        float temp, press, alt;
+        std::thread reader;
+        bool cont;
 
         I2C i2c;
         bmp085_calib_data bmp085_coeffs;
         uint8_t bmp085Mode;
-        float* mem;
-        int child_pid;
 
         float updateTemperature();
         float updatePressure();
 
-        int32_t readRawTemperature(void);
-        int32_t readRawPressure(void);
-        void readCoefficients(void);
+        int32_t readRawTemperature();
+        int32_t readRawPressure();
+        void readCoefficients();
         int32_t computeB5(int32_t ut);
+
+        void work();
     };
 }
 

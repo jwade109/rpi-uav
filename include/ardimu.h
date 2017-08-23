@@ -2,9 +2,10 @@
 #define ARDIMU_H
 
 #include <fstream>
-#include <inttypes.h>
+#include <cstdlib>
+#include <thread>
 
-#define MSG_LEN 100
+const int msg_len = 100;
 
 namespace uav
 {
@@ -23,23 +24,24 @@ namespace uav
     {
         public:
 
-        Message last;
-
         Arduino();
         ~Arduino();
 
         int begin();
         void get(float& h, float& p, float& r, float& z, uint8_t& cal);
-        Message get();
+        const Message& get();
 
         private:
+        
+        Message data;
 
-        char buffer[MSG_LEN];
+        char buffer[msg_len];
         std::ifstream in;
-        char* mem;
-        int child_pid;
+        std::thread parser;
+        bool cont;
+        int init;
 
-        Message parseMessage(char* buffer);
+        void parse();
     };
 }
 

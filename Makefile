@@ -9,7 +9,7 @@ DEP = $(patsubst %.o, %.d, $(SOBJ) $(TOBJ))
 CC = g++
 CF = -g -std=c++11 -Wall -Wpedantic
 LF = -g
-LIB = -lncurses -lwiringPi
+LIB = -lncurses -lwiringPi -pthread
 INC = -I include/
 LINK = $(CC) $(LF) $^ -o $@ $(LIB)
 
