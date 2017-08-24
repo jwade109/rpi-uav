@@ -14,7 +14,7 @@ namespace uav
     Arduino::~Arduino()
     {
         cont = false;
-        parser.join();
+        if (parser.joinable()) parser.join();
         in.close();
     }
 
