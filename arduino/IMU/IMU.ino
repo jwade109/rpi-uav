@@ -37,7 +37,7 @@ void setup(void)
 
 void loop(void)
 {
-    // <TIME HDG PITCH ROLL CALIB ALT>
+    // <TIME HDG PITCH ROLL CALIB TEMP PRESS>
 
     Serial.print('<');
 
@@ -57,7 +57,9 @@ void loop(void)
     Serial.print((s << 6) + (g << 4) + (a << 2) + m);
     Serial.print(' ');
 
-    Serial.print(bmp.readAltitude());
+    Serial.print(bmp.readTemperature());
+    Serial.print(' ');
+    Serial.print(bmp.readPressure());
 
     Serial.println('>');
 }
