@@ -16,7 +16,7 @@ namespace uav
     BMP085::~BMP085()
     {
         cont = false;
-        reader.join();
+        if (reader.joinable()) reader.join();
     }
 
     void BMP085::readCoefficients(void)
