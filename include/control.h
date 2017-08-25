@@ -18,7 +18,7 @@ namespace uav
     {
         public:
 
-        Control(uav::State initial, uav::Param cfg);
+        Control(uav::State initial, uav::Param cfg, bool debug = false);
         ~Control();
 
         int align();
@@ -28,10 +28,9 @@ namespace uav
         void setstate(uav::State state);
         uav::Param getparams();
 
-        static bool debug();
-
         private:
 
+        bool debug;
         std::chrono::steady_clock::time_point tstart;
 
         uav::Arduino imu;

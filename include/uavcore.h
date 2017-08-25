@@ -30,7 +30,7 @@ namespace uav
         float h, p, r;              // heading, pitch, roll
         uint8_t calib;              // calibration status
 
-        uint16_t tz, th, tp, tr;    // targets for 4 degrees of freedom
+        int16_t tz, th, tp, tr;     // targets for 4 degrees of freedom
 
         float zov, hov, pov, rov;   // respective pid response
         uint8_t motors[4];

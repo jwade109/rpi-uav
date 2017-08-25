@@ -19,7 +19,7 @@ void sigint(int signal)
     uav::debug.push_back("Program interrupted.");
 }
 
-int main()
+int main(int argc, char** argv)
 {
     namespace chrono = std::chrono;
 
@@ -29,7 +29,9 @@ int main()
     uav::Param prm{uav::F100Hz, 0, 0, {0, 0, 1}, {0, 0, 0.3},
              {1, 0, 0.5}, {1, 0, 0.5}, 0.1, 0.65, 500, 41};
     uav::State init{0};
-    uav::Control c(init, prm);
+
+    bool debug = argc > 1 ? true : false;
+    uav::Control c(init, prm, debug);
 
     // begin imu, bmp, and get home altitudes
     uav::debug.push_back("Aligning...");
@@ -73,7 +75,7 @@ int main()
 
     if (cont) uav::debug.push_back("Program terminated normally.");
     uav::debug.push_back("Writing to file...");
-    std::cout << "Writing to file..." << std::endl;
+    std::cout << std::endl << "Writing to file..." << std::endl;
 
     std::ofstream data("log/data.bin", std::ios::out | std::ios::binary);
     char sbuf[uav::statelen], pbuf[uav::paramlen];

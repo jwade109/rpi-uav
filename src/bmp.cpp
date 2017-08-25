@@ -95,8 +95,8 @@ namespace uav
 
         if(i2c.read8(BMP085_REGISTER_CHIPID) != BMP085_CHIPID)
         {
-            std::cerr << "BMP085: No BMP085 at i2c addr: "
-                      << std::hex << addr << std::dec << std::endl;
+            std::cerr << "BMP085: No BMP085 at i2c addr: 0x"
+                      << std::hex << (int) addr << std::dec << std::endl;
             return 2;
         }
 

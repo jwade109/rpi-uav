@@ -7,7 +7,7 @@ TOBJ = $(patsubst %.cpp, .build/%.o, $(TST))
 DEP = $(patsubst %.o, %.d, $(SOBJ) $(TOBJ))
 
 CC = g++
-CF = -g -std=c++11 -Wall -Wpedantic
+CF = -g -std=c++14 -Wall -Wpedantic
 LF = -g
 LIB = -lncurses -lwiringPi -pthread
 INC = -I include/
@@ -54,10 +54,10 @@ bin/bin2txt: .build/test/bin2txt.o .build/src/uavcore.o
 	@touch $@
 
 .build/src/%.d: src/%.cpp
-	$(CC) -std=c++11 -MM $< -MT $@ -MP -MF $@ $(INC)
+	$(CC) -std=c++14 -MM $< -MT $@ -MP -MF $@ $(INC)
 
 .build/test/%.d: test/%.cpp
-	$(CC) -std=c++11 -MM $< -MT $@ -MP -MF $@ $(INC)
+	$(CC) -std=c++14 -MM $< -MT $@ -MP -MF $@ $(INC)
 
 ### Clean ###
 

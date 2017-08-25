@@ -11,10 +11,10 @@ uav::State (71 bytes, 23 fields)
 7       p               float           4       32
 8       r               float           4       36
 9       calib           uint8_t         1       40
-10      tz              uint16_t        2       41
-11      th              uint16_t        2       43
-12      tp              uint16_t        2       45
-13      tr              uint16_t        2       47
+10      tz              int16_t         2       41
+11      th              int16_t         2       43
+12      tp              int16_t         2       45
+13      tr              int16_t         2       47
 14      zov             float           4       49
 15      hov             float           4       53
 16      pov             float           4       57

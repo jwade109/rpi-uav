@@ -7,17 +7,25 @@
 #include <thread>
 #include <chrono>
 #include <bitset>
+#include <random>
 
 #include <control.h>
 
-// #define DEBUG // if this is defined, external sensors are disabled
+#define DEBUG // if this is defined, external sensors are disabled
 
 namespace chrono = std::chrono;
 
+#ifdef DEBUG
+unsigned seed = chrono::system_clock::now().time_since_epoch().count();
+std::default_random_engine gen(seed);
+std::normal_distribution<double> gaussian(0.0, 1.0);
+#endif
+
 namespace uav
 {
-    Control::Control(uav::State initial, uav::Param cfg):
+    Control::Control(uav::State initial, uav::Param cfg, bool debug):
 
+        debug(debug),
         zpid(cfg.zpidg[0], cfg.zpidg[1],
             cfg.zpidg[2], (uint16_t) cfg.zpidg[3]),
         hpid(cfg.hpidg[0], cfg.hpidg[1],
@@ -36,36 +44,43 @@ namespace uav
 
     int Control::align()
     {
-        #ifndef DEBUG
         const int samples = 100; // altitude samples for home point
         const auto wait = chrono::milliseconds(10);
 
-        int ret1 = imu.begin();
-        int ret2 = bmp.begin();
-        if (ret1 | ret2)
+        if (!debug)
         {
-            fprintf(stderr, "Drone alignment failure "
+            int ret1 = imu.begin();
+            int ret2 = bmp.begin();
+            if (ret1 | ret2)
+            {
+                fprintf(stderr, "Drone alignment failure "
                     "(IMU: %d, BMP: %d)\n", ret1, ret2);
-            return 1;
+                return 1;
+            }
+            std::this_thread::sleep_for(chrono::seconds(3));
         }
-        std::this_thread::sleep_for(chrono::seconds(3));
-        #endif
 
         prm.p1h = 0;
         prm.p2h = 0;
 
-        #ifndef DEBUG
         auto start = chrono::steady_clock::now();
         for (int i = 0; i < samples; i++)
         {
-            prm.p1h += imu.get().pres;
-            prm.p2h += bmp.getPressure();
+            if (!debug)
+            {
+                prm.p1h += imu.get().pres;
+                prm.p2h += bmp.getPressure();
+            }
+            else
+            {
+                prm.p1h += 101200 + gaussian(gen) * 10;
+                prm.p2h += 101150 + gaussian(gen) * 10;
+            }
             start+=wait;
             std::this_thread::sleep_until(start);
         }
         prm.p1h /= samples;
         prm.p2h /= samples;
-        #endif
 
         return 0;
     }
@@ -97,27 +112,27 @@ namespace uav
             return 1;
         }
 
-        #ifndef DEBUG
-        Message m = imu.get();
+        if (!debug)
+        {
+            Message m = imu.get();
+            curr.h = m.heading;
+            curr.p = m.pitch;
+            curr.r = m.roll;
 
-        curr.h = m.heading;
-        curr.p = m.pitch;
-        curr.r = m.roll;
-
-        curr.temp[0] = m.temp;
-        curr.temp[1] = bmp.getTemperature();
-        curr.pres[0] = m.pres;
-        curr.pres[1] = bmp.getPressure();
-        // curr.z1 = z1raw - prm.z1h;
-        // curr.z2 = bmp.getAltitude() - prm.z2h;
-        #else
-        curr.h = 10;
-        curr.p = 4;
-        curr.r = -3;
-        curr.pres[0] = 101200;
-        curr.pres[1] = 101175;
-        curr.temp[0] = curr.temp[1] = 25.6;
-        #endif
+            curr.temp[0] = m.temp;
+            curr.temp[1] = bmp.getTemperature();
+            curr.pres[0] = m.pres;
+            curr.pres[1] = bmp.getPressure();
+        }
+        else
+        {
+            curr.h = 10;
+            curr.p = 4;
+            curr.r = -3;
+            curr.pres[0] = 101200 + gaussian(gen) * 10;
+            curr.pres[1] = 101150 + gaussian(gen) * 10;
+            curr.temp[0] = curr.temp[1] = 25.6 + gaussian(gen) * 0.1;
+        }
 
         // if a pressure measurement is deemed invalid, use the
         // other barometer's measurement, or the most recent valid
@@ -170,6 +185,7 @@ namespace uav
         {
             auto alt = [](float p, float hp)
                 { return 44330 * (1.0 - pow(p/hp, 0.1903)); };
+
             
             double z1 = alt(curr.pres[0], prm.p1h);
             double z2 = alt(curr.pres[1], prm.p2h);
@@ -184,21 +200,33 @@ namespace uav
         // targets should not exceed the normal range for measured values
         if (curr.tz < -50 || curr.tz > 50)
         {
+            std::stringstream e;
+            e << uav::ts(curr.t) << " curr.tz = " << curr.tz;
+            uav::error.push_back(e.str());
             error[6] = 1;
             curr.tz = prev.tz;
         }
         if (curr.th <= -180 || curr.th >= 180)
         {
+            std::stringstream e;
+            e << uav::ts(curr.t) << " curr.th = " << curr.th;
+            uav::error.push_back(e.str());
             error[7] = 1;
             curr.th = prev.th;
         }
         if (curr.tp < -90 || curr.tp > 90)
         {
+            std::stringstream e;
+            e << uav::ts(curr.t) << " curr.tp = " << curr.tp;
+            uav::error.push_back(e.str());
             error[8] = 1;
             curr.tp = prev.tp;
         }
         if (curr.tr <= -180 || curr.tr >= 180)
         {
+            std::stringstream e;
+            e << uav::ts(curr.t) << " curr.tr = " << curr.tr;
+            uav::error.push_back(e.str());
             error[9] = 1;
             curr.tr = prev.tr;
         }
@@ -261,21 +289,12 @@ namespace uav
         return prm;
     }
 
-    bool Control::debug()
-    {
-        #ifdef DEBUG
-        return true;
-        #else
-        return false;
-        #endif
-    }
-
     void Control::gettargets(uav::State& state)
     {
         // arbitrary targets until a true controller is implemented
-        state.tz = 0;
-        state.th = 150;
-        state.tp = 0;
-        state.tr = 0;
+        state.tz = 0 + (int) (gaussian(gen) * 2);
+        state.th = 0 + (int) (gaussian(gen) * 20);
+        state.tp = 0 + (int) (gaussian(gen) * 6);
+        state.tr = 0 + (int) (gaussian(gen) * 11);
     }
 }

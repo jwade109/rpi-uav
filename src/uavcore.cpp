@@ -266,7 +266,7 @@ namespace uav
         for (int i = 0; i < 4; i++)
             if (b[18 + i]) line << setw(4) << (int) it.motors[i];
 
-        if (b[22]) line << setw(10) << std::bitset<9>(it.err);
+        if (b[22]) line << setw(10) << std::bitset<16>(it.err);
 
         return line.str();
     }
