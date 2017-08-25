@@ -26,8 +26,8 @@ int main(int argc, char** argv)
     signal(SIGINT, sigint);
 
     // initialize the controller
-    uav::Param prm{uav::F100Hz, 0, 0, {0, 0, 1}, {0, 0, 0.3},
-             {1, 0, 0.5}, {1, 0, 0.5}, 0.1, 0.65, 500, 41};
+    uav::Param prm{uav::F50Hz, 0, 0, {0, 0, 0.005}, {0, 0, 0.015},
+             {0.005, 0, 0.02}, {0.005, 0, 0.02}, 0.1, 0.65, 500, 41};
     uav::State init{0};
 
     bool debug = argc > 1 ? true : false;
@@ -43,12 +43,12 @@ int main(int argc, char** argv)
     }
     std::cout << "Alignment complete." << std::endl;
 
-    const size_t maxlen = 1000*1000;
     std::deque<uav::State> list;
 
     // print the params
+    std::cout << uav::pheader() << std::endl;
     std::cout << uav::to_string(c.getparams()) << std::endl;
-    uint64_t mask = 0b11111000000001111111111;
+    uint64_t mask = -1; // 0b11111000000001111111111;
     std::cout << uav::sheader(mask) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
@@ -65,11 +65,8 @@ int main(int argc, char** argv)
         else        std::cout << "   ";
         std::cout << "\r" << std::flush;
 
-        // add state to log, enforcing max size
+        // add state to log
         list.push_back(s);
-        if (list.size() > maxlen)
-            list.pop_front();
-
         now = chrono::steady_clock::now();
     }
 

@@ -11,15 +11,11 @@
 
 #include <control.h>
 
-#define DEBUG // if this is defined, external sensors are disabled
-
 namespace chrono = std::chrono;
 
-#ifdef DEBUG
 unsigned seed = chrono::system_clock::now().time_since_epoch().count();
 std::default_random_engine gen(seed);
 std::normal_distribution<double> gaussian(0.0, 1.0);
-#endif
 
 namespace uav
 {
@@ -126,11 +122,11 @@ namespace uav
         }
         else
         {
-            curr.h = 10;
-            curr.p = 4;
-            curr.r = -3;
-            curr.pres[0] = 101200 + gaussian(gen) * 10;
-            curr.pres[1] = 101150 + gaussian(gen) * 10;
+            curr.h = prev.h + gaussian(gen);
+            curr.p = prev.p + gaussian(gen);
+            curr.r = prev.r + gaussian(gen);
+            curr.pres[0] = prm.p1h + gaussian(gen) * 10;
+            curr.pres[1] = prm.p2h + gaussian(gen) * 10;
             curr.temp[0] = curr.temp[1] = 25.6 + gaussian(gen) * 0.1;
         }
 
@@ -195,7 +191,7 @@ namespace uav
         }
 
         // get target position and attitude from controller
-        gettargets(curr);
+        gettargets();
 
         // targets should not exceed the normal range for measured values
         if (curr.tz < -50 || curr.tz > 50)
@@ -240,6 +236,7 @@ namespace uav
         
         // assumed that at this point, z, h, r, and p are
         // all trustworthy. process pid controller responses
+
         curr.hov = hpid.seek(curr.h,  curr.th, dt);
         curr.pov = ppid.seek(curr.p,  curr.tp, dt);
         curr.rov = rpid.seek(curr.r,  curr.tr, dt);
@@ -248,6 +245,8 @@ namespace uav
         // get default hover thrust
         float hover = prm.mg / (cos(curr.p * M_PI / 180) *
                                 cos(curr.r * M_PI / 180));
+
+        uav::debug.push_back(std::to_string(hover));
 
         // get raw motor responses by summing pid output variables
         // (linear combination dependent on motor layout)
@@ -261,11 +260,13 @@ namespace uav
         for (int i = 0; i < 4; i++)
         {
             raw[i] = raw[i] > 100 ? 100 : raw[i] < 0 ? 0 : raw[i];
+            /*
             if (raw[i] > prev.motors[i] + prm.maxmrate * dt)
                 curr.motors[i] = prev.motors[i] + prm.maxmrate * dt;
             else if (raw[i] < prev.motors[i] - prm.maxmrate * dt)
                 curr.motors[i] = prev.motors[i] - prm.maxmrate * dt;
             else
+            */
                 curr.motors[i] = raw[i];
         }
 
@@ -289,12 +290,12 @@ namespace uav
         return prm;
     }
 
-    void Control::gettargets(uav::State& state)
+    void Control::gettargets()
     {
         // arbitrary targets until a true controller is implemented
-        state.tz = 0 + (int) (gaussian(gen) * 2);
-        state.th = 0 + (int) (gaussian(gen) * 20);
-        state.tp = 0 + (int) (gaussian(gen) * 6);
-        state.tr = 0 + (int) (gaussian(gen) * 11);
+        curr.tz = prev.tz + (int) gaussian(gen);
+        curr.th = prev.th + (int) gaussian(gen);
+        curr.tp = prev.tp + (int) gaussian(gen);
+        curr.tr = prev.tr + (int) gaussian(gen);
     }
 }

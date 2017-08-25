@@ -164,15 +164,15 @@ namespace uav
 
         if (b[0]) line << setw(10) << "time";
 
-        if (b[1]) line << setw(15) << "t1";
-        if (b[2]) line << setw(15) << "t2";
-        if (b[3]) line << setw(15) << "p1";
-        if (b[4]) line << setw(15) << "p2";
-        if (b[5]) line << setw(15) << "dz";
+        if (b[1]) line << setw(9) << "t1";
+        if (b[2]) line << setw(9) << "t2";
+        if (b[3]) line << setw(12) << "p1";
+        if (b[4]) line << setw(12) << "p2";
+        if (b[5]) line << setw(9) << "dz";
 
-        if (b[6]) line << setw(7) << "hdg";
-        if (b[7]) line << setw(7) << "pitch";
-        if (b[8]) line << setw(7) << "roll";
+        if (b[6]) line << setw(9) << "hdg";
+        if (b[7]) line << setw(9) << "pitch";
+        if (b[8]) line << setw(9) << "roll";
         if (b[9]) line << setw(4) << "cal";
 
         if (b[10]) line << setw(5) << "tz";
@@ -242,15 +242,15 @@ namespace uav
 
         line.setf(ios::fixed);
 
-        if (b[1]) line << setw(15) << it.temp[0];
-        if (b[2]) line << setw(15) << it.temp[1];
-        if (b[3]) line << setw(15) << it.pres[0];
-        if (b[4]) line << setw(15) << it.pres[1];
-        if (b[5]) line << setw(15) << it.dz;
+        if (b[1]) line << setw(9) << it.temp[0];
+        if (b[2]) line << setw(9) << it.temp[1];
+        if (b[3]) line << setw(12) << it.pres[0];
+        if (b[4]) line << setw(12) << it.pres[1];
+        if (b[5]) line << setw(9) << it.dz;
 
-        if (b[6]) line << setw(7) << it.h;
-        if (b[7]) line << setw(7) << it.p;
-        if (b[8]) line << setw(7) << it.r;
+        if (b[6]) line << setw(9) << it.h;
+        if (b[7]) line << setw(9) << it.p;
+        if (b[8]) line << setw(9) << it.r;
         if (b[9]) line << hex << setw(4) << (int) it.calib << dec;
 
         if (b[10]) line << setw(5) << (int) it.tz;

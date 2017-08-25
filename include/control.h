@@ -41,7 +41,7 @@ namespace uav
 
         PID zpid, hpid, ppid, rpid;
 
-        void gettargets(uav::State& state);
+        void gettargets();
     };
 }
 
