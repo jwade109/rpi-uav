@@ -13,10 +13,10 @@ namespace uav
         int wptr = 0;
         memcpy(buffer, &prm.freq, sizeof(prm.freq));
         wptr += sizeof(prm.freq);
-        memcpy(buffer + wptr, &prm.z1h, sizeof(prm.z1h));
-        wptr += sizeof(prm.z1h);
-        memcpy(buffer + wptr, &prm.z2h, sizeof(prm.z2h));
-        wptr += sizeof(prm.z2h);
+        memcpy(buffer + wptr, &prm.p1h, sizeof(prm.p1h));
+        wptr += sizeof(prm.p1h);
+        memcpy(buffer + wptr, &prm.p2h, sizeof(prm.p2h));
+        wptr += sizeof(prm.p2h);
         memcpy(buffer + wptr, prm.zpidg, sizeof(prm.zpidg[0]) * 4);
         wptr += (sizeof(prm.zpidg[0]) * 4);
         memcpy(buffer + wptr, prm.hpidg, sizeof(prm.hpidg[0]) * 4);
@@ -41,10 +41,10 @@ namespace uav
         int wptr = 0;
         memcpy(buffer, &it.t, sizeof(it.t));
         wptr += sizeof(it.t);
-        memcpy(buffer + wptr, &it.z1, sizeof(it.z1));
-        wptr += sizeof(it.z1);
-        memcpy(buffer + wptr, &it.z2, sizeof(it.z2));
-        wptr += sizeof(it.z2);
+        memcpy(buffer + wptr, it.temp, sizeof(it.temp[0]) * 2);
+        wptr += (sizeof(it.temp[0]) * 2);
+        memcpy(buffer + wptr, it.pres, sizeof(it.pres[0]) * 2);
+        wptr += (sizeof(it.pres[0]) * 2);
         memcpy(buffer + wptr, &it.dz, sizeof(it.dz));
         wptr += sizeof(it.dz);
         memcpy(buffer + wptr, &it.h, sizeof(it.h));
@@ -83,10 +83,10 @@ namespace uav
         int rptr = 0;
         memcpy(&prm.freq, buffer, sizeof(prm.freq));
         rptr += sizeof(prm.freq);
-        memcpy(&prm.z1h, buffer + rptr, sizeof(prm.z1h));
-        rptr += sizeof(prm.z1h);
-        memcpy(&prm.z2h, buffer + rptr, sizeof(prm.z2h));
-        rptr += sizeof(prm.z2h);
+        memcpy(&prm.p1h, buffer + rptr, sizeof(prm.p1h));
+        rptr += sizeof(prm.p1h);
+        memcpy(&prm.p2h, buffer + rptr, sizeof(prm.p2h));
+        rptr += sizeof(prm.p2h);
         memcpy(prm.zpidg, buffer + rptr, sizeof(prm.zpidg[0]) * 4);
         rptr += (sizeof(prm.zpidg[0]) * 4);
         memcpy(prm.hpidg, buffer + rptr, sizeof(prm.hpidg[0]) * 4);
@@ -111,10 +111,10 @@ namespace uav
         int rptr = 0;
         memcpy(&it.t, buffer, sizeof(it.t));
         rptr += sizeof(it.t);
-        memcpy(&it.z1, buffer + rptr, sizeof(it.z1));
-        rptr += sizeof(it.z1);
-        memcpy(&it.z2, buffer + rptr, sizeof(it.z2));
-        rptr += sizeof(it.z2);
+        memcpy(it.temp, buffer + rptr, sizeof(it.temp[0]) * 2);
+        rptr += (sizeof(it.temp[0]) * 2);
+        memcpy(it.pres, buffer + rptr, sizeof(it.pres[0]) * 2);
+        rptr += (sizeof(it.pres[0]) * 2);
         memcpy(&it.dz, buffer + rptr, sizeof(it.dz));
         rptr += sizeof(it.dz);
         memcpy(&it.h, buffer + rptr, sizeof(it.h));
@@ -150,7 +150,7 @@ namespace uav
 
     std::string pheader()
     {
-        return "freq z1h z2h zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
+        return "freq p1h p2h zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
                "gz_rc gz_wam maxmrate mg";
     }
 
@@ -164,30 +164,32 @@ namespace uav
 
         if (b[0]) line << setw(10) << "time";
 
-        if (b[1]) line << setw(15) << "z1";
-        if (b[2]) line << setw(15) << "z2";
-        if (b[3]) line << setw(15) << "dz";
+        if (b[1]) line << setw(15) << "t1";
+        if (b[2]) line << setw(15) << "t2";
+        if (b[3]) line << setw(15) << "p1";
+        if (b[4]) line << setw(15) << "p2";
+        if (b[5]) line << setw(15) << "dz";
 
-        if (b[4]) line << setw(7) << "hdg";
-        if (b[5]) line << setw(7) << "pitch";
-        if (b[6]) line << setw(7) << "roll";
-        if (b[7]) line << setw(4) << "cal";
+        if (b[6]) line << setw(7) << "hdg";
+        if (b[7]) line << setw(7) << "pitch";
+        if (b[8]) line << setw(7) << "roll";
+        if (b[9]) line << setw(4) << "cal";
 
-        if (b[8]) line << setw(5) << "tz";
-        if (b[9]) line << setw(5) << "th";
-        if (b[10]) line << setw(5) << "tp";
-        if (b[11]) line << setw(5) << "tr";
+        if (b[10]) line << setw(5) << "tz";
+        if (b[11]) line << setw(5) << "th";
+        if (b[12]) line << setw(5) << "tp";
+        if (b[13]) line << setw(5) << "tr";
 
-        if (b[12]) line << setw(12) << "zov";
-        if (b[13]) line << setw(12) << "hov";
-        if (b[14]) line << setw(12) << "pov";
-        if (b[15]) line << setw(12) << "rov";
+        if (b[14]) line << setw(12) << "zov";
+        if (b[15]) line << setw(12) << "hov";
+        if (b[16]) line << setw(12) << "pov";
+        if (b[17]) line << setw(12) << "rov";
 
         for (int i = 0; i < 4; i++)
-            if (b[16 + i])
+            if (b[18 + i])
                 line << setw(4) << "m" + std::to_string(i + 1);
 
-        if (b[20]) line << setw(10) << "err";
+        if (b[22]) line << setw(10) << "err";
 
         return line.str();
 
@@ -198,8 +200,8 @@ namespace uav
         std::stringstream line;
 
         line << (int) prm.freq << " ";
-        line << prm.z1h << " ";
-        line << prm.z2h << " ";
+        line << prm.p1h << " ";
+        line << prm.p2h << " ";
 
         for (int i = 0; i < 4; i++)
             line << prm.zpidg[i] << " ";
@@ -238,44 +240,45 @@ namespace uav
             line.unsetf(ios::fixed);
         }
 
-        if (b[1]) line << setw(15) << it.z1;
-        if (b[2]) line << setw(15) << it.z2;
-        if (b[3]) line << setw(15) << it.dz;
+        line.setf(ios::fixed);
 
-        if (b[4]) line << setw(7) << it.h;
-        if (b[5]) line << setw(7) << it.p;
-        if (b[6]) line << setw(7) << it.r;
-        if (b[7]) line << hex << setw(4) << (int) it.calib << dec;
+        if (b[1]) line << setw(15) << it.temp[0];
+        if (b[2]) line << setw(15) << it.temp[1];
+        if (b[3]) line << setw(15) << it.pres[0];
+        if (b[4]) line << setw(15) << it.pres[1];
+        if (b[5]) line << setw(15) << it.dz;
 
-        if (b[8]) line << setw(5) << (int) it.tz;
-        if (b[9]) line << setw(5) << (int) it.th;
-        if (b[10]) line << setw(5) << (int) it.tp;
-        if (b[11]) line << setw(5) << (int) it.tr;
+        if (b[6]) line << setw(7) << it.h;
+        if (b[7]) line << setw(7) << it.p;
+        if (b[8]) line << setw(7) << it.r;
+        if (b[9]) line << hex << setw(4) << (int) it.calib << dec;
 
-        if (b[12]) line << setw(12) << it.zov;
-        if (b[13]) line << setw(12) << it.hov;
-        if (b[14]) line << setw(12) << it.pov;
-        if (b[15]) line << setw(12) << it.rov;
+        if (b[10]) line << setw(5) << (int) it.tz;
+        if (b[11]) line << setw(5) << (int) it.th;
+        if (b[12]) line << setw(5) << (int) it.tp;
+        if (b[13]) line << setw(5) << (int) it.tr;
+
+        if (b[14]) line << setw(12) << it.zov;
+        if (b[15]) line << setw(12) << it.hov;
+        if (b[16]) line << setw(12) << it.pov;
+        if (b[17]) line << setw(12) << it.rov;
 
         for (int i = 0; i < 4; i++)
-            if (b[16 + i]) line << setw(4) << (int) it.motors[i];
+            if (b[18 + i]) line << setw(4) << (int) it.motors[i];
 
-        if (b[20]) line << setw(10) << std::bitset<9>(it.err);
+        if (b[22]) line << setw(10) << std::bitset<9>(it.err);
 
         return line.str();
     }
 
-    namespace log
-    {
-        std::deque<std::string> debug, warn, fatal;
+    std::deque<std::string> debug, info, error;
 
-        std::string ts(uint64_t ms)
-        {
-            using namespace std;
-            std::stringstream s;
-            s.setf(ios::fixed);
-            s << "[" << setprecision(3) << ms/1000.0 << "]";
-            return s.str();
-        }
+    std::string ts(uint64_t ms)
+    {
+        using namespace std;
+        std::stringstream s;
+        s.setf(ios::fixed);
+        s << "[" << setprecision(3) << ms/1000.0 << "]";
+        return s.str();
     }
 }

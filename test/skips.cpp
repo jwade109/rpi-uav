@@ -36,12 +36,17 @@ int main(int argc, char** argv)
               << " Hz (dt = " << dt << " ms)" << std::endl;
     
     unsigned int maxdt = 0, mindt = -1;
-    unsigned long long ts, prev, skips = 0;
+    unsigned long long ts = 0, prev, skips = 0;
 
     std::cout.setf(std::ios::fixed, std::ios::floatfield);
     std::cout.precision(3);
 
     int n = ((int) fsize - uav::paramlen)/uav::statelen;
+    if (n == 0)
+    {
+        std::cout << "File does not contain any iterations." << std::endl;
+        return 0;
+    }
     for (int i = 0; i < n; i++)
     {
         if (i > 0) prev = ts;

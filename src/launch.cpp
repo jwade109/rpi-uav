@@ -16,6 +16,7 @@ bool cont = true;
 void sigint(int signal)
 {
     cont = false;
+    uav::debug.push_back("Program interrupted.");
 }
 
 int main()
@@ -31,6 +32,7 @@ int main()
     uav::Control c(init, prm);
 
     // begin imu, bmp, and get home altitudes
+    uav::debug.push_back("Aligning...");
     std::cout << "Aligning..." << std::endl;
     if (c.align())
     {
@@ -44,11 +46,11 @@ int main()
 
     // print the params
     std::cout << uav::to_string(c.getparams()) << std::endl;
-    uint64_t mask = 0b111110000000111111111;
+    uint64_t mask = 0b11111000000001111111111;
     std::cout << uav::sheader(mask) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
-    while ((now < start + chrono::seconds(10)) && cont)
+    while ((now < start + chrono::seconds(100)) && cont)
     {
         // iterate the controller,
         // enable internal timing management
@@ -68,9 +70,11 @@ int main()
 
         now = chrono::steady_clock::now();
     }
+
+    if (cont) uav::debug.push_back("Program terminated normally.");
+    uav::debug.push_back("Writing to file...");
     std::cout << "Writing to file..." << std::endl;
 
-    namespace log = uav::log;
     std::ofstream data("log/data.bin", std::ios::out | std::ios::binary);
     char sbuf[uav::statelen], pbuf[uav::paramlen];
     uav::Param p = c.getparams();
@@ -83,31 +87,31 @@ int main()
         data.write(sbuf, uav::statelen);
     }
 
-    if (!log::debug.empty())
+    if (!uav::debug.empty())
     {
         std::ofstream debug("log/debug.txt", std::ios::out);
-        while (!log::debug.empty())
+        while (!uav::debug.empty())
         {
-            debug << log::debug.front() << "\n";
-            log::debug.pop_front();
+            debug << uav::debug.front() << "\n";
+            uav::debug.pop_front();
         }
     }
-    if (!log::warn.empty())
+    if (!uav::info.empty())
     {
-        std::ofstream warn("log/warn.txt", std::ios::out);
-        while (!log::warn.empty())
+        std::ofstream info("log/info.txt", std::ios::out);
+        while (!uav::info.empty())
         {
-            warn << log::warn.front() << "\n";
-            log::warn.pop_front();
+            info << uav::info.front() << "\n";
+            uav::info.pop_front();
         }
     }
-    if (!log::fatal.empty())
+    if (!uav::error.empty())
     {
-        std::ofstream fatal("log/fatal.txt", std::ios::out);
-        while (!log::fatal.empty())
+        std::ofstream error("log/error.txt", std::ios::out);
+        while (!uav::error.empty())
         {
-            fatal << log::fatal.front() << "\n";
-            log::fatal.pop_front();
+            error << uav::error.front() << "\n";
+            uav::error.pop_front();
         }
     }
     std::cout << "Done." << std::endl;

@@ -51,20 +51,20 @@ namespace uav
         std::this_thread::sleep_for(chrono::seconds(3));
         #endif
 
-        prm.z1h = 0;
-        prm.z2h = 0;
+        prm.p1h = 0;
+        prm.p2h = 0;
 
         #ifndef DEBUG
         auto start = chrono::steady_clock::now();
         for (int i = 0; i < samples; i++)
         {
-            prm.z1h += imu.get().alt;
-            prm.z2h += bmp.getAltitude();
+            prm.p1h += imu.get().pres;
+            prm.p2h += bmp.getPressure();
             start+=wait;
             std::this_thread::sleep_until(start);
         }
-        prm.z1h /= samples;
-        prm.z2h /= samples;
+        prm.p1h /= samples;
+        prm.p2h /= samples;
         #endif
 
         return 0;
@@ -88,8 +88,6 @@ namespace uav
         curr.t = chrono::duration_cast<chrono::milliseconds>(
                 now - tstart).count();
 
-        uav::log::debug.push_back(uav::log::ts(curr.t) + " Iterating");
-
         double dt = chrono::milliseconds(
                 curr.t - prev.t).count()/1000.0;
 
@@ -100,44 +98,53 @@ namespace uav
         }
 
         #ifndef DEBUG
-        float z1raw;
-        imu.get(curr.h, curr.p, curr.r, z1raw, curr.calib);
-        curr.z1 = z1raw - prm.z1h;
-        curr.z2 = bmp.getAltitude() - prm.z2h;
+        Message m = imu.get();
+
+        curr.h = m.heading;
+        curr.p = m.pitch;
+        curr.r = m.roll;
+
+        curr.temp[0] = m.temp;
+        curr.temp[1] = bmp.getTemperature();
+        curr.pres[0] = m.pres;
+        curr.pres[1] = bmp.getPressure();
+        // curr.z1 = z1raw - prm.z1h;
+        // curr.z2 = bmp.getAltitude() - prm.z2h;
         #else
         curr.h = 10;
         curr.p = 4;
         curr.r = -3;
-        curr.z1 = 25;
-        curr.z2 = 19;
+        curr.pres[0] = 101200;
+        curr.pres[1] = 101175;
+        curr.temp[0] = curr.temp[1] = 25.6;
         #endif
 
-        // if an altitude measurement is deemed invalid, use the
+        // if a pressure measurement is deemed invalid, use the
         // other barometer's measurement, or the most recent valid
         // measurement
         //
         // for invalid attitude readings, use the previous measurement
         
-        // assume during normal operation, neither altitude will stray
-        // more than 50 meters from its respective home point
-        if (curr.z1 < -50 || curr.z1 > 50)
+        // assume during normal operation, pressure will be atmost
+        // 101,325 Pa (0 m MSL), and no less than 80,000 Pa (~2000 m MSL)
+        if (curr.pres[0] < 80000 || curr.pres[0] > 101325)
         {
             error[1] = 1;
         }
-        if (curr.z2 < -50 || curr.z2 > 50)
+        if (curr.pres[1] < 80000 || curr.pres[1] > 101325)
         {
             error[2] = 1;
         }
         // decision tree for correcting bad alt measurements
         if (error[1] && error[2]) // uh-oh, both altimeters are bad
         {
-            curr.z1 = prev.z1;
-            curr.z2 = prev.z2;
+            curr.pres[0] = prev.pres[0];
+            curr.pres[1] = prev.pres[1];
         }
-        else if (error[1]) // z1 is bad, z2 is good
-            curr.z1 = curr.z2;
-        else if (error[2]) // z2 is bad, z1 is good
-            curr.z2 = curr.z1;
+        else if (error[1]) // p1 is bad, p2 is good
+            curr.pres[0] = curr.pres[1];
+        else if (error[2]) // p2 is bad, p1 is good
+            curr.pres[1] = curr.pres[0];
 
         // verify that all attitudes are normal or zero
         // expected values for curr.h are (-180,+180)
@@ -161,7 +168,12 @@ namespace uav
 
         // once readings are verified, filter altitude
         {
-            double zavg = curr.z1 * prm.gz_wam + curr.z2 * (1 - prm.gz_wam);
+            auto alt = [](float p, float hp)
+                { return 44330 * (1.0 - pow(p/hp, 0.1903)); };
+            
+            double z1 = alt(curr.pres[0], prm.p1h);
+            double z2 = alt(curr.pres[1], prm.p2h);
+            double zavg = z1 * prm.gz_wam + z2 * (1 - prm.gz_wam);
             double a = dt/(prm.gz_rc + dt);
             curr.dz = a * zavg + (1 - a) * prev.dz;
         }

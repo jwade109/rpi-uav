@@ -16,7 +16,8 @@ namespace uav
         float pitch;
         float roll;
         uint8_t calib;
-        float alt;
+        float temp;
+        float pres;
     }
     Message;
 
@@ -28,7 +29,6 @@ namespace uav
         ~Arduino();
 
         int begin();
-        void get(float& h, float& p, float& r, float& z, uint8_t& cal);
         const Message& get();
 
         private:

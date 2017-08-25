@@ -60,16 +60,6 @@ namespace uav
         return data;
     }
 
-    void Arduino::get(float& h, float& p, float& r, float& z, uint8_t& cal)
-    {
-        Message m = get();
-        h = m.heading;
-        p = m.pitch;
-        r = m.roll;
-        z = m.alt;
-        cal = m.calib;
-    }
-
     void Arduino::parse()
     {
         size_t ptr = 0;
@@ -111,7 +101,8 @@ namespace uav
                 d.pitch = strtod(cursor, &cursor);
                 d.roll = strtod(cursor, &cursor);
                 d.calib = strtol(cursor, &cursor, 10);
-                d.alt = strtod(cursor, &cursor);
+                d.pres = strtod(cursor, &cursor);
+                d.temp = strtod(cursor, &cursor);
                 data = d;
                 memset(buffer, 0, msg_len);
                 ptr = 0;

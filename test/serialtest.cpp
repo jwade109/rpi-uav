@@ -28,9 +28,11 @@ int main(int argc, char** argv)
         auto now = duration_cast<milliseconds>(
                 system_clock::now().time_since_epoch());
         uav::Message m = imu.get();
-        std::cout << now.count() << "\t" << m.heading << "\t"
-                  << m.pitch << "\t" << m.roll << "\t" << m.alt
-                  << std::endl;
+        std::cout << now.count() << "\t" << m.millis << "\t"
+                  << m.heading << "\t" << m.pitch << "\t"
+                  << m.roll << "\t" << std::hex << (int) m.calib
+                  << std::dec << "\t" << m.pres << "\t"
+                  << m.temp << std::endl;
 
         runtime+=dt;
         auto ptr = steady_clock::now();

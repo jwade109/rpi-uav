@@ -23,9 +23,9 @@ namespace uav
     {
         uint64_t t;                 // time in millis
 
-        float z1;                   // alt from arduino imu
-        float z2;                   // alt from external bmp085
-        float dz;                   // filtered altitude from home point
+        float pres[2];              // pressure from arduino(1) and bmp(2)
+        float temp[2];              // temperature from above
+        float dz;                   // altitude from home point
 
         float h, p, r;              // heading, pitch, roll
         uint8_t calib;              // calibration status
@@ -43,8 +43,8 @@ namespace uav
     typedef struct
     {
         Freq freq;              // frequency of updates in hz
-        double z1h;             // home point altitude from imu
-        double z2h;             // home point altitude from bmp085
+        double p1h;             // home point pressure from imu
+        double p2h;             // home point pressure from bmp085
 
         double zpidg[4];        // pid gains for altitude
         double hpidg[4];        // ' ' for yaw
@@ -58,10 +58,10 @@ namespace uav
     }
     Param;
 
-    const size_t statefields = 21;  // number of fields in each
+    const size_t statefields = 23;  // number of fields in each
     const size_t paramfields = 23;
 
-    const size_t statelen = 63;     // number of bytes of each
+    const size_t statelen = 71;     // number of bytes of each
     const size_t paramlen = 171;    // respective member
     
     int to_buffer(Param& prm, char buffer[paramlen]);
@@ -80,14 +80,9 @@ namespace uav
 
     std::string to_string(State it, uint64_t mask);
 
-    namespace log
-    {
-        extern std::deque<std::string> debug;
-        extern std::deque<std::string> warn;
-        extern std::deque<std::string> fatal;
+    extern std::deque<std::string> debug, info, error;
 
-        std::string ts(uint64_t ms);
-    }
+    std::string ts(uint64_t ms);
 }
 
 #endif // UAV_CORE_H
