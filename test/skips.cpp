@@ -8,14 +8,11 @@
 
 int main(int argc, char** argv)
 {
-    if (argc < 2)
-    {
-        std::cerr << "Please provide a filename." << std::endl;
-        return 1;
-    }
+    std::string infile = "log/data.bin";
+    if (argc > 1) infile = argv[1];
 
     std::ifstream bin;
-    bin.open(argv[1], std::ios::in | std::ios::binary);
+    bin.open(infile, std::ios::in | std::ios::binary);
     if (!bin)
     {
         std::cerr << "Invalid filename." << std::endl;

@@ -10,26 +10,27 @@
 
 int main(int argc, char** argv)
 {
-    if (argc < 4)
+    uint64_t mask = -1;
+    std::string outfile = "log/out.txt", infile = "log/data.bin";
+    if (argc > 3)
     {
-        std::cerr << "usage: [input file] "
-                     "[output file] [format]" << std::endl;
-        return 1;
+        std::string m(argv[3]);
+        std::reverse(m.begin(), m.end());
+        std::bitset<uav::statelen> b(m);
+        mask = b.to_ullong();
     }
+    if (argc > 2) outfile = argv[2];
+    if (argc > 1) infile = argv[1];
 
-    std::string m(argv[3]);
-    std::reverse(m.begin(), m.end());
-    std::bitset<uav::statelen> b(m);
-    uint64_t mask = b.to_ullong();
     std::ifstream bin;
     std::ofstream txt;
-    bin.open(argv[1], std::ios::in | std::ios::binary);
+    bin.open(infile, std::ios::in | std::ios::binary);
     if (!bin)
     {
         std::cerr << "Invalid filename." << std::endl;
         return 2;
     }
-    txt.open(argv[2], std::ios::out | std::ios::binary);
+    txt.open(outfile, std::ios::out | std::ios::binary);
     if (!txt)
     {
         std::cerr << "Could not create text file." << std::endl;
