@@ -203,18 +203,19 @@ namespace uav
         line << prm.p1h << " ";
         line << prm.p2h << " ";
 
+        line << "[ ";
         for (int i = 0; i < 4; i++)
             line << prm.zpidg[i] << " ";
-
+        line << "] [ ";
         for (int i = 0; i < 4; i++)
             line << prm.hpidg[i] << " ";
-
+        line << "] [ ";
         for (int i = 0; i < 4; i++)
             line << prm.ppidg[i] << " ";
-
+        line << "] [ ";
         for (int i = 0; i < 4; i++)
             line << prm.rpidg[i] << " ";
-
+        line << "] ";
         line << prm.gz_rc << " ";
         line << prm.gz_wam << " ";
         line << prm.maxmrate << " ";

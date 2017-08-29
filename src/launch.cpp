@@ -27,7 +27,7 @@ int main(int argc, char** argv)
 
     // initialize the controller
     uav::Param prm{uav::F50Hz, 0, 0, {0, 0, 0.005}, {0, 0, 0.015},
-             {0.005, 0, 0.02}, {0.005, 0, 0.02}, 0.1, 0.65, 500, 41};
+             {0.1, 0, 0.02}, {0.1, 0, 0.02}, 0.1, 0.65, 500, 41};
     uav::State init{0};
 
     bool debug = argc > 1 ? true : false;
@@ -48,7 +48,7 @@ int main(int argc, char** argv)
     // print the params
     std::cout << uav::pheader() << std::endl;
     std::cout << uav::to_string(c.getparams()) << std::endl;
-    uint64_t mask = -1; // 0b11111000000001111111111;
+    uint64_t mask = 0b11111111100000111100001;
     std::cout << uav::sheader(mask) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;

@@ -293,9 +293,13 @@ namespace uav
     void Control::gettargets()
     {
         // arbitrary targets until a true controller is implemented
-        curr.tz = prev.tz + (int) gaussian(gen);
-        curr.th = prev.th + (int) gaussian(gen);
-        curr.tp = prev.tp + (int) gaussian(gen);
-        curr.tr = prev.tr + (int) gaussian(gen);
+        if (debug)
+        {
+            curr.tz = prev.tz + (int) gaussian(gen);
+            curr.th = prev.th + (int) gaussian(gen);
+            curr.tp = prev.tp + (int) gaussian(gen);
+            curr.tr = prev.tr + (int) gaussian(gen);
+        }
+        else curr.tz = curr.th = curr.tp = curr.tr = 0;
     }
 }
