@@ -34,6 +34,7 @@ kalman<M, N, rep>::kalman(const Eigen::Matrix<rep, N, 1>& initial) :
     X(initial),
     Z(Eigen::Matrix<rep, M, 1>::Zero()),
     P(Eigen::Matrix<rep, N, N>::Identity()),
+    G(Eigen::Matrix<rep, N, M>::Zero()),
     F(Eigen::Matrix<rep, N, N>::Identity()),
     H(Eigen::Matrix<rep, M, N>::Constant(1)),
     R(Eigen::Matrix<rep, M, M>::Identity()),
@@ -49,7 +50,7 @@ const Eigen::Matrix<rep, N, 1>& kalman<M, N, rep>::
     P = F * P * F.transpose() + Q;
     G = (P * H.transpose()) * (H * P * H.transpose() + R).inverse();
     X = X + G * (Z - H * X);
-    P = (Eigen::MatrixXd::Identity(N, N) - G * H) * P;
+    P = (Eigen::Matrix<rep, N, N>::Identity() - G * H) * P;
     return X;
 }
 
