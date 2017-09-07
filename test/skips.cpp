@@ -27,7 +27,7 @@ int main(int argc, char** argv)
     char* bytes = new char[fsize];
     bin.read(bytes, fsize);
 
-    uav::Freq f = *((uav::Freq*) bytes);
+    uav::freq_t f = *((uav::freq_t*) bytes);
     unsigned int dt = 1000/f;
     std::cerr << "Detected frequency of " << f
               << " Hz (dt = " << dt << " ms)" << std::endl;
@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     std::cout.setf(std::ios::fixed, std::ios::floatfield);
     std::cout.precision(3);
 
-    int n = ((int) fsize - uav::paramlen)/uav::statelen;
+    int n = ((int) fsize - uav::param_size)/uav::state_size;
     if (n == 0)
     {
         std::cout << "File does not contain any iterations." << std::endl;
@@ -47,7 +47,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < n; i++)
     {
         if (i > 0) prev = ts;
-        ts = *((uint64_t*) (bytes + uav::paramlen + i * uav::statelen));
+        ts = *((uint64_t*) (bytes + uav::param_size + i * uav::state_size));
 
         if (i > 0 && ts - prev > maxdt) maxdt = ts - prev;
         if (i > 0 && ts - prev < mindt) mindt = ts - prev;
@@ -69,16 +69,3 @@ int main(int argc, char** argv)
 
     delete[] bytes;
 }
-
-/*
-
-#include <iostream>
-#include <iomanip>
-#include <fstream>
-#include <string>
-
-int main(int argc, char** argv)
-{
-
-}
-*/

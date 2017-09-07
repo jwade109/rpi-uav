@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <chrono>
 #include <thread>
 #include <cmath>
@@ -16,7 +17,7 @@ bool cont = true;
 void sigint(int signal)
 {
     cont = false;
-    uav::debug.push_back("Program interrupted.");
+    uav::debug_write("Program interrupted.");
 }
 
 int main(int argc, char** argv)
@@ -25,16 +26,17 @@ int main(int argc, char** argv)
 
     signal(SIGINT, sigint);
 
-    // initialize the controller
-    uav::Param prm{uav::F50Hz, 0, 0, {0, 0, 0.005}, {0, 0, 0.015},
-             {0.1, 0, 0.02}, {0.1, 0, 0.02}, 0.1, 0.65, 500, 41};
-    uav::State init{0};
+    static_assert(uav::param_fields == 23, "Check yourself before you segfault"); 
+    uav::param prm = {uav::f50hz, 0, 0, {0, 0, 0.005, -1},
+            {0, 0, 0.015, -1}, {0.1, 0, 0.02, -1}, {0.1, 0, 0.02, -1},
+            0.1, 0.65, 500, 41};
+    uav::state init{0};
 
     bool debug = argc > 1 ? true : false;
     uav::Control c(init, prm, debug);
 
     // begin imu, bmp, and get home altitudes
-    uav::debug.push_back("Aligning...");
+    uav::debug_write("Aligning...");
     std::cout << "Aligning..." << std::endl;
     if (c.align())
     {
@@ -43,12 +45,12 @@ int main(int argc, char** argv)
     }
     std::cout << "Alignment complete." << std::endl;
 
-    std::deque<uav::State> list;
+    std::deque<uav::state> list;
 
     // print the params
     std::cout << uav::pheader() << std::endl;
     std::cout << uav::to_string(c.getparams()) << std::endl;
-    uint64_t mask = 0b11111111100000111100001;
+    uint64_t mask = 0b1000000000000000000000001;
     std::cout << uav::sheader(mask) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
@@ -57,12 +59,12 @@ int main(int argc, char** argv)
         // iterate the controller,
         // enable internal timing management
         c.iterate(true);
-        uav::State s = c.getstate();
+        uav::state s = c.getstate();
 
         // print the controller state
         std::cout << uav::to_string(s, mask);
-        if (s.err)  std::cout << "!!!";
-        else        std::cout << "   ";
+        if (s.err)  std::cout << " !";
+        else        std::cout << "  ";
         std::cout << "\r" << std::flush;
 
         // add state to log
@@ -70,20 +72,19 @@ int main(int argc, char** argv)
         now = chrono::steady_clock::now();
     }
 
-    if (cont) uav::debug.push_back("Program terminated normally.");
-    uav::debug.push_back("Writing to file...");
+    if (cont) uav::debug_write("Program terminated normally.");
+    uav::debug_write("Writing to file...");
     std::cout << std::endl << "Writing to file..." << std::endl;
 
     std::ofstream data("log/data.bin", std::ios::out | std::ios::binary);
-    char sbuf[uav::statelen], pbuf[uav::paramlen];
-    uav::Param p = c.getparams();
-    uav::to_buffer(p, pbuf);
-    data.write(pbuf, uav::paramlen);
+    uav::param p = c.getparams();
+    auto pbin = uav::to_binary(p);
+    data.write((const char*) pbin.data(), uav::param_size);
     while (!list.empty())
     {
-        uav::to_buffer(list.front(), sbuf);
+        auto b = uav::to_binary(list.front());
         list.pop_front();
-        data.write(sbuf, uav::statelen);
+        data.write((const char*) b.begin(), uav::state_size);
     }
 
     if (!uav::debug.empty())

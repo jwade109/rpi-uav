@@ -16,7 +16,7 @@ int main(int argc, char** argv)
     {
         std::string m(argv[3]);
         std::reverse(m.begin(), m.end());
-        std::bitset<uav::statelen> b(m);
+        std::bitset<uav::state_size> b(m);
         mask = b.to_ullong();
     }
     if (argc > 2) outfile = argv[2];
@@ -44,19 +44,16 @@ int main(int argc, char** argv)
 
     char* bytes = new char[fsize];
     bin.read(bytes, fsize);
-    uav::Param p;
-    uav::from_buffer(p, bytes);
+    uav::param p = uav::from_binary(uav::wrap<uav::param_size>(bytes));
     txt << uav::pheader() << std::endl;
     txt << uav::to_string(p) << std::endl << std::endl;
     txt << uav::sheader(mask) << std::endl; 
-    int n = uav::paramlen;
+    int n = uav::param_size;
     while (n < fsize)
     {
-        uav::State s;
-        int ret = from_buffer(s, bytes + n);
-        assert(ret == uav::statelen);
+        uav::state s = uav::from_binary(uav::wrap<uav::state_size>(bytes + n));
         txt << uav::to_string(s, mask) << std::endl;
-        n += uav::statelen;
+        n += uav::state_size;
     }
     delete[] bytes;
 }

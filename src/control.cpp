@@ -19,7 +19,7 @@ std::normal_distribution<double> gaussian(0.0, 1.0);
 
 namespace uav
 {
-    Control::Control(uav::State initial, uav::Param cfg, bool debug):
+    Control::Control(state initial, param cfg, bool debug):
 
         debug(debug),
         zpid(cfg.zpidg[0], cfg.zpidg[1],
@@ -96,11 +96,11 @@ namespace uav
                 now = chrono::steady_clock::now();
         }
 
+        auto stopwatch = chrono::steady_clock::now();
         curr.t = chrono::duration_cast<chrono::milliseconds>(
                 now - tstart).count();
 
-        double dt = chrono::milliseconds(
-                curr.t - prev.t).count()/1000.0;
+        double dt = (curr.t - prev.t)/1000.0;
 
         if (!first && dt <= 0)
         {
@@ -231,6 +231,8 @@ namespace uav
         {
             first = false;
             curr.err = (uint16_t) error.to_ulong();
+            curr.comptime = chrono::duration_cast<chrono::nanoseconds>(
+                chrono::steady_clock::now() - stopwatch).count();
             return 2;
         }
         
@@ -271,21 +273,23 @@ namespace uav
         }
 
         curr.err = (uint16_t) error.to_ulong();
+        curr.comptime = chrono::duration_cast<chrono::nanoseconds>(
+            chrono::steady_clock::now() - stopwatch).count();
 
         return 0;
     }
         
-    uav::State Control::getstate()
+    state Control::getstate()
     {
         return curr;
     }
 
-    void Control::setstate(uav::State state)
+    void Control::setstate(state s)
     {
-        curr = state;
+        curr = s;
     }
 
-    uav::Param Control::getparams()
+    param Control::getparams()
     {
         return prm;
     }
