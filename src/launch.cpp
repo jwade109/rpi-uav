@@ -16,7 +16,7 @@ bool cont = true;
 void sigint(int signal)
 {
     cont = false;
-    uav::debug("Program interrupted.");
+    uav::info("Program interrupted.");
 }
 
 int main(int argc, char** argv)
@@ -26,7 +26,7 @@ int main(int argc, char** argv)
     signal(SIGINT, sigint);
 
     static_assert(uav::param_fields == 23, "Check yourself before you segfault"); 
-    uav::param prm = {uav::f50hz, 0, 0, {0, 0, 0.005, -1},
+    uav::param prm = {uav::f250hz, 0, 0, {0, 0, 0.005, -1},
             {0, 0, 0.015, -1}, {0.1, 0, 0.02, -1}, {0.1, 0, 0.02, -1},
             0.1, 0.65, 500, 41};
     uav::state init{0};
@@ -35,7 +35,7 @@ int main(int argc, char** argv)
     uav::Control c(init, prm, debug);
 
     // begin imu, bmp, and get home altitudes
-    uav::debug("Aligning...");
+    uav::info("Aligning...");
     std::cout << "Aligning..." << std::endl;
     if (c.align())
     {
@@ -71,8 +71,8 @@ int main(int argc, char** argv)
         now = chrono::steady_clock::now();
     }
 
-    if (cont) uav::debug("Program terminated normally.");
-    uav::debug("Writing to file...");
+    if (cont) uav::info("Program terminated normally.");
+    uav::info("Writing to file...");
     std::cout << std::endl << "Writing to file..." << std::endl;
 
     uav::flush();

@@ -310,27 +310,25 @@ std::string uav::timestamp()
     std::stringstream s;
     s.setf(ios::fixed);
 
-    uint64_t sec = time/1000000;
+    uint64_t sec = (time/1000000);
     uint64_t milli = (time/1000) % 1000;
     uint64_t micro = time % 1000;
 
-    s << "[" << setw(7) << sec << "."
-        << setw(3) << setfill('0') << milli << "'"
-        << setw(3) << setfill('0') << micro << "] ";
+    s << "[" << setw(6) << setfill('0') << sec << "."
+        << setw(3) << setfill('0') << milli << ":"
+        << setw(3) << setfill('0') << micro << "]   ";
     return s.str();
 }
 
 uav::param paramlog;
 std::deque<uav::state> statelog;
-std::deque<std::string> debuglog, infolog, errorlog;
+std::deque<std::string> textlog;
 
 void uav::reset()
 {
     paramlog = param::zero();
     statelog.clear();
-    debuglog.clear();
-    infolog.clear();
-    errorlog.clear();
+    textlog.clear();
 }
 
 void uav::include(uav::param p)
@@ -345,22 +343,23 @@ void uav::include(uav::state s)
 
 void uav::debug(std::string s)
 {
-    debuglog.push_back(timestamp() + s);
+    textlog.push_back("[DEBUG] " + timestamp() + s);
 }
 
 void uav::info(std::string s)
 {
-    infolog.push_back(timestamp() + s);
+    textlog.push_back("[INFO ] " + timestamp() + s);
 }
 
 void uav::error(std::string s)
 {
-    errorlog.push_back(timestamp() + s);
+    textlog.push_back("[ERROR] " + timestamp() + s);
 }
 
 void uav::flush()
 {
-    std::ofstream debug, info, error,
+    std::ofstream
+        text("log/events.txt", std::ios::out),
         data("log/data.bin", std::ios::out | std::ios::binary);
     {
         param_bin pbin = uav::to_binary(paramlog);
@@ -372,25 +371,9 @@ void uav::flush()
         statelog.pop_front();
         data.write((const char*) b.begin(), uav::state_size);
     }
-    if (!debuglog.empty())
-        debug.open("log/debug.txt", std::ios::out);
-    while (!debuglog.empty())
+    while (!textlog.empty())
     {
-        debug << debuglog.front() << "\n";
-        debuglog.pop_front();
-    }
-    if (!infolog.empty())
-        info.open("log/info.txt", std::ios::out);
-    while (!infolog.empty())
-    {
-        info << infolog.front() << "\n";
-        infolog.pop_front();
-    }
-    if (!errorlog.empty())
-        error.open("log/error.txt", std::ios::out);
-    while (!errorlog.empty())
-    {
-        error << errorlog.front() << "\n";
-        errorlog.pop_front();
+        text << textlog.front() << "\n";
+        textlog.pop_front();
     }
 }

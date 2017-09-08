@@ -50,7 +50,7 @@ namespace uav
             if (ret1 | ret2)
             {
                 std::stringstream ss;
-                ss << "Drone alignment failure!!! (IMU: " << ret1
+                ss << "Drone alignment failure (IMU: " << ret1
                     << ", BMP: " << ret2 << ")";
                 std::cerr << ss.str() << "\n";
                 uav::error(ss.str());
@@ -105,8 +105,11 @@ namespace uav
 
         double dt = (curr.t - prev.t)/1000.0;
 
-        if (!first && dt <= 0)
+        if (!first && (curr.t - prev.t) != 1000/prm.freq)
         {
+            uav::error("Timing error (" +
+                    std::to_string(prev.t) + " -> " +
+                    std::to_string(curr.t) + ")");
             error[0] = 1;
             return 1;
         }
@@ -242,8 +245,6 @@ namespace uav
         // get default hover thrust
         float hover = prm.mg / (cos(curr.p * M_PI / 180) *
                                 cos(curr.r * M_PI / 180));
-
-        uav::debug("Hover: " + std::to_string(hover));
 
         // get raw motor responses by summing pid output variables
         // (linear combination dependent on motor layout)
