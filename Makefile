@@ -13,7 +13,7 @@ LIB = -lncurses -lwiringPi -pthread
 INC = -I include/
 LINK = $(CC) $(LF) $^ -o $@ $(LIB)
 
-all: launch.exe utilities
+all: launch utilities
 utilities: pidtest bmptest serialtest skips bin2txt
 
 install:
@@ -21,7 +21,7 @@ install:
 
 # Target executable #
 
-launch.exe: $(SOBJ)
+launch: $(SOBJ)
 	$(LINK)
 
 pidtest: bin/pidtest

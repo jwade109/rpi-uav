@@ -38,7 +38,7 @@ int main(int argc, char** argv)
     std::cout.setf(std::ios::fixed, std::ios::floatfield);
     std::cout.precision(3);
 
-    int n = ((int) fsize - uav::param_size)/uav::state_size;
+    int n = ((int) fsize - uav::param::size)/uav::state::size;
     if (n == 0)
     {
         std::cout << "File does not contain any iterations." << std::endl;
@@ -47,7 +47,7 @@ int main(int argc, char** argv)
     for (int i = 0; i < n; i++)
     {
         if (i > 0) prev = ts;
-        ts = *((uint64_t*) (bytes + uav::param_size + i * uav::state_size));
+        ts = *((uint64_t*) (bytes + uav::param::size + i * uav::state::size));
 
         if (i > 0 && ts - prev > maxdt) maxdt = ts - prev;
         if (i > 0 && ts - prev < mindt) mindt = ts - prev;

@@ -10,13 +10,15 @@
 
 int main(int argc, char** argv)
 {
+    using namespace uav;
+
     uint64_t mask = -1;
-    std::string outfile = "log/out.txt", infile = "log/data.bin";
+    std::string outfile("log/out.txt"), infile("log/data.bin");
     if (argc > 3)
     {
         std::string m(argv[3]);
         std::reverse(m.begin(), m.end());
-        std::bitset<uav::state_size> b(m);
+        std::bitset<state::size> b(m);
         mask = b.to_ullong();
     }
     if (argc > 2) outfile = argv[2];
@@ -44,16 +46,16 @@ int main(int argc, char** argv)
 
     char* bytes = new char[fsize];
     bin.read(bytes, fsize);
-    uav::param p = uav::from_binary(uav::wrap<uav::param_size>(bytes));
-    txt << uav::pheader() << std::endl;
-    txt << uav::to_string(p) << std::endl << std::endl;
-    txt << uav::sheader(mask) << std::endl; 
-    int n = uav::param_size;
+    param p = from_binary(wrap<param>(bytes));
+    txt << pheader() << std::endl;
+    txt << to_string(p) << std::endl << std::endl;
+    txt << sheader(mask) << std::endl; 
+    int n = param::size;
     while (n < fsize)
     {
-        uav::state s = uav::from_binary(uav::wrap<uav::state_size>(bytes + n));
-        txt << uav::to_string(s, mask) << std::endl;
-        n += uav::state_size;
+        state s = from_binary(wrap<state>(bytes + n));
+        txt << to_string(s, mask) << std::endl;
+        n += state::size;
     }
     delete[] bytes;
 }

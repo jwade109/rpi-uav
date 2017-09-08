@@ -1,24 +1,21 @@
-#include <iostream>
-#include <cstring>
-#include <termios.h>
-#include <fcntl.h>
-
 #include <ardimu.h>
+
+#include <cstring>
+#include <iostream>
+#include <fcntl.h>
 
 namespace uav
 {
-    const speed_t baud = B115200;
+    arduino::arduino(): data{0}, cont(true), status(-1) { }
 
-    Arduino::Arduino(): data{0}, cont(true), init(-1) { }
-
-    Arduino::~Arduino()
+    arduino::~arduino()
     {
         cont = false;
         if (parser.joinable()) parser.join();
         in.close();
     }
 
-    int Arduino::begin()
+    int arduino::begin()
     {
         int fd = open("/dev/ttyACM0", O_RDWR);
         if (fd < 0)
@@ -34,7 +31,7 @@ namespace uav
         rt -= tcsetattr(fd, TCSANOW, &attr);
         if (rt < 0)
         {
-            std::cerr << "Arduino: Failed to set "
+            std::cerr << "arduino: Failed to set "
                          "baud rate" << std::endl;
             return 2;
         }
@@ -42,61 +39,61 @@ namespace uav
         in.open("/dev/ttyACM0");
         if (!in)
         {
-            std::cerr << "Arduino: Could not open "
+            std::cerr << "arduino: Could not open "
                          "/dev/ttyACM0" << std::endl;
             return 3;
         }
 
-        parser = std::thread(&Arduino::parse, this);
+        parser = std::thread(&arduino::parse, this);
 
-        while (init < 0);
-        if (init) return 4;
+        while (status < 0);
+        if (status) return 4;
 
         return 0;
     }
 
-    const Message& Arduino::get()
+    const imu_packet& arduino::get() const
     {
         return data;
     }
 
-    void Arduino::parse()
+    void arduino::parse()
     {
         size_t ptr = 0;
-        bool message = false;
+        bool recieved = false;
         char ch;
-        char buffer[msg_len];
+        std::array<char, buffer_size> buffer;
 
         while (in.get(ch) && cont)
         {
-            if (ch == '#') init = 0;
+            if (ch == '#') status = 0;
             else if (ch == '!')
             {
-                memset(buffer, 0, msg_len);
+                buffer.fill(0);
                 buffer[0] = '!';
                 in.get(ch);
                 buffer[1] = ch;
-                for (int i = 2; i < msg_len && ch != '!'; i++)
+                for (size_t i = 2; i < buffer_size && ch != '!'; i++)
                 {
                     in.get(ch);
                     buffer[i] = ch;
                 }
                 fprintf(stderr, "Arduino: Reporting error: "
-                        "\"%s\"\n", buffer);
+                        "\"%s\"\n", buffer.data());
                 cont = false;
-                init = 1;
+                status = 1;
             }
             else if (ch == '<')
             {
-                message = true;
+                recieved = true;
                 in.get(ch);
             }
             else if (ch == '>')
             {
-                message = false;
-                Message d;
+                recieved = false;
+                imu_packet d;
                 char* cursor;
-                d.millis = strtol(buffer, &cursor, 10);
+                d.millis = strtol(buffer.data(), &cursor, 10);
                 d.heading = strtod(cursor, &cursor);
                 d.pitch = strtod(cursor, &cursor);
                 d.roll = strtod(cursor, &cursor);
@@ -104,11 +101,11 @@ namespace uav
                 d.pres = strtod(cursor, &cursor);
                 d.temp = strtod(cursor, &cursor);
                 data = d;
-                memset(buffer, 0, msg_len);
+                buffer.fill(0);
                 ptr = 0;
             }
 
-            if (message)
+            if (recieved)
             {
                 buffer[ptr] = ch;
                 ++ptr;

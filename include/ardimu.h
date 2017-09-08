@@ -4,12 +4,11 @@
 #include <fstream>
 #include <cstdlib>
 #include <thread>
-
-const int msg_len = 100;
+#include <termios.h>
 
 namespace uav
 {
-    typedef struct
+    struct imu_packet
     {
         uint64_t millis;
         float heading;
@@ -18,28 +17,29 @@ namespace uav
         uint8_t calib;
         float temp;
         float pres;
-    }
-    Message;
+    };
 
-    class Arduino 
+    class arduino
     {
         public:
 
-        Arduino();
-        ~Arduino();
+        arduino();
+        ~arduino();
 
         int begin();
-        const Message& get();
+        const imu_packet& get() const;
 
         private:
         
-        Message data;
+        imu_packet data;
 
-        char buffer[msg_len];
+        const static size_t buffer_size = 1000;
+        const static speed_t baud = B115200;
+
         std::ifstream in;
         std::thread parser;
         bool cont;
-        int init;
+        int status;
 
         void parse();
     };

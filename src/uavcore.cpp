@@ -9,7 +9,7 @@
 
 uav::param uav::param::zero()
 {
-    static_assert(param_fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
+    static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
 
     param p{f1hz, 0, 0, {0, 0, 0, 0}, {0, 0, 0, 0},
         {0, 0, 0, 0}, {0, 0, 0, 0}, 0, 0, 0, 0};
@@ -17,12 +17,12 @@ uav::param uav::param::zero()
     return p;
 }
 
-uav::param_bin uav::to_binary(const param& p)
+uav::param::bin uav::to_binary(const param& p)
 {
-    static_assert(param_fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
-    static_assert(param_size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM"); 
+    static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
+    static_assert(param::size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM");
 
-    param_bin b;
+    param::bin b;
     b.fill(0);
     uint8_t *wptr = b.begin();
     memcpy(wptr, &p.freq, sizeof(p.freq));
@@ -50,16 +50,18 @@ uav::param_bin uav::to_binary(const param& p)
     return b;
 }
 
-uav::state_bin uav::to_binary(const state& s)
+uav::state::bin uav::to_binary(const state& s)
 {
-    static_assert(state_fields == 24, "CHECK_ASSUMED_SIZE_OF_STATE");
-    static_assert(state_size == 79, "CHECK_ASSUMED_SIZE_OF_STATE"); 
+    static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
+    static_assert(state::size == 87, "CHECK_ASSUMED_SIZE_OF_STATE"); 
 
-    state_bin b;
+    state::bin b;
     b.fill(0);
     uint8_t *wptr = b.begin();
     memcpy(wptr, &s.t, sizeof(s.t));
     wptr += sizeof(s.t);
+    memcpy(wptr, &s.t_abs, sizeof(s.t_abs));
+    wptr += sizeof(s.t_abs);
     memcpy(wptr, &s.comptime, sizeof(s.comptime));
     wptr += sizeof(s.comptime);
     memcpy(wptr, s.temp, sizeof(s.temp[0]) * 2);
@@ -99,10 +101,10 @@ uav::state_bin uav::to_binary(const state& s)
     return b;
 }
 
-uav::param uav::from_binary(const param_bin& b)
+uav::param uav::from_binary(const param::bin& b)
 {
-    static_assert(param_fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
-    static_assert(param_size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM"); 
+    static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
+    static_assert(param::size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM"); 
 
     param p;
     const uint8_t *rptr = b.begin();
@@ -131,15 +133,17 @@ uav::param uav::from_binary(const param_bin& b)
     return p;
 }
 
-uav::state uav::from_binary(const state_bin& b)
+uav::state uav::from_binary(const state::bin& b)
 {
-    static_assert(state_fields == 24, "CHECK_ASSUMED_SIZE_OF_STATE");
-    static_assert(state_size == 79, "CHECK_ASSUMED_SIZE_OF_STATE");
+    static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
+    static_assert(state::size == 87, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     state s;
     const uint8_t *rptr = b.begin();
     memcpy(&s.t, rptr, sizeof(s.t));
     rptr += sizeof(s.t);
+    memcpy(&s.t_abs, rptr, sizeof(s.t_abs));
+    rptr += sizeof(s.t_abs);
     memcpy(&s.comptime, rptr, sizeof(s.comptime));
     rptr += sizeof(s.comptime);
     memcpy(s.temp, rptr, sizeof(s.temp[0]) * 2);
@@ -187,43 +191,46 @@ std::string uav::pheader()
 
 std::string uav::sheader(uint64_t mask)
 {
-    static_assert(state_fields == 24, "CHECK_ASSUMED_SIZE_OF_STATE");
+    static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     using namespace std;
 
-    std::bitset<uav::state_size> b(mask);
+    std::bitset<uav::state::size> b(mask);
     stringstream line;
     line << left;
 
-    if (b[0]) line << setw(10) << "time";
-    if (b[1]) line << setw(10) << "comp";
+    int i = 0;
+    if (b[i++]) line << setw(10) << "time";
+    if (b[i++]) line << setw(10) << "t_abs";
+    if (b[i++]) line << setw(10) << "comp";
 
-    if (b[2]) line << setw(9) << "t1";
-    if (b[3]) line << setw(9) << "t2";
-    if (b[4]) line << setw(12) << "p1";
-    if (b[5]) line << setw(12) << "p2";
-    if (b[6]) line << setw(9) << "dz";
+    if (b[i++]) line << setw(9) << "t1";
+    if (b[i++]) line << setw(9) << "t2";
+    if (b[i++]) line << setw(12) << "p1";
+    if (b[i++]) line << setw(12) << "p2";
+    if (b[i++]) line << setw(9) << "dz";
 
-    if (b[7]) line << setw(9) << "hdg";
-    if (b[8]) line << setw(9) << "pitch";
-    if (b[9]) line << setw(9) << "roll";
-    if (b[10]) line << setw(4) << "cal";
+    if (b[i++]) line << setw(9) << "hdg";
+    if (b[i++]) line << setw(9) << "pitch";
+    if (b[i++]) line << setw(9) << "roll";
+    if (b[i++]) line << setw(4) << "cal";
 
-    if (b[11]) line << setw(5) << "tz";
-    if (b[12]) line << setw(5) << "th";
-    if (b[13]) line << setw(5) << "tp";
-    if (b[14]) line << setw(5) << "tr";
+    if (b[i++]) line << setw(5) << "tz";
+    if (b[i++]) line << setw(5) << "th";
+    if (b[i++]) line << setw(5) << "tp";
+    if (b[i++]) line << setw(5) << "tr";
 
-    if (b[15]) line << setw(12) << "zov";
-    if (b[16]) line << setw(12) << "hov";
-    if (b[17]) line << setw(12) << "pov";
-    if (b[18]) line << setw(12) << "rov";
+    if (b[i++]) line << setw(12) << "zov";
+    if (b[i++]) line << setw(12) << "hov";
+    if (b[i++]) line << setw(12) << "pov";
+    if (b[i++]) line << setw(12) << "rov";
 
-    for (int i = 0; i < 4; i++)
-        if (b[19 + i])
-            line << setw(4) << "m" + std::to_string(i + 1);
+    if (b[i++]) line << setw(4) << "m1";
+    if (b[i++]) line << setw(4) << "m2";
+    if (b[i++]) line << setw(4) << "m3";
+    if (b[i++]) line << setw(4) << "m4";
 
-    if (b[23]) line << setw(10) << "err";
+    if (b[i++]) line << setw(10) << "err";
 
     return line.str();
 }
@@ -261,42 +268,46 @@ std::string uav::to_string(const param& prm)
 
 std::string uav::to_string(const state& it, uint64_t mask)
 { 
-    static_assert(state_fields == 24, "CHECK_ASSUMED_SIZE_OF_STATE");
+    static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     using namespace std;
 
-    std::bitset<state_fields> b(mask);
+    std::bitset<state::fields> b(mask);
     stringstream line;
     line << left;
     line.setf(ios::fixed);
 
-    if (b[0]) line << setw(10) << setprecision(3) << it.t/1000.0;
-    if (b[1]) line << setw(10) << it.comptime;
-    if (b[2]) line << setw(9) << it.temp[0];
-    if (b[3]) line << setw(9) << it.temp[1];
-    if (b[4]) line << setw(12) << it.pres[0];
-    if (b[5]) line << setw(12) << it.pres[1];
-    if (b[6]) line << setw(9) << it.dz;
+    int i = 0;
+    if (b[i++]) line << setw(10) << setprecision(3) << it.t/1000.0;
+    if (b[i++]) line << setw(10) << setprecision(3) << it.t_abs/1000.0;
+    if (b[i++]) line << setw(10) << it.comptime;
+    if (b[i++]) line << setw(9) << it.temp[0];
+    if (b[i++]) line << setw(9) << it.temp[1];
+    if (b[i++]) line << setw(12) << it.pres[0];
+    if (b[i++]) line << setw(12) << it.pres[1];
+    if (b[i++]) line << setw(9) << it.dz;
 
-    if (b[7]) line << setw(9) << it.h;
-    if (b[8]) line << setw(9) << it.p;
-    if (b[9]) line << setw(9) << it.r;
-    if (b[10]) line << hex << setw(4) << (int) it.calib << dec;
+    if (b[i++]) line << setw(9) << it.h;
+    if (b[i++]) line << setw(9) << it.p;
+    if (b[i++]) line << setw(9) << it.r;
+    if (b[i++]) line << hex << setw(4) << (int) it.calib << dec;
 
-    if (b[11]) line << setw(5) << (int) it.tz;
-    if (b[12]) line << setw(5) << (int) it.th;
-    if (b[13]) line << setw(5) << (int) it.tp;
-    if (b[14]) line << setw(5) << (int) it.tr;
+    if (b[i++]) line << setw(5) << (int) it.tz;
+    if (b[i++]) line << setw(5) << (int) it.th;
+    if (b[i++]) line << setw(5) << (int) it.tp;
+    if (b[i++]) line << setw(5) << (int) it.tr;
 
-    if (b[15]) line << setw(12) << it.zov;
-    if (b[16]) line << setw(12) << it.hov;
-    if (b[17]) line << setw(12) << it.pov;
-    if (b[18]) line << setw(12) << it.rov;
+    if (b[i++]) line << setw(12) << it.zov;
+    if (b[i++]) line << setw(12) << it.hov;
+    if (b[i++]) line << setw(12) << it.pov;
+    if (b[i++]) line << setw(12) << it.rov;
 
-    for (int i = 0; i < 4; i++)
-        if (b[19 + i]) line << setw(4) << (int) it.motors[i];
+    if (b[i++]) line << setw(4) << (int) it.motors[0];
+    if (b[i++]) line << setw(4) << (int) it.motors[1];
+    if (b[i++]) line << setw(4) << (int) it.motors[2];
+    if (b[i++]) line << setw(4) << (int) it.motors[3];
 
-    if (b[23]) line << setw(10) << std::bitset<16>(it.err);
+    if (b[i++]) line << setw(10) << std::bitset<16>(it.err);
 
     return line.str();
 }
@@ -315,7 +326,7 @@ std::string uav::timestamp()
     uint64_t micro = time % 1000;
 
     s << "[" << setw(6) << setfill('0') << sec << "."
-        << setw(3) << setfill('0') << milli << ":"
+        << setw(3) << setfill('0') << milli << "."
         << setw(3) << setfill('0') << micro << "]   ";
     return s.str();
 }
@@ -362,14 +373,14 @@ void uav::flush()
         text("log/events.txt", std::ios::out),
         data("log/data.bin", std::ios::out | std::ios::binary);
     {
-        param_bin pbin = uav::to_binary(paramlog);
-        data.write((const char*) pbin.data(), uav::param_size);
+        param::bin b = uav::to_binary(paramlog);
+        data.write((const char*) b.data(), param::size);
     }
     while (!statelog.empty())
     {
-        state_bin b = uav::to_binary(statelog.front());
+        state::bin b = uav::to_binary(statelog.front());
         statelog.pop_front();
-        data.write((const char*) b.begin(), uav::state_size);
+        data.write((const char*) b.begin(), state::size);
     }
     while (!textlog.empty())
     {

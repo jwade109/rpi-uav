@@ -33,7 +33,7 @@ namespace uav
         bool debug;
         std::chrono::steady_clock::time_point tstart;
 
-        Arduino imu;
+        arduino imu;
         BMP085 bmp;
 
         state curr, prev;

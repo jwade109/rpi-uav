@@ -10,7 +10,7 @@ int main(int argc, char** argv)
 
     const int rate = 100; // hz
 
-    uav::Arduino imu;
+    uav::arduino imu;
     int init = imu.begin();
     if (init != 0)
     {
@@ -27,7 +27,7 @@ int main(int argc, char** argv)
     {
         auto now = duration_cast<milliseconds>(
                 system_clock::now().time_since_epoch());
-        uav::Message m = imu.get();
+        uav::imu_packet m = imu.get();
         std::cout << now.count() << "\t" << m.millis << "\t"
                   << m.heading << "\t" << m.pitch << "\t"
                   << m.roll << "\t" << std::hex << (int) m.calib

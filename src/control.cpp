@@ -102,6 +102,8 @@ namespace uav
         auto stopwatch = chrono::steady_clock::now();
         curr.t = chrono::duration_cast<chrono::milliseconds>(
                 now - tstart).count();
+        curr.t_abs = chrono::duration_cast<chrono::milliseconds>(
+                now.time_since_epoch()).count();
 
         double dt = (curr.t - prev.t)/1000.0;
 
@@ -116,7 +118,7 @@ namespace uav
 
         if (!debug)
         {
-            Message m = imu.get();
+            imu_packet m = imu.get();
             curr.h = m.heading;
             curr.p = m.pitch;
             curr.r = m.roll;

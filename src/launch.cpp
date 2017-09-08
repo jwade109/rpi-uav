@@ -25,7 +25,7 @@ int main(int argc, char** argv)
 
     signal(SIGINT, sigint);
 
-    static_assert(uav::param_fields == 23, "Check yourself before you segfault"); 
+    static_assert(uav::param::fields == 23, "Check yourself");
     uav::param prm = {uav::f250hz, 0, 0, {0, 0, 0.005, -1},
             {0, 0, 0.015, -1}, {0.1, 0, 0.02, -1}, {0.1, 0, 0.02, -1},
             0.1, 0.65, 500, 41};
@@ -50,7 +50,7 @@ int main(int argc, char** argv)
     // print the params
     std::cout << uav::pheader() << std::endl;
     std::cout << uav::to_string(c.getparams()) << std::endl;
-    std::cout << uav::sheader(1) << std::endl;
+    std::cout << uav::sheader(1 | (0b1111 << 20)) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
     while ((now < start + chrono::seconds(100)) && cont)
@@ -61,7 +61,7 @@ int main(int argc, char** argv)
         uav::state s = c.getstate();
 
         // print the controller state
-        std::cout << uav::to_string(s, 1);
+        std::cout << uav::to_string(s, 1 | (0b1111 << 20));
         if (s.err)  std::cout << " !";
         else        std::cout << "  ";
         std::cout << "\r" << std::flush;

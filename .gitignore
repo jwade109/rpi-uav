@@ -4,6 +4,7 @@
 # Ignore any executables
 bin
 *.exe
+launch
 
 # Ignore Mac specific files
 .DS_Store
