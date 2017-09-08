@@ -49,8 +49,11 @@ namespace uav
             int ret2 = bmp.begin();
             if (ret1 | ret2)
             {
-                fprintf(stderr, "Drone alignment failure "
-                    "(IMU: %d, BMP: %d)\n", ret1, ret2);
+                std::stringstream ss;
+                ss << "Drone alignment failure!!! (IMU: " << ret1
+                    << ", BMP: " << ret2 << ")";
+                std::cerr << ss.str() << "\n";
+                uav::error(ss.str());
                 return 1;
             }
             std::this_thread::sleep_for(chrono::seconds(3));
@@ -196,33 +199,25 @@ namespace uav
         // targets should not exceed the normal range for measured values
         if (curr.tz < -50 || curr.tz > 50)
         {
-            std::stringstream e;
-            e << uav::ts(curr.t) << " curr.tz = " << curr.tz;
-            uav::error.push_back(e.str());
+            uav::error("curr.th = " + std::to_string(curr.tz));
             error[6] = 1;
             curr.tz = prev.tz;
         }
         if (curr.th <= -180 || curr.th >= 180)
         {
-            std::stringstream e;
-            e << uav::ts(curr.t) << " curr.th = " << curr.th;
-            uav::error.push_back(e.str());
+            uav::error("curr.th = " + std::to_string(curr.th));
             error[7] = 1;
             curr.th = prev.th;
         }
         if (curr.tp < -90 || curr.tp > 90)
         {
-            std::stringstream e;
-            e << uav::ts(curr.t) << " curr.tp = " << curr.tp;
-            uav::error.push_back(e.str());
+            uav::error("curr.tp = " + std::to_string(curr.tp));
             error[8] = 1;
             curr.tp = prev.tp;
         }
         if (curr.tr <= -180 || curr.tr >= 180)
         {
-            std::stringstream e;
-            e << uav::ts(curr.t) << " curr.tr = " << curr.tr;
-            uav::error.push_back(e.str());
+            uav::error("curr.tr = " + std::to_string(curr.tr));
             error[9] = 1;
             curr.tr = prev.tr;
         }
@@ -248,7 +243,7 @@ namespace uav
         float hover = prm.mg / (cos(curr.p * M_PI / 180) *
                                 cos(curr.r * M_PI / 180));
 
-        uav::debug.push_back(std::to_string(hover));
+        uav::debug("Hover: " + std::to_string(hover));
 
         // get raw motor responses by summing pid output variables
         // (linear combination dependent on motor layout)

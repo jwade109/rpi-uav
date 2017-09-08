@@ -29,6 +29,8 @@ namespace uav
 
     enum freq_t : uint8_t
     {
+        f1hz = 1,
+
         f10hz = 10, f20hz = 20, f25hz = 25, f40hz = 40, f50hz = 50,
         f100hz = 100, f125hz = 125, f200hz = 200, f250hz = 250,
 
@@ -78,6 +80,8 @@ namespace uav
         wavg_t          gz_wam;             // weighted average gain towards z1
         mrate_t         maxmrate;           // max motor thrust rate of change in hz
         wgt_frac_t      mg;                 // vehicle weight/max thrust * 100
+
+        static param zero();
     };
 
     const size_t param_fields = 23;
@@ -109,7 +113,7 @@ namespace uav
         return bin;
     }
 
-    // file i/o functions //////////////////////////////////////////////////////
+    // std::string functions ///////////////////////////////////////////////////
 
     std::string pheader();
 
@@ -119,15 +123,23 @@ namespace uav
 
     std::string to_string(const state& it, uint64_t mask);
 
-    std::string ts(uint64_t ms);
+    std::string timestamp();
 
-    extern std::deque<std::string> debug, info, error;
+    // logging functions ///////////////////////////////////////////////////////
 
-    void debug_write(const std::string& s);
+    void reset();
 
-    void info_write(const std::string& s);
+    void include(param p);
 
-    void error_write(const std::string& s);
+    void include(state s);
+
+    void debug(std::string s);
+
+    void info(std::string s);
+
+    void error(std::string s);
+
+    void flush();
 }
 
 #endif // UAV_CORE_H
