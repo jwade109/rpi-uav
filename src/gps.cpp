@@ -61,7 +61,7 @@ const std::string gps::pmtk_awake("$PMTK010,002*2D");
 
 const std::string gps::pmtk_query_release("$PMTK605*31");
 
-gps::gps() : cont(true), data{0}, datastr("empty") { }
+gps::gps() : data{0}, newflag(false), cont(true), status(0), tty_fd(0) { }
 
 gps::~gps()
 {
@@ -83,21 +83,26 @@ int gps::begin()
 
     tcflush(tty_fd, TCIOFLUSH);
 
-    in.open("/dev/ttyS0");
-    if (!in)
-    {
-        std::cerr << "gps: Could not open "
-                     "/dev/ttyS0" << std::endl;
-        return 3;
-    }
-
     reader = std::thread(&gps::dowork, this);
+
+    while (status == 0);
+    if (status == -1)
+    {
+        std::cerr << "gps: failed to communicate!" << std::endl;
+        return 2;
+    }
 
     return 0;
 }
 
-gps_data gps::get() const
+bool gps::isnew() const
 {
+    return newflag;
+}
+
+gps_data gps::get()
+{
+    newflag = false;
     return data;
 }
 
@@ -105,12 +110,23 @@ void gps::dowork()
 {
     char ch[1];
     bool reading = false;
-    std::string message("empty"); 
+    std::string message;
+
+    auto timeout = std::chrono::seconds(1);
+    auto getnow = [](){ return std::chrono::steady_clock::now(); };
+    auto start = getnow();
 
     tcflush(tty_fd, TCIOFLUSH);
 
     while (cont)
     {
+        if (status == 0 && data.seconds != 0) status = 1;
+        else if (status == 0 && getnow() > start + timeout)
+        {
+            cont = false;
+            status = -1;
+        }
+
         read(tty_fd, ch, sizeof(ch));
         for (int i = 0; i < sizeof(ch); i++)
         {
@@ -122,14 +138,16 @@ void gps::dowork()
             {
                 if (message.find("GPGGA") != std::string::npos)
                 {
-                    gps_data d = parse(message);
-                    std::cout << "< " << message << " >" << std::endl;
-                    std::cout << "(" << (int) d.hour << ":" << (int) d.minute << ":"
-                        << (int) d.seconds << ")" << std::endl;
+                    gps_data newgps = parse(message);
+                    if (checknew(newgps, data))
+                    {
+                        newflag = true;
+                        data = newgps;
+                    }
                 }
 
                 reading = false;
-                message = "";
+                message.clear();
             }
             else if (reading)
             {
@@ -140,6 +158,14 @@ void gps::dowork()
 }
 
 // static helper functions /////////////////////////////////////////////////////
+
+bool gps::checknew(const gps_data& n, const gps_data& o)
+{
+    if (n.hour == 0 && o.hour == 23) return true;
+    if (n.hour != o.hour) return n.hour > o.hour;
+    if (n.minute != o.minute) return n.minute > o.minute;
+    return n.seconds > o.seconds;
+}
 
 uint8_t gps::parseHex(char c)
 {
@@ -161,7 +187,7 @@ gps_data gps::parse(const std::string& nmea)
         uint16_t sum = parseHex(nmea[nmea.length() - 3]) * 16;
         sum += parseHex(nmea[nmea.length() - 2]);
 
-        // check checksum 
+        // check checksum
         for (uint8_t i=2; i < (nmea.length() - 4); i++)
         {
             sum ^= nmea[i];
@@ -279,7 +305,7 @@ gps_data gps::parse(const std::string& nmea)
 
         p = strchr(p, ',')+1;
         // Serial.println(p);
-        if (p[0] == 'A') 
+        if (p[0] == 'A')
         newgps.fix = true;
         else if (p[0] == 'V')
         newgps.fix = false;

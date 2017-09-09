@@ -5,14 +5,14 @@ for the ultimate GPS module!
 Tested and works great with the Adafruit Ultimate GPS module
 using MTK33x9 chipset
     ------> http://www.adafruit.com/products/746
-Pick one up today at the Adafruit electronics shop 
+Pick one up today at the Adafruit electronics shop
 and help support open source hardware & software! -ada
 
-Adafruit invests time and resources providing this open source code, 
-please support Adafruit and open-source hardware by purchasing 
+Adafruit invests time and resources providing this open source code,
+please support Adafruit and open-source hardware by purchasing
 products from Adafruit!
 
-Written by Limor Fried/Ladyada  for Adafruit Industries.  
+Written by Limor Fried/Ladyada  for Adafruit Industries.
 BSD license, check license.txt for more information
 All text above must be included in any redistribution
 ****************************************/
@@ -60,28 +60,30 @@ class gps
 {
     public:
 
-    std::string datastr;
-
     gps();
     ~gps();
 
-    gps_data get() const;
+    bool isnew() const;
+    gps_data get();
 
     int begin();
-   
+
     private:
 
     gps_data data;
-    std::ifstream in;
-    int tty_fd;
     std::thread reader;
+
+    bool newflag;
     bool cont;
+    int status;
+    int tty_fd;
 
     void dowork();
 
     static gps_data parse(const std::string& nmea);
     static uint8_t parseHex(char c);
-    
+    static bool checknew(const gps_data& n, const gps_data& o);
+
     // position echo rate commands (formerly PMTK_SET_NMEA_UPDATE_XXX_HERTZ)
     static const std::string
     pmtk_echo_100mHz, pmtk_echo_200mHz, pmtk_echo_1Hz,
@@ -107,7 +109,7 @@ class gps
     // ask for the release and version
     pmtk_query_release,
 
-    // request for updates on antenna status 
+    // request for updates on antenna status
     pgcmd_antenna, pgcmd_noantenna;
 };
 
@@ -147,7 +149,7 @@ namespace uav
         const imu_packet& get() const;
 
         private:
-        
+
         imu_packet data;
 
         const static size_t buffer_size = 1000;
