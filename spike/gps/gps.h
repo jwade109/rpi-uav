@@ -23,10 +23,12 @@ All text above must be included in any redistribution
 #ifndef GPS_H
 #define GPS_H
 
+#include <fstream>
 #include <inttypes.h>
 #include <thread>
+#include <string>
 
-typedef struct
+struct gps_data
 {
     uint8_t hour, minute, seconds, year, month, day;
     uint16_t milliseconds;
@@ -45,63 +47,40 @@ typedef struct
     char lat, lon, mag;
     bool fix;
     uint8_t fixquality, satellites;
-}
-gps_data;
+};
 
-typedef struct
+struct locus_info
 {
     uint16_t serial, records;
     uint8_t type, mode, config, interval,
             distance, speed, status, percent;
-}
-locus_info;
+};
 
-class GPS
+class gps
 {
     public:
 
-    GPS();
-    ~GPS();
+    std::string datastr;
 
-    const gps_data& get() const;
-    const locus_info& getinfo() const;
+    gps();
+    ~gps();
 
-    void begin();
-    void end();
+    gps_data get() const;
+
+    int begin();
    
     private:
 
     gps_data data;
-    locus_info linfo;
+    std::ifstream in;
+    int tty_fd;
     std::thread reader;
     bool cont;
-    bool paused, asleep;
 
-    char *lastNMEA();
-    bool newNMEAreceived();
-    void common_init();
-    void sendCommand(const char *);
-    void pause(bool b);
-    bool parseNMEA(char *response);
-    uint8_t parseHex(char c);
-    char read();
-    bool parse(char *);
-    void interruptReads(bool r);
-    bool wakeup();
-    bool standby();
+    void dowork();
 
-    bool waitForSentence(const char *wait,
-            uint8_t max = max_resp_wait);
-    bool LOCUS_StartLogger();
-    bool LOCUS_StopLogger();
-    bool LOCUS_ReadStatus();
-
-    uint8_t parseResponse(char *response);
-
-    /* commonly used sentences --------------------- */
-
-    // how long to wait when we're looking for a response
-    static const int max_resp_wait = 5;
+    static gps_data parse(const std::string& nmea);
+    static uint8_t parseHex(char c);
     
     // position echo rate commands (formerly PMTK_SET_NMEA_UPDATE_XXX_HERTZ)
     static const std::string
@@ -133,3 +112,56 @@ class GPS
 };
 
 #endif // GPS_H
+
+/*
+
+#ifndef ARDIMU_H
+#define ARDIMU_H
+
+#include <fstream>
+#include <cstdlib>
+#include <thread>
+#include <termios.h>
+
+namespace uav
+{
+    struct imu_packet
+    {
+        uint64_t millis;
+        float heading;
+        float pitch;
+        float roll;
+        uint8_t calib;
+        float temp;
+        float pres;
+    };
+
+    class arduino
+    {
+        public:
+
+        arduino();
+        ~arduino();
+
+        int begin();
+        const imu_packet& get() const;
+
+        private:
+        
+        imu_packet data;
+
+        const static size_t buffer_size = 1000;
+        const static speed_t baud = B115200;
+
+        std::ifstream in;
+        std::thread parser;
+        bool cont;
+        int status;
+
+        void parse();
+    };
+}
+
+#endif // ARDIMU_H
+
+*/
