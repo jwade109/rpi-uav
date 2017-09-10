@@ -14,6 +14,7 @@ All text above must be included in any redistribution
 // by Wade Foster on 8/29/2017
 
 #include <iostream>
+#include <vector>
 #include <cstring>
 #include <cmath>
 #include <cctype>
@@ -108,9 +109,9 @@ gps_data gps::get()
 
 void gps::dowork()
 {
-    char ch[1];
+    char ch;
     bool reading = false;
-    std::string message;
+    std::vector<char> message;
 
     auto timeout = std::chrono::seconds(1);
     auto getnow = [](){ return std::chrono::steady_clock::now(); };
@@ -126,33 +127,29 @@ void gps::dowork()
             cont = false;
             status = -1;
         }
-
-        read(tty_fd, ch, sizeof(ch));
-        for (int i = 0; i < sizeof(ch); i++)
+        read(tty_fd, &ch, sizeof(ch));
+        if (ch == '$')
         {
-            if (ch[i] == '$')
+            reading = true;
+        }
+        if (ch == 10 && reading)
+        {
+            std::string str(message.begin(), message.end());
+            if (str.find("GPGGA") != std::string::npos)
             {
-                reading = true;
-            }
-            if (ch[i] == 10 && reading)
-            {
-                if (message.find("GPGGA") != std::string::npos)
+                gps_data newgps = parse(str);
+                if (checknew(newgps, data))
                 {
-                    gps_data newgps = parse(message);
-                    if (checknew(newgps, data))
-                    {
-                        newflag = true;
-                        data = newgps;
-                    }
+                    newflag = true;
+                    data = newgps;
                 }
-
-                reading = false;
-                message.clear();
             }
-            else if (reading)
-            {
-                message += ch[i];
-            }
+            reading = false;
+            message.clear();
+        }
+        else if (reading)
+        {
+            message.push_back(ch);
         }
     }
 }

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <iomanip>
 #include <chrono>
 #include <thread>
 #include <string>
@@ -6,26 +7,37 @@
 
 #include <gps.h>
 
+double degf(uint32_t f) { return f/10000000.0; }
+
+uint32_t deg(uint32_t f) { return f/10000000; }
+
+uint32_t dec(uint32_t f) { return f%10000000; }
+
 std::string to_string(const gps_data& data)
 {
-    auto deg = [](uint32_t f) { return f/10000000; };
-    auto dec = [](uint32_t f) { return f%10000000; };
+    using namespace std;
 
-    std::stringstream ss;
-    ss << (int) data.hour << ":" << (int) data.minute
-        << ":" << (int) data.seconds
+    stringstream ss;
+    ss << (int) data.hour
+        << ":" << setw(2) << setfill('0') << (int) data.minute
+        << ":" << setw(2) << setfill('0') << (int) data.seconds
         << " " << deg(data.latitude_fixed)
         << "." << dec(data.latitude_fixed)
         << " " << data.lat
         << " " << deg(data.longitude_fixed)
         << "." << dec(data.longitude_fixed)
         << " " << data.lon
-        << " " << data.altitude;
+        << " " << data.altitude
+        << " " << (int) data.fixquality
+        << " " << data.HDOP;
     return ss.str();
 }
 
 int main()
 {
+    bool first = true;
+    gps_data ref;
+
     gps r;
     int ret = r.begin();
     if (ret)
@@ -38,7 +50,21 @@ int main()
         if (r.isnew())
         {
             auto data = r.get();
-            std::cout << std::endl << to_string(data) << std::endl;
+            if (first && data.fixquality)
+            {
+                first = false;
+                ref = data;
+            }
+
+            // earth circumference/360 degrees
+            int scale = 111320;
+
+            std::cout << to_string(data) << " | "
+                << (degf(data.latitude_fixed) -
+                    degf(ref.latitude_fixed)) * scale
+                << " " << (degf(data.longitude_fixed) -
+                    degf(ref.longitude_fixed)) * scale
+                << std::endl;
         }
     }
 }
