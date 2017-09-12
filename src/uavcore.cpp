@@ -201,7 +201,7 @@ std::string uav::sheader(uint64_t mask)
 
     int i = 0;
     if (b[i++]) line << setw(10) << "time";
-    if (b[i++]) line << setw(10) << "t_abs";
+    if (b[i++]) line << setw(15) << "t_abs";
     if (b[i++]) line << setw(10) << "comp";
 
     if (b[i++]) line << setw(9) << "t1";
@@ -279,7 +279,7 @@ std::string uav::to_string(const state& it, uint64_t mask)
 
     int i = 0;
     if (b[i++]) line << setw(10) << setprecision(3) << it.t/1000.0;
-    if (b[i++]) line << setw(10) << setprecision(3) << it.t_abs/1000.0;
+    if (b[i++]) line << setw(15) << setprecision(3) << it.t_abs/1000.0;
     if (b[i++]) line << setw(10) << it.comptime;
     if (b[i++]) line << setw(9) << it.temp[0];
     if (b[i++]) line << setw(9) << it.temp[1];
