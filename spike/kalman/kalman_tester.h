@@ -1,6 +1,7 @@
 #ifndef KALMAN_TESTER_H
 #define KALMAN_TESTER_H
 
+#include <iomanip>
 #include <tuple>
 #include <vector>
 #include <string>
@@ -13,10 +14,9 @@ std::string printmat(const Eigen::Matrix<rep, M, N>& m)
 {
     std::stringstream s;
     s << std::fixed;
-    s << std::setprecision(12);
-    for (int i = 0; i < m.rows(); i++)
-        for (int j = 0; j < m.cols(); j++)
-            s << std::setw(15) << m(i, j) << " ";
+    s << std::setprecision(4);
+    for (auto i = m.data(); i < m.data() + m.size(); i++)
+        s << std::setw(9) << *i << " ";
     return s.str();
 }
 

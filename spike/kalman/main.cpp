@@ -43,7 +43,7 @@ int main(int argc, char* argv[])
     {
         system("clear");
         std::cout << i << "/" << max << std::endl;
-        std::cout << "Converged: " << kt.converged() << std::endl;
+        std::cout << "Converged: " << kf.converged(0.0001) << std::endl;
         std::cout << printfilter(kf) << std::endl;
 
         auto real = Matrix<double, N, 1>::Constant(10);
