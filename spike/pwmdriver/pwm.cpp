@@ -65,13 +65,17 @@ void Adafruit_PWMServoDriver::setPWMFreq(float freq)
 
 void Adafruit_PWMServoDriver::setPWM(uint8_t num, uint16_t on, uint16_t off)
 {  
-    WIRE.beginTransmission(_i2caddr);
+    // WIRE.beginTransmission(_i2caddr);
+
+    // what the heckin do these do
+    // there's no address or anything
     WIRE.write(LED0_ON_L+4*num);
     WIRE.write(on);
     WIRE.write(on>>8);
     WIRE.write(off);
     WIRE.write(off>>8);
-    WIRE.endTransmission();
+
+    // WIRE.endTransmission();
 }
 
 // Sets pin without having to deal with on/off tick placement and properly handles
