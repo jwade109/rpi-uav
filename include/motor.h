@@ -16,7 +16,7 @@ namespace uav
         motor(pwm_driver& pwm, uint8_t pin);
         ~motor();
 
-        uint16_t get();
+        uint16_t get() const;
         void set(uint16_t level);
         void kill();
         

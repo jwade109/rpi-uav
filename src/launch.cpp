@@ -70,15 +70,10 @@ int main(int argc, char** argv)
         c.iterate(true);
         uav::state s = c.getstate();
 
-        auto mt = chrono::steady_clock::now();
         m1.set(s.motors[0] * 40);
         m2.set(s.motors[1] * 40);
         m3.set(s.motors[2] * 40);
         m4.set(s.motors[3] * 40);
-        auto md = chrono::steady_clock::now() - mt;
-        uint64_t nanos = chrono::duration_cast<
-            chrono::nanoseconds>(md).count();
-        uav::debug(std::to_string(nanos));
 
         // print the controller state
         std::cout << uav::to_string(s, 1 | (0b1111 << 20));

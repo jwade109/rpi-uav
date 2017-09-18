@@ -14,7 +14,7 @@ uav::motor::~motor()
     if (setter.joinable()) setter.join();
 }
 
-uint16_t uav::motor::get() { return level; }
+uint16_t uav::motor::get() const { return level; }
 
 void uav::motor::set(uint16_t level)
 {
@@ -33,7 +33,7 @@ void uav::motor::work()
     while (cont)
         if (setflag)
         {
-            pwm.setPWM(pin, 0, level);
+            pwm.setPin(pin, level, false);
             setflag = false;
         }
 }
