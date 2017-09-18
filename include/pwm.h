@@ -44,7 +44,6 @@ class pwm_driver
 {
     public:
 
-    pwm_driver();
     int begin(uint8_t addr);
     void reset(void);
     void setPWMFreq(float freq);
@@ -53,8 +52,7 @@ class pwm_driver
 
     private:
     
-    I2C i2c;
-    uint8_t i2caddr;
+    i2cdev i2c;
 };
 
 #endif

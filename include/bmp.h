@@ -58,14 +58,14 @@ namespace uav
     }
     bmp085_calib_data;
 
-    class BMP085
+    class bmp085
     {
         public:
 
         float slp;
 
-        BMP085();
-        ~BMP085();
+        bmp085();
+        ~bmp085();
 
         int begin(uint8_t addr = 0x77, bmp085_mode_t mode = ULTRAHIGHRES);
         float getTemperature();
@@ -78,7 +78,7 @@ namespace uav
         std::thread reader;
         bool cont;
 
-        I2C i2c;
+        i2cdev i2c;
         bmp085_calib_data bmp085_coeffs;
         uint8_t bmp085Mode;
 

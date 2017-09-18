@@ -10,16 +10,16 @@ using namespace std::chrono;
 
 namespace uav
 {
-    BMP085::BMP085(): slp(1013.25), temp(0),
+    bmp085::bmp085(): slp(1013.25), temp(0),
         press(0), alt(0), cont(true) { }
 
-    BMP085::~BMP085()
+    bmp085::~bmp085()
     {
         cont = false;
         if (reader.joinable()) reader.join();
     }
 
-    void BMP085::readCoefficients(void)
+    void bmp085::readCoefficients(void)
     {
         bmp085_coeffs.ac1 = (int16_t) i2c.read16_BE(
                 BMP085_REGISTER_CAL_AC1);
@@ -37,14 +37,14 @@ namespace uav
         bmp085_coeffs.md = (int16_t) i2c.read16_BE(BMP085_REGISTER_CAL_MD);
     }
 
-    int32_t BMP085::readRawTemperature(void)
+    int32_t bmp085::readRawTemperature(void)
     {
         i2c.write8(BMP085_REGISTER_CONTROL, BMP085_REGISTER_READTEMPCMD);
         std::this_thread::sleep_for(milliseconds(5));
         return i2c.read16_BE(BMP085_REGISTER_TEMPDATA);
     }
 
-    int32_t BMP085::readRawPressure(void)
+    int32_t bmp085::readRawPressure(void)
     {
         i2c.write8(BMP085_REGISTER_CONTROL,
                    BMP085_REGISTER_READPRESSURECMD + (bmp085Mode << 6));
@@ -73,7 +73,7 @@ namespace uav
         return p32;
     }
 
-    int32_t BMP085::computeB5(int32_t ut)
+    int32_t bmp085::computeB5(int32_t ut)
     {
         int32_t X1 = (ut - (int32_t) bmp085_coeffs.ac6) *
             ((int32_t) bmp085_coeffs.ac5) >> 15;
@@ -82,20 +82,19 @@ namespace uav
         return X1 + X2;
     }
 
-    int BMP085::begin(uint8_t addr, bmp085_mode_t mode)
+    int bmp085::begin(uint8_t addr, bmp085_mode_t mode)
     {
-        i2c = I2C(addr);
-        int ret = i2c.ready();
+        int ret = i2c.open(addr);
         if (!ret)
         {
-            std::cerr << "BMP085: I2C failed to init: "
+            std::cerr << "bmp085: I2C failed to init: "
                       << ret << std::endl;
             return 1;
         }
 
         if(i2c.read8(BMP085_REGISTER_CHIPID) != BMP085_CHIPID)
         {
-            std::cerr << "BMP085: No BMP085 at i2c addr: 0x"
+            std::cerr << "bmp085: No bmp085 at i2c addr: 0x"
                       << std::hex << (int) addr << std::dec << std::endl;
             return 2;
         }
@@ -108,12 +107,12 @@ namespace uav
         bmp085Mode = mode;
         readCoefficients();
 
-        reader = std::thread(&BMP085::work, this);
+        reader = std::thread(&bmp085::work, this);
 
         return 0;
     }
 
-    float BMP085::updatePressure()
+    float bmp085::updatePressure()
     {
         int32_t  ut = 0, up = 0, compp = 0;
         int32_t  x1, x2, b5, b6, x3, b3, p;
@@ -156,7 +155,7 @@ namespace uav
         return compp;
     }
 
-    float BMP085::updateTemperature(void)
+    float bmp085::updateTemperature(void)
     {
         int32_t UT = readRawTemperature();
 
@@ -175,22 +174,22 @@ namespace uav
         return t;
     }
 
-    float BMP085::getAltitude()
+    float bmp085::getAltitude()
     {
         return alt;
     }
 
-    float BMP085::getTemperature() 
+    float bmp085::getTemperature() 
     {
         return temp;
     }
 
-    float BMP085::getPressure()
+    float bmp085::getPressure()
     {
         return press;
     }
 
-    void BMP085::work()
+    void bmp085::work()
     {
         while (cont)
         {

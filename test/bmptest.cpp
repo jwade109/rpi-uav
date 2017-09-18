@@ -7,7 +7,7 @@ int main()
 {
     using namespace std::chrono;
 
-    uav::BMP085 bmp;
+    uav::bmp085 bmp;
     int status = bmp.begin(0x77);
     if (status)
     {

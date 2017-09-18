@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 
-class PID
+class pid_controller
 {
     public:
 
@@ -14,7 +14,7 @@ class PID
     uint16_t max_int;
     double p_response, i_response, d_response;
 
-    PID(double Kp, double Ki, double Kd, uint16_t max = -1);
+    pid_controller(double Kp, double Ki, double Kd, uint16_t max = -1);
     void reset();
     double seek(double actual, double setpoint, double dt);
 };

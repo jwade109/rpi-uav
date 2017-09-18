@@ -1,13 +1,13 @@
 #include <stdbool.h>
 #include <pid.h>
 
-PID::PID(double Kp, double Ki, double Kd, uint16_t max):
-    Kp(Kp), Ki(Ki), Kd(Kd), max_int(max)
+pid_controller::pid_controller(double Kp, double Ki, double Kd, uint16_t max)
+    : Kp(Kp), Ki(Ki), Kd(Kd), max_int(max)
 {
     reset();
 }
 
-void PID::reset()
+void pid_controller::reset()
 {
     prev_error = 0;
     integral = 0;
@@ -15,7 +15,7 @@ void PID::reset()
     p_response = i_response = d_response = 0;
 }
 
-double PID::seek(double actual, double setpoint, double dt)
+double pid_controller::seek(double actual, double setpoint, double dt)
 {
     double error = setpoint - actual, error_rate = 0;
     

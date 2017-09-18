@@ -12,9 +12,9 @@ int main()
     pwm.reset();
     pwm.setPWMFreq(1600);
 
-    motor* m[4];
+    uav::motor* m[4];
     for (int i = 0; i < 4; i++)
-        m[i] = new motor(pwm, i * 4);
+        m[i] = new uav::motor(pwm, i * 4);
 
     int j = 0;
     while (j < 10)

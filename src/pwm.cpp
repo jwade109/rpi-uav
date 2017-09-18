@@ -23,12 +23,9 @@
 #include <chrono>
 #include <cmath>
 
-pwm_driver::pwm_driver() : i2caddr(0) { }
-
 int pwm_driver::begin(uint8_t addr)
 {
-    i2c = I2C(addr);
-    int ret = i2c.ready();
+    int ret = i2c.open(addr);
     if (!ret)
     {
         std::cerr << "pwm: i2c init error: " << ret << std::endl;

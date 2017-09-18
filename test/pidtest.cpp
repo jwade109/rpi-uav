@@ -97,7 +97,7 @@ int main(int argc, char** argv)
         dataFile.open("pid.txt", std::ios::out);
     }
 
-    PID control(P, I, D, -1);
+    pid_controller control(P, I, D, -1);
     double vel = 0;
     int count = 0;
     

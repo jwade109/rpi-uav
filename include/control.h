@@ -14,15 +14,15 @@
 
 namespace uav
 {
-    class Control
+    class controller
     {
         public:
 
-        Control(state initial, param cfg, bool debug = false);
-        ~Control();
+        controller(state initial, param cfg, bool debug = false);
+        ~controller();
 
         int align();
-        int iterate(bool block = false);
+        int iterate(bool block);
     
         state getstate();
         void setstate(state s);
@@ -34,12 +34,12 @@ namespace uav
         std::chrono::steady_clock::time_point tstart;
 
         arduino imu;
-        BMP085 bmp;
+        bmp085 bmp;
 
         state curr, prev;
         param prm;
 
-        PID zpid, hpid, ppid, rpid;
+        pid_controller zpid, hpid, ppid, rpid;
 
         void gettargets();
     };

@@ -54,12 +54,15 @@ int main(int argc, char** argv)
 
         if (i > 0 && ((ts - prev) != dt))
         {
+            if (skips < 20)
             std::cout << std::setw(7) << prev/1000.0
                       << " -> " << std::setw(5) << ts/1000.0
                       << ": dt = " << ts - prev << std::endl;
             skips++;
         }
     }
+    if (skips > 20) std::cout << "(Not showing " << skips - 20
+        << " more timing issues)" << std::endl;
 
     std::cout << "Finished. " << skips << " timing errors over "
               << n << " iterations, or " << ts/1000.0

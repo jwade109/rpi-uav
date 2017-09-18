@@ -19,7 +19,7 @@ std::normal_distribution<double> gaussian(0.0, 1.0);
 
 namespace uav
 {
-    Control::Control(state initial, param cfg, bool debug):
+    controller::controller(state initial, param cfg, bool debug):
 
         debug(debug),
         zpid(cfg.zpidg[0], cfg.zpidg[1],
@@ -36,9 +36,9 @@ namespace uav
         prev = {0};
     }
 
-    Control::~Control() { }
+    controller::~controller() { }
 
-    int Control::align()
+    int controller::align()
     {
         const int samples = 100; // altitude samples for home point
         const auto wait = chrono::milliseconds(10);
@@ -84,7 +84,7 @@ namespace uav
         return 0;
     }
 
-    int Control::iterate(bool block)
+    int controller::iterate(bool block)
     {
         static bool first(true);
         std::bitset<16> error(0);
@@ -276,22 +276,22 @@ namespace uav
         return 0;
     }
         
-    state Control::getstate()
+    state controller::getstate()
     {
         return curr;
     }
 
-    void Control::setstate(state s)
+    void controller::setstate(state s)
     {
         curr = s;
     }
 
-    param Control::getparams()
+    param controller::getparams()
     {
         return prm;
     }
 
-    void Control::gettargets()
+    void controller::gettargets()
     {
         // arbitrary targets until a true controller is implemented
         if (debug)

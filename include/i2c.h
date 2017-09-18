@@ -3,18 +3,19 @@
 
 #include <stdint.h>
 
-class I2C
+class i2cdev
 {
     public:
 
-    I2C();
-    I2C(uint8_t addr);
-    ~I2C();
+    i2cdev();
+    i2cdev(uint8_t addr);
+    ~i2cdev();
 
+    bool open(uint8_t addr);
     bool ready();
     uint8_t addr();
 
-    void readLen(uint8_t reg, uint8_t* buf, uint8_t len);
+    void readlen(uint8_t reg, uint8_t* buf, uint8_t len);
     uint8_t read8(uint8_t reg);
     uint16_t read16_LE(uint8_t reg);
     uint16_t read16_BE(uint8_t reg);

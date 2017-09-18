@@ -1,12 +1,12 @@
 #include <motor.h>
 #include <chrono>
 
-motor::motor(pwm_driver& pwm, uint8_t pin) :
+uav::motor::motor(pwm_driver& pwm, uint8_t pin) :
     pwm(pwm), setflag(true), cont(true),
     pin(pin), level(0),
     setter(&motor::work, this) { }
 
-motor::~motor()
+uav::motor::~motor()
 {
     kill();
     std::this_thread::sleep_for(std::chrono::milliseconds(3));
@@ -14,21 +14,21 @@ motor::~motor()
     if (setter.joinable()) setter.join();
 }
 
-uint16_t motor::get() { return level; }
+uint16_t uav::motor::get() { return level; }
 
-void motor::set(uint16_t level)
+void uav::motor::set(uint16_t level)
 {
     this->level = level;
     setflag = true;
 }
 
-void motor::kill()
+void uav::motor::kill()
 {
     level = 0;
     setflag = true;
 }
 
-void motor::work()
+void uav::motor::work()
 {
     while (cont)
         if (setflag)
