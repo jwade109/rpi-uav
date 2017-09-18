@@ -9,7 +9,7 @@ motor::motor(pwm_driver& pwm, uint8_t pin) :
 motor::~motor()
 {
     kill();
-    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    std::this_thread::sleep_for(std::chrono::milliseconds(3));
     cont = false;
     if (setter.joinable()) setter.join();
 }
