@@ -113,7 +113,6 @@ namespace uav
                     std::to_string(prev.t) + " -> " +
                     std::to_string(curr.t) + ")");
             error[0] = 1;
-            return 1;
         }
 
         if (!debug)

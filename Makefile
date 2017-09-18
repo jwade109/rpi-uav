@@ -14,7 +14,7 @@ INC = -I include/
 LINK = $(CC) $(LF) $^ -o $@ $(LIB)
 
 all: launch utilities
-utilities: pidtest bmptest serialtest gpstest skips bin2txt
+utilities: pidtest bmptest serialtest gpstest pwmtest skips bin2txt
 
 install:
 	yes | sudo apt-get install libncurses5-dev wiringpi
@@ -28,6 +28,7 @@ pidtest: bin/pidtest
 bmptest: bin/bmptest
 serialtest: bin/serialtest
 gpstest: bin/gpstest
+pwmtest: bin/pwmtest
 skips: bin/skips
 bin2txt: bin/bin2txt
 
@@ -43,6 +44,10 @@ bin/serialtest: .build/test/serialtest.o .build/src/ardimu.o
 	$(LINK)
 
 bin/gpstest: .build/test/gpstest.o .build/src/gps.o
+	$(LINK)
+
+bin/pwmtest: .build/test/pwmtest.o .build/src/pwm.o .build/src/i2c.o \
+	.build/src/motor.o
 	$(LINK)
 
 bin/skips: .build/test/skips.o
