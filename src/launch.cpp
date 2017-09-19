@@ -27,7 +27,7 @@ int main(int argc, char** argv)
     signal(SIGINT, sigint);
 
     static_assert(uav::param::fields == 23, "Check yourself");
-    uav::param prm = {uav::f50hz, 0, 0, {0, 0, 0.005, -1},
+    uav::param prm = {uav::f125hz, 0, 0, {0, 0, 0.005, -1},
             {0, 0, 0.015, -1}, {0.1, 0, 0.02, -1}, {0.1, 0, 0.02, -1},
             0.1, 0.65, 500, 41};
     uav::state init{0};
@@ -36,13 +36,10 @@ int main(int argc, char** argv)
     uav::controller c(init, prm, debug);
 
     pwm_driver pwm;
-    if (!debug)
-    {
-        pwm.begin(0x40);
-        pwm.reset();
-        pwm.setPWMFreq(800);
-    }
-    uav::motor m1(pwm, 0), m2(pwm, 4), m3(pwm, 8), m4(pwm, 12);
+    pwm.begin(0x40);
+    pwm.reset();
+    pwm.setPWMFreq(800);
+    // uav::motor m1(pwm, 0), m2(pwm, 4), m3(pwm, 8), m4(pwm, 12);
 
     // begin imu, bmp, and get home altitudes
     uav::info("Aligning...");
@@ -70,10 +67,12 @@ int main(int argc, char** argv)
         c.iterate(true);
         uav::state s = c.getstate();
 
-        m1.set(s.motors[0] * 40);
-        m2.set(s.motors[1] * 40);
-        m3.set(s.motors[2] * 40);
-        m4.set(s.motors[3] * 40);
+        auto timer = chrono::steady_clock::now();
+        for (int i = 0; i < 4; i++)
+            pwm.setPin(i * 4, s.motors[i] * 40, false);
+        chrono::duration<double, std::milli> mt =
+            chrono::steady_clock::now() - timer;
+        uav::debug(std::to_string(mt.count()));
 
         // print the controller state
         std::cout << uav::to_string(s, 1 | (0b1111 << 20));

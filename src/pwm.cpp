@@ -23,6 +23,12 @@
 #include <chrono>
 #include <cmath>
 
+pwm_driver::~pwm_driver()
+{
+    for (int i = 0; i < 16; i++)
+        setPin(i, 0, false);
+}
+
 int pwm_driver::begin(uint8_t addr)
 {
     int ret = i2c.open(addr);

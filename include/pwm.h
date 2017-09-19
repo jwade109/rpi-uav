@@ -44,6 +44,8 @@ class pwm_driver
 {
     public:
 
+    ~pwm_driver();
+
     int begin(uint8_t addr);
     void reset(void);
     void setPWMFreq(float freq);
