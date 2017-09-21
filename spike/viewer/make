@@ -1,1 +1,1 @@
-g++ -std=c++14 main.cpp ../../src/uavcore.cpp -I . -I ../../include/ -lncurses
+g++ -std=c++14 -Wall main.cpp ../../src/uavcore.cpp -I . -I ../../include/ -lncurses
