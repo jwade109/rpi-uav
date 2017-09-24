@@ -5,26 +5,16 @@
 #include <bitset>
 #include <chrono>
 
-#include <uavcore.h>
+#include "uavcore.h"
 
-uav::param uav::param::zero()
-{
-    static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
-
-    param p{f1hz, 0, 0, {0, 0, 0, 0}, {0, 0, 0, 0},
-        {0, 0, 0, 0}, {0, 0, 0, 0}, 0, 0, 0, 0};
-
-    return p;
-}
-
-uav::param::bin uav::to_binary(const param& p)
+uav::param::bin uav::serialize(const param& p)
 {
     static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
     static_assert(param::size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM");
 
     param::bin b;
     b.fill(0);
-    uint8_t *wptr = b.begin();
+    byte *wptr = b.data();
     memcpy(wptr, &p.freq, sizeof(p.freq));
     wptr += sizeof(p.freq);
     memcpy(wptr, &p.p1h, sizeof(p.p1h));
@@ -50,14 +40,14 @@ uav::param::bin uav::to_binary(const param& p)
     return b;
 }
 
-uav::state::bin uav::to_binary(const state& s)
+uav::state::bin uav::serialize(const state& s)
 {
     static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
-    static_assert(state::size == 87, "CHECK_ASSUMED_SIZE_OF_STATE"); 
+    static_assert(state::size == 87, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     state::bin b;
     b.fill(0);
-    uint8_t *wptr = b.begin();
+    byte *wptr = b.data();
     memcpy(wptr, &s.t, sizeof(s.t));
     wptr += sizeof(s.t);
     memcpy(wptr, &s.t_abs, sizeof(s.t_abs));
@@ -101,13 +91,13 @@ uav::state::bin uav::to_binary(const state& s)
     return b;
 }
 
-uav::param uav::from_binary(const param::bin& b)
+uav::param uav::deserialize(const param::bin& b)
 {
     static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
-    static_assert(param::size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM"); 
+    static_assert(param::size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM");
 
     param p;
-    const uint8_t *rptr = b.begin();
+    const byte *rptr = b.data();
     memcpy(&p.freq, rptr, sizeof(p.freq));
     rptr += sizeof(p.freq);
     memcpy(&p.p1h, rptr, sizeof(p.p1h));
@@ -133,13 +123,13 @@ uav::param uav::from_binary(const param::bin& b)
     return p;
 }
 
-uav::state uav::from_binary(const state::bin& b)
+uav::state uav::deserialize(const state::bin& b)
 {
     static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
     static_assert(state::size == 87, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     state s;
-    const uint8_t *rptr = b.begin();
+    const byte *rptr = b.data();
     memcpy(&s.t, rptr, sizeof(s.t));
     rptr += sizeof(s.t);
     memcpy(&s.t_abs, rptr, sizeof(s.t_abs));
@@ -183,19 +173,19 @@ uav::state uav::from_binary(const state::bin& b)
     return s;
 }
 
-std::string uav::pheader()
+std::string uav::param::header()
 {
     return "freq p1h p2h zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
            "gz_rc gz_wam maxmrate mg";
 }
 
-std::string uav::sheader(uint64_t mask)
+std::string uav::state::header(fmt::bitmask_t mask)
 {
     static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     using namespace std;
 
-    std::bitset<uav::state::size> b(mask);
+    std::bitset<state::size> b(mask);
     stringstream line;
     line << left;
 
@@ -266,8 +256,8 @@ std::string uav::to_string(const param& prm)
     return str;
 }
 
-std::string uav::to_string(const state& it, uint64_t mask)
-{ 
+std::string uav::to_string(const state& it, fmt::bitmask_t mask)
+{
     static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     using namespace std;
@@ -372,15 +362,16 @@ void uav::flush()
     std::ofstream
         text("log/events.txt", std::ios::out),
         data("log/data.bin", std::ios::out | std::ios::binary);
+
     {
-        param::bin b = uav::to_binary(paramlog);
-        data.write((const char*) b.data(), param::size);
+        param::bin b = serialize(paramlog);
+        data.write(reinterpret_cast<const char*>(b.data()), param::size);
     }
     while (!statelog.empty())
     {
-        state::bin b = uav::to_binary(statelog.front());
+        state::bin b = serialize(statelog.front());
         statelog.pop_front();
-        data.write((const char*) b.begin(), state::size);
+        data.write(reinterpret_cast<const char*>(b.data()), state::size);
     }
     while (!textlog.empty())
     {
