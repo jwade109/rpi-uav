@@ -45,17 +45,17 @@ namespace uav
 
         enum : bitmask_t
         {
-            time = 1,
-            time_full = 7,
-            pressure = 3 << 3,
-            temperature = 3 << 5,
-            altitude = 1 << 7,
-            attitude = 7 << 8,
-            attitude_full = 15 << 8,
-            targets = 15 << 12,
-            pid = 15 << 16,
-            motors = 15 << 20,
-            error = 1 << 24,
+            time            = 1,
+            time_full       = 7,
+            pressure        = 3 << 3,
+            temperature     = 3 << 5,
+            altitude        = 1 << 7,
+            attitude        = 7 << 8,
+            attitude_full   = 15 << 8,
+            targets         = 15 << 12,
+            pid             = 15 << 16,
+            motors          = 15 << 20,
+            error           = 1 << 24,
 
             all = std::numeric_limits<bitmask_t>::max(),
             standard = time | altitude | attitude | motors | error
@@ -89,8 +89,8 @@ namespace uav
         using bin = std::array<byte, size>;
     };
 
-    static_assert(state::fields == 25, "CONST_STATE_FIELDS_NOT_24");
-    static_assert(state::size == 87, "CONST_STATE_SIZE_NOT_71");
+    static_assert(state::fields == 25, "CONST_STATE_FIELDS_NOT_25");
+    static_assert(state::size == 87, "CONST_STATE_SIZE_NOT_87");
 
     // uav::param //////////////////////////////////////////////////////////////
 
