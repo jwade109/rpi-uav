@@ -29,7 +29,7 @@ namespace uav
 
     using byte = unsigned char;
 
-    enum
+    enum : freq_t
     {
         f1hz = 1, f10hz = 10, f20hz = 20, f25hz = 25, f40hz = 40, f50hz = 50,
         f100hz = 100, f125hz = 125, f200hz = 200, f250hz = 250,
@@ -79,6 +79,8 @@ namespace uav
         error_t         err;                // bitmask for storing error codes
 
         static std::string header(fmt::bitmask_t);
+        bool operator==(const state& other);
+        bool operator!=(const state& other);
 
         const static size_t fields = 25;
         const static size_t size = 3 * sizeof(timestamp_t) + 2 * sizeof(pres_t) +
@@ -108,6 +110,8 @@ namespace uav
         wgt_frac_t      mg;                 // vehicle weight/max thrust * 100
 
         static std::string header();
+        bool operator==(const param& other);
+        bool operator!=(const param& other);
 
         const static size_t fields = 23;
         const static size_t size = sizeof(freq_t) + 2 * sizeof(home_pres_t) +
@@ -161,6 +165,11 @@ namespace uav
     void error(std::string s);
 
     void flush();
+}
+
+namespace uav::tests
+{
+    int uavcore();
 }
 
 #endif // UAV_CORE_H

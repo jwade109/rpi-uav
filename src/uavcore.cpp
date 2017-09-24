@@ -1,11 +1,58 @@
+#include <iostream>
 #include <iomanip>
 #include <string>
 #include <cstring>
 #include <sstream>
 #include <bitset>
 #include <chrono>
+#include <cassert>
 
 #include "uavcore.h"
+
+bool uav::param::operator==(const param& other)
+{
+    static_assert(param::fields == 23, "THIS FUNCTION MIGHT BE OUT OF DATE");
+
+    return freq == other.freq && p1h == other.p1h && p2h == other.p2h &&
+        zpidg[0] == other.zpidg[0] && zpidg[1] == other.zpidg[1] &&
+        zpidg[2] == other.zpidg[2] && zpidg[3] == other.zpidg[3] &&
+        hpidg[0] == other.hpidg[0] && hpidg[1] == other.hpidg[1] &&
+        hpidg[2] == other.hpidg[2] && hpidg[3] == other.hpidg[3] &&
+        ppidg[0] == other.ppidg[0] && ppidg[1] == other.ppidg[1] &&
+        ppidg[2] == other.ppidg[2] && ppidg[3] == other.ppidg[3] &&
+        rpidg[0] == other.rpidg[0] && rpidg[1] == other.rpidg[1] &&
+        rpidg[2] == other.rpidg[2] && rpidg[3] == other.rpidg[3] &&
+        gz_rc == other.gz_rc && gz_wam == other.gz_wam &&
+        maxmrate == other.maxmrate && mg == other.mg;
+}
+
+bool uav::param::operator!=(const param& other)
+{
+    return !(*this == other);
+}
+
+bool uav::state::operator==(const state& other)
+{
+    static_assert(state::fields == 25, "THIS FUNCTION MIGHT BE OUT OF DATE");
+
+    return t == other.t && t_abs == other.t_abs &&
+        comptime == other.comptime &&
+        pres[0] == other.pres[0] && pres[1] == other.pres[1] &&
+        temp[0] == other.temp[0] && temp[1] == other.temp[1] &&
+        dz == other.dz && h == other.h && p == other.p &&
+        r == other.r && calib == other.calib &&
+        tz == other.tz && th == other.th && tp == other.tp &&
+        tr == other.tr && zov == other.zov && hov == other.hov &&
+        pov == other.pov && rov == other.rov &&
+        motors[0] == other.motors[0] && motors[1] == other.motors[1] &&
+        motors[2] == other.motors[2] && motors[3] == other.motors[3] &&
+        err == other.err;
+}
+
+bool uav::state::operator!=(const state& other)
+{
+    return !(*this == other);
+}
 
 uav::param::bin uav::serialize(const param& p)
 {
@@ -327,7 +374,7 @@ std::deque<std::string> textlog;
 
 void uav::reset()
 {
-    paramlog = param::zero();
+    paramlog = { 0 };
     statelog.clear();
     textlog.clear();
 }
@@ -378,4 +425,27 @@ void uav::flush()
         text << textlog.front() << "\n";
         textlog.pop_front();
     }
+}
+
+int uav::tests::uavcore()
+{
+    param p{ f125hz, 0, 0, { 0.12, 0.3, 0.5, -1 }, { 2.3, 1.4, 0.015, -1 },
+        { 0.1, 01.8, 0.02, -1 }, { 0.1, -0.45, 0.02, -1 }, 0.1, 0.65, 500, 41 };
+
+    state s{ 45, 123, 2001, 10132.7F, 10100.3F, 45.4F, 45.7F, 0.73F, 32.0F, 2.3F, -1.6F,
+        0x4f, 23, 3, -12, 102, 0.45F, 0.23F, -0.34F, 1.45F, 43, 27, 32, 51, 12 };
+
+    std::cout << to_string(p) << std::endl;
+    std::cout << to_string(s, fmt::standard) << std::endl;
+
+    auto pnew = deserialize(serialize(p));
+    auto snew = deserialize(serialize(s));
+
+    std::cout << to_string(pnew) << std::endl;
+    std::cout << to_string(snew, fmt::standard) << std::endl;
+
+    if (p != pnew) return 1;
+    if (s != snew) return 2;
+
+    return 0;
 }
