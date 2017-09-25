@@ -4,6 +4,7 @@
 #include <fstream>
 #include <deque>
 #include <array>
+#include <limits>
 
 namespace uav
 {
@@ -20,6 +21,7 @@ namespace uav
     using motor_t       = uint8_t;
     using error_t       = uint16_t;
 
+    using freq_t        = uint8_t;
     using home_pres_t   = double;
     using pid_gain_t    = double;
     using lpf_tau_t     = double;
@@ -137,7 +139,7 @@ namespace uav
     template<class T, class U> std::array<uint8_t, T::size> wrap(U *ptr)
     {
         std::array<byte, T::size> bin;
-        byte* src = static_cast<byte*>(ptr);
+        byte* src = reinterpret_cast<byte*>(ptr);
         std::copy(src, src + T::size, bin.begin());
         return bin;
     }
@@ -165,11 +167,11 @@ namespace uav
     void error(std::string s);
 
     void flush();
-}
 
-namespace uav::tests
-{
-    int uavcore();
+    namespace tests
+    {
+        int uavcore();
+    }
 }
 
 #endif // UAV_CORE_H
