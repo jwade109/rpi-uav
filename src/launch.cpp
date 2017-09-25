@@ -55,9 +55,10 @@ int main(int argc, char** argv)
     uav::include(c.getparams());
 
     // print the params
-    std::cout << uav::pheader() << std::endl;
+    namespace fmt = uav::fmt;
+    std::cout << uav::param::header() << std::endl;
     std::cout << uav::to_string(c.getparams()) << std::endl;
-    std::cout << uav::sheader(1 | (0b1111 << 20)) << std::endl;
+    std::cout << uav::state::header(fmt::time | fmt::motors) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
     while ((now < start + chrono::seconds(100)) && cont)
@@ -75,7 +76,7 @@ int main(int argc, char** argv)
         uav::debug(std::to_string(mt.count()));
 
         // print the controller state
-        std::cout << uav::to_string(s, 1 | (0b1111 << 20));
+        std::cout << uav::to_string(s, fmt::time | fmt::motors);
         if (s.err)  std::cout << " !";
         else        std::cout << "  ";
         std::cout << "\r" << std::flush;

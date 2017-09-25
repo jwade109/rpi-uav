@@ -1,30 +1,67 @@
+#include <iostream>
 #include <iomanip>
 #include <string>
 #include <cstring>
 #include <sstream>
 #include <bitset>
 #include <chrono>
+#include <cassert>
 
-#include <uavcore.h>
+#include "uavcore.h"
 
-uav::param uav::param::zero()
+bool uav::param::operator==(const param& other)
 {
-    static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
+    static_assert(param::fields == 23, "THIS FUNCTION MIGHT BE OUT OF DATE");
 
-    param p{f1hz, 0, 0, {0, 0, 0, 0}, {0, 0, 0, 0},
-        {0, 0, 0, 0}, {0, 0, 0, 0}, 0, 0, 0, 0};
-
-    return p;
+    return freq == other.freq && p1h == other.p1h && p2h == other.p2h &&
+        zpidg[0] == other.zpidg[0] && zpidg[1] == other.zpidg[1] &&
+        zpidg[2] == other.zpidg[2] && zpidg[3] == other.zpidg[3] &&
+        hpidg[0] == other.hpidg[0] && hpidg[1] == other.hpidg[1] &&
+        hpidg[2] == other.hpidg[2] && hpidg[3] == other.hpidg[3] &&
+        ppidg[0] == other.ppidg[0] && ppidg[1] == other.ppidg[1] &&
+        ppidg[2] == other.ppidg[2] && ppidg[3] == other.ppidg[3] &&
+        rpidg[0] == other.rpidg[0] && rpidg[1] == other.rpidg[1] &&
+        rpidg[2] == other.rpidg[2] && rpidg[3] == other.rpidg[3] &&
+        gz_rc == other.gz_rc && gz_wam == other.gz_wam &&
+        maxmrate == other.maxmrate && mg == other.mg;
 }
 
-uav::param::bin uav::to_binary(const param& p)
+bool uav::param::operator!=(const param& other)
+{
+    return !(*this == other);
+}
+
+bool uav::state::operator==(const state& other)
+{
+    static_assert(state::fields == 25, "THIS FUNCTION MIGHT BE OUT OF DATE");
+
+    return t == other.t && t_abs == other.t_abs &&
+        comptime == other.comptime &&
+        pres[0] == other.pres[0] && pres[1] == other.pres[1] &&
+        temp[0] == other.temp[0] && temp[1] == other.temp[1] &&
+        dz == other.dz && h == other.h && p == other.p &&
+        r == other.r && calib == other.calib &&
+        tz == other.tz && th == other.th && tp == other.tp &&
+        tr == other.tr && zov == other.zov && hov == other.hov &&
+        pov == other.pov && rov == other.rov &&
+        motors[0] == other.motors[0] && motors[1] == other.motors[1] &&
+        motors[2] == other.motors[2] && motors[3] == other.motors[3] &&
+        err == other.err;
+}
+
+bool uav::state::operator!=(const state& other)
+{
+    return !(*this == other);
+}
+
+uav::param::bin uav::serialize(const param& p)
 {
     static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
     static_assert(param::size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM");
 
     param::bin b;
     b.fill(0);
-    uint8_t *wptr = b.begin();
+    byte *wptr = b.data();
     memcpy(wptr, &p.freq, sizeof(p.freq));
     wptr += sizeof(p.freq);
     memcpy(wptr, &p.p1h, sizeof(p.p1h));
@@ -50,14 +87,14 @@ uav::param::bin uav::to_binary(const param& p)
     return b;
 }
 
-uav::state::bin uav::to_binary(const state& s)
+uav::state::bin uav::serialize(const state& s)
 {
     static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
-    static_assert(state::size == 87, "CHECK_ASSUMED_SIZE_OF_STATE"); 
+    static_assert(state::size == 87, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     state::bin b;
     b.fill(0);
-    uint8_t *wptr = b.begin();
+    byte *wptr = b.data();
     memcpy(wptr, &s.t, sizeof(s.t));
     wptr += sizeof(s.t);
     memcpy(wptr, &s.t_abs, sizeof(s.t_abs));
@@ -101,13 +138,13 @@ uav::state::bin uav::to_binary(const state& s)
     return b;
 }
 
-uav::param uav::from_binary(const param::bin& b)
+uav::param uav::deserialize(const param::bin& b)
 {
     static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
-    static_assert(param::size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM"); 
+    static_assert(param::size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM");
 
     param p;
-    const uint8_t *rptr = b.begin();
+    const byte *rptr = b.data();
     memcpy(&p.freq, rptr, sizeof(p.freq));
     rptr += sizeof(p.freq);
     memcpy(&p.p1h, rptr, sizeof(p.p1h));
@@ -133,13 +170,13 @@ uav::param uav::from_binary(const param::bin& b)
     return p;
 }
 
-uav::state uav::from_binary(const state::bin& b)
+uav::state uav::deserialize(const state::bin& b)
 {
     static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
     static_assert(state::size == 87, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     state s;
-    const uint8_t *rptr = b.begin();
+    const byte *rptr = b.data();
     memcpy(&s.t, rptr, sizeof(s.t));
     rptr += sizeof(s.t);
     memcpy(&s.t_abs, rptr, sizeof(s.t_abs));
@@ -183,19 +220,19 @@ uav::state uav::from_binary(const state::bin& b)
     return s;
 }
 
-std::string uav::pheader()
+std::string uav::param::header()
 {
     return "freq p1h p2h zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
            "gz_rc gz_wam maxmrate mg";
 }
 
-std::string uav::sheader(uint64_t mask)
+std::string uav::state::header(fmt::bitmask_t mask)
 {
     static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     using namespace std;
 
-    std::bitset<uav::state::size> b(mask);
+    std::bitset<state::size> b(mask);
     stringstream line;
     line << left;
 
@@ -266,8 +303,8 @@ std::string uav::to_string(const param& prm)
     return str;
 }
 
-std::string uav::to_string(const state& it, uint64_t mask)
-{ 
+std::string uav::to_string(const state& it, fmt::bitmask_t mask)
+{
     static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     using namespace std;
@@ -337,7 +374,7 @@ std::deque<std::string> textlog;
 
 void uav::reset()
 {
-    paramlog = param::zero();
+    paramlog = { 0 };
     statelog.clear();
     textlog.clear();
 }
@@ -372,19 +409,43 @@ void uav::flush()
     std::ofstream
         text("log/events.txt", std::ios::out),
         data("log/data.bin", std::ios::out | std::ios::binary);
+
     {
-        param::bin b = uav::to_binary(paramlog);
-        data.write((const char*) b.data(), param::size);
+        param::bin b = serialize(paramlog);
+        data.write(reinterpret_cast<const char*>(b.data()), param::size);
     }
     while (!statelog.empty())
     {
-        state::bin b = uav::to_binary(statelog.front());
+        state::bin b = serialize(statelog.front());
         statelog.pop_front();
-        data.write((const char*) b.begin(), state::size);
+        data.write(reinterpret_cast<const char*>(b.data()), state::size);
     }
     while (!textlog.empty())
     {
         text << textlog.front() << "\n";
         textlog.pop_front();
     }
+}
+
+int uav::tests::uavcore()
+{
+    param p{ f125hz, 0, 0, { 0.12, 0.3, 0.5, -1 }, { 2.3, 1.4, 0.015, -1 },
+        { 0.1, 01.8, 0.02, -1 }, { 0.1, -0.45, 0.02, -1 }, 0.1, 0.65, 500, 41 };
+
+    state s{ 45, 123, 2001, 10132.7F, 10100.3F, 45.4F, 45.7F, 0.73F, 32.0F, 2.3F, -1.6F,
+        0x4f, 23, 3, -12, 102, 0.45F, 0.23F, -0.34F, 1.45F, 43, 27, 32, 51, 12 };
+
+    std::cout << to_string(p) << std::endl;
+    std::cout << to_string(s, fmt::standard) << std::endl;
+
+    auto pnew = deserialize(serialize(p));
+    auto snew = deserialize(serialize(s));
+
+    std::cout << to_string(pnew) << std::endl;
+    std::cout << to_string(snew, fmt::standard) << std::endl;
+
+    if (p != pnew) return 1;
+    if (s != snew) return 2;
+
+    return 0;
 }
