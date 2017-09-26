@@ -27,7 +27,7 @@ int main(int argc, char** argv)
     signal(SIGINT, sigint);
 
     static_assert(uav::param::fields == 23, "Check yourself");
-    uav::param prm = {uav::f125hz, 0, 0, {0, 0, 0.005, -1},
+    uav::param prm = {uav::f50hz, 0, 0, {0, 0, 0.005, -1},
             {0, 0, 0.015, -1}, {0.1, 0, 0.02, -1}, {0.1, 0, 0.02, -1},
             0.1, 0.65, 500, 41};
     uav::state init{0};
@@ -58,7 +58,7 @@ int main(int argc, char** argv)
     namespace fmt = uav::fmt;
     std::cout << uav::param::header() << std::endl;
     std::cout << uav::to_string(c.getparams()) << std::endl;
-    std::cout << uav::state::header(fmt::time | fmt::motors) << std::endl;
+    std::cout << uav::state::header(fmt::standard) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
     while ((now < start + chrono::seconds(100)) && cont)
@@ -76,7 +76,7 @@ int main(int argc, char** argv)
         uav::debug(std::to_string(mt.count()));
 
         // print the controller state
-        std::cout << uav::to_string(s, fmt::time | fmt::motors);
+        std::cout << uav::to_string(s, fmt::standard);
         if (s.err)  std::cout << " !";
         else        std::cout << "  ";
         std::cout << "\r" << std::flush;
