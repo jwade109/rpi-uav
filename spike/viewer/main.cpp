@@ -68,9 +68,9 @@ int main(int argc, char** argv)
     int n = param::size;
     while (n < fsize)
     {
-        state s = from_binary(wrap<state>(bytes + n));
+        state s = deserialize(wrap<state>(bytes + n));
         entries.push_back(std::make_tuple(s.t_abs * 1000,
-                    to_string(s, 0b11111111), dataf));
+                    to_string(s, fmt::all), dataf));
         n += state::size;
     }
     delete[] bytes;
@@ -83,21 +83,27 @@ int main(int argc, char** argv)
 
     uint16_t ch = 0;
     int64_t pos = 0;
-    while (ch != 3)
+    while (ch != 3 && ch != 'q')
     {
-        move(0,0);
-        clrtoeol();
-        move(1,0);
-        clrtoeol();
-        move(2,0);
-        clrtoeol();
-        move(3,0);
-        clrtoeol();
+        size_t rows, cols;
+        getmaxyx(stdscr, rows, cols);
+
+        for (size_t i = 0; i < 10; i++)
+        {
+            move(i, 0);
+            clrtoeol();
+        }
 
         mvprintw(0,0,"Key pressed: ");
-        attron(A_BOLD);
         printw("0x%02x (%c)", ch, ch);
-        attroff(A_BOLD);
+        mvprintw(1, 0, "\t");
+
+        {
+            size_t r, c;
+            getyx(stdscr, r, c);
+            printw("%s", state::header(fmt::all).
+                substr(0, cols - c).c_str());
+        }
 
         uint16_t key[] = {KEY_UP, KEY_DOWN, KEY_RIGHT, KEY_LEFT};
         const int keydir[] = {-1, 1, 0, 0};
@@ -112,8 +118,15 @@ int main(int argc, char** argv)
                 if (pos < 0) pos = 0;
                 uint64_t max = entries.size();
                 if (pos + 1 > max) pos = max - 1;
-                const char* str = std::get<1>(entries[pos]).c_str();
-                mvprintw(1, 0, "%lld/%llu: %s", pos, max, str);
+                auto str = std::get<1>(entries[pos]);
+                attron(A_STANDOUT);
+                mvprintw(2, 0, "%lld/%llu:\t", pos, max);
+                size_t r, c;
+                getyx(stdscr, r, c);
+                size_t charsleft = cols - c;
+                attron(A_STANDOUT);
+                printw("%s", str.substr(0, charsleft).c_str());
+                attroff(A_STANDOUT);
             }
         }
 
