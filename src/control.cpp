@@ -132,6 +132,10 @@ namespace uav
             curr.h = prev.h + gaussian(gen);
             curr.p = prev.p + gaussian(gen);
             curr.r = prev.r + gaussian(gen);
+
+            curr.p = curr.p > 45 ? 45 : curr.p < -45 ? -45 : curr.p;
+            curr.r = curr.r > 45 ? 45 : curr.r < -45 ? -45 : curr.r;
+
             curr.pres[0] = prm.p1h + gaussian(gen) * 10;
             curr.pres[1] = prm.p2h + gaussian(gen) * 10;
             curr.temp[0] = curr.temp[1] = 25.6 + gaussian(gen) * 0.1;
@@ -300,6 +304,11 @@ namespace uav
             curr.th = prev.th + (int) gaussian(gen);
             curr.tp = prev.tp + (int) gaussian(gen);
             curr.tr = prev.tr + (int) gaussian(gen);
+
+            curr.tz = curr.tz > 50 ? 50 : curr.tz < -50 ? -50 : curr.tz;
+            curr.th = curr.th > 180 ? 180 : curr.th < -180 ? -180 : curr.th;
+            curr.tp = curr.tp > 90 ? 90 : curr.tp < -90 ? -90 : curr.tp;
+            curr.tr = curr.tr > 180 ? 180 : curr.tr < -180 ? -180 : curr.tr;
         }
         else curr.tz = curr.th = curr.tp = curr.tr = 0;
     }
