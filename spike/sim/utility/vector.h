@@ -187,6 +187,46 @@ public:
         return ret;
     }
 
+    Vector operator * (const Vector& v) const
+    {
+        Vector ret;
+        for (int i = 0; i < N; i++)
+            ret.p_vec[i] = p_vec[i] * v.p_vec[i];
+        return ret;
+    }
+
+    Vector operator / (const Vector& v) const
+    {
+        Vector ret;
+        for (int i = 0; i < N; i++)
+            ret.p_vec[i] = p_vec[i] / v.p_vec[i];
+        return ret;
+    }
+
+    Vector& operator += (const Vector& v)
+    {
+        for (int i = 0; i < N; i++)
+            p_vec[i] += v.p_vec[i];
+        return *this;
+    }
+
+    Vector& operator -= (const Vector& v)
+    {
+        return *this += -v;
+    }
+
+    Vector& operator *= (double scalar)
+    {
+        for (int i = 0; i < N; i++)
+            p_vec[i] *= scalar;
+        return *this;
+    }
+
+    Vector& operator /= (double scalar)
+    {
+        return *this *= (1/scalar);
+    }
+
     void toDegrees()
     {
         for(int i = 0; i < N; i++)
@@ -206,7 +246,6 @@ public:
     double y() const { return p_vec[1]; }
     double z() const { return p_vec[2]; }
 
-
 private:
     double p_vec[N];
 };
@@ -220,6 +259,17 @@ inline Vector<3> Vector<3>::cross(const Vector& v) const
         p_vec[2] * v.p_vec[0] - p_vec[0] * v.p_vec[2],
         p_vec[0] * v.p_vec[1] - p_vec[1] * v.p_vec[0]
     );
+}
+
+template <uint8_t N>
+std::ostream& operator<<(std::ostream& os, imu::Vector<N>& v)
+{
+    for (int i = 0; i < N; i++)
+    {
+        os << v(i);
+        if (i < N - 1) os << " ";
+    }
+    return os;
 }
 
 } // namespace

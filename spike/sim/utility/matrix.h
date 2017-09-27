@@ -159,6 +159,19 @@ public:
         return ret;
     }
 
+    Vector<N> operator*(const Vector<N>& v) const
+    {
+        Vector<N> ret;
+        for (int i = 0; i < N; i++)
+        {
+            for (int j = 0; j < N; j++)
+            {
+                ret(i) += cell(i, j) * v(j);
+            }
+        }
+        return ret;
+    }
+
     Matrix transpose() const
     {
         Matrix ret;

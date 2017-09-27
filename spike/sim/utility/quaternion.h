@@ -215,6 +215,13 @@ public:
         return ret;
     }
 
+    void fromAngularVelocity(Vector<3> w, double dt)
+    {
+        double theta = w.magnitude() * dt;
+        w.normalize();
+        fromAxisAngle(w, theta);
+    }
+
     Vector<3> rotateVector(const Vector<2>& v) const
     {
         return rotateVector(Vector<3>(v.x(), v.y()));
