@@ -19,7 +19,7 @@ namespace uav
     {
         public:
 
-        double time;
+        uint64_t time;
         double mass;
         imu::Vector<3> I_moment;
 
@@ -40,7 +40,7 @@ namespace uav
         std::vector<force_moment> forces;
 
         freebody();
-        void step(double dt);
+        void step(uint64_t micros);
         void apply(const force_moment& fm);
         std::string str();
         std::string strln();
@@ -52,9 +52,9 @@ uav::freebody::freebody() : time(0), mass(1), I_moment(1, 1, 1)
     rotation = q.toMatrix();
 }
 
-void uav::freebody::step(double dt)
+void uav::freebody::step(uint64_t micros)
 {
-    time += dt;
+    time += micros;
 
     imu::Vector<3> net_force, accel, net_moment, alpha;
     for (int i = 0; i < forces.size(); i++)
@@ -67,6 +67,7 @@ void uav::freebody::step(double dt)
     alpha = net_moment / I_moment;
     omega += alpha;
 
+    double dt = micros/1000000.0;
     imu::Quaternion qw;
     qw.fromAngularVelocity(omega, dt);
     qw.normalize();
@@ -97,13 +98,11 @@ void uav::freebody::apply(const force_moment& fm)
 std::string uav::freebody::str()
 {
     std::stringstream ss;
-    ss << "time: " << time << " mass: " << mass
+    ss << "time: " << time/1000000.0 << " mass: " << mass
        << " I: " << I_moment << std::endl
        << "pos: " << pos << " vel: " << world_vel << std::endl
-       << "forces: ";
-    for (int i = 0; i < forces.size(); i++)
-        ss << "[{" << forces[i].force << "},{"
-           << forces[i].lever << "}]";
+       << "euler: " << euler << std::endl
+       << "quat: " << q << std::endl;
     return ss.str();
 }
 
@@ -122,7 +121,7 @@ int main()
     using namespace imu;
 
     freebody fb;
-    const int millis = 2;
+    const int micros = 5000;
     int count = 0;
 
     // positive heading moment
@@ -134,14 +133,19 @@ int main()
     // fb.apply({{0, 0, -1}, {0, 0, 0}});
 
     // positive roll moment
-    fb.apply({{0, 0, -1}, {1, 0, 0}});
-    fb.apply({{0, 0,  1}, {0, 0, 0}});
+    // fb.apply({{0, 0, -1}, {1, 0, 0}});
+    // fb.apply({{0, 0,  1}, {0, 0, 0}});
 
-    while (count < 100)
+    fb.world_vel = fb.body_vel = {1, 0, 0};
+    fb.omega = {0, -1, 0};
+    while (fb.time / 1000000.0 < 4 * M_PI)
     {
-        fb.step(millis/1000.0);
-        if (count % 10 == 0) std::cout << fb.strln() << std::endl;
-        count++;
+        fb.apply({{0, 0, 1}, {0, 0, 0}});
+        std::cout << fb.time << ","
+            << fb.pos.x() << "," << fb.pos.y() << ","
+            << fb.pos.z() << std::endl;
+        uint64_t start = fb.time;
+        fb.step(micros);
     }
     return 0;
 }

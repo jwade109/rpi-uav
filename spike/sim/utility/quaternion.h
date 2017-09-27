@@ -274,6 +274,12 @@ private:
     double _w, _x, _y, _z;
 };
 
+std::ostream& operator<<(std::ostream& os, const Quaternion& q)
+{
+    os << q.w() << " " << q.x() << " " << q.y() << " " << q.z();
+    return os;
+}
+
 } // namespace
 
 #endif
