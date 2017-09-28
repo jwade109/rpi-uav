@@ -10,10 +10,23 @@
 
 namespace uav
 {
+    enum class rframe
+    {
+        inertial, body
+    };
+
     struct force_moment
     {
         imu::Vector<3> force, lever;
+        rframe frame;
     };
+
+    const force_moment M0 = {{0, 0, 1}, { 1,  1, 0}, rframe::body};
+    const force_moment M1 = {{0, 0, 1}, {-1,  1, 0}, rframe::body};
+    const force_moment M2 = {{0, 0, 1}, {-1, -1, 0}, rframe::body};
+    const force_moment M3 = {{0, 0, 1}, { 1, -1, 0}, rframe::body};
+
+    const force_moment gravity = {{0, 0, -9.81}, {0, 0, 0}, rframe::inertial};
 
     class freebody
     {
@@ -42,8 +55,8 @@ namespace uav
         freebody();
         void step(uint64_t micros);
         void apply(const force_moment& fm);
-        std::string str();
-        std::string strln();
+        std::string str() const;
+        std::string strln() const;
     };
 }
 
@@ -95,18 +108,21 @@ void uav::freebody::apply(const force_moment& fm)
     forces.push_back(fm);
 }
 
-std::string uav::freebody::str()
+std::string uav::freebody::str() const
 {
     std::stringstream ss;
     ss << "time: " << time/1000000.0 << " mass: " << mass
        << " I: " << I_moment << std::endl
        << "pos: " << pos << " vel: " << world_vel << std::endl
-       << "euler: " << euler << std::endl
-       << "quat: " << q << std::endl;
+       << " pitch: " << euler.z()
+       << " roll: " << euler.y()
+       << " hdg: " << euler.x() << std::endl
+       << "omega: " << omega << std::endl
+       << "quat: " << q;
     return ss.str();
 }
 
-std::string uav::freebody::strln()
+std::string uav::freebody::strln() const
 {
     std::stringstream ss;
     ss << std::fixed;
@@ -115,36 +131,42 @@ std::string uav::freebody::strln()
     return ss.str();
 }
 
+std::ostream& operator << (std::ostream& os, uav::freebody& fb)
+{
+    os << fb.str();
+    return os;
+}
+
 int main()
 {
     using namespace uav;
     using namespace imu;
 
     freebody fb;
-    const int micros = 5000;
+    const int micros = 50;
     int count = 0;
 
     // positive heading moment
-    // fb.apply({{0, 1, 0}, {1, 0, 0}});
-    // fb.apply({{0, -1, 0}, {0, 0, 0}});
+    fb.apply({{0,  1, 0}, {1, 0, 0}, rframe::body});
+    fb.apply({{0, -1, 0}, {0, 0, 0}, rframe::body});
 
     // positive pitch moment
-    // fb.apply({{0, 0,  1}, {0, 1, 0}});
-    // fb.apply({{0, 0, -1}, {0, 0, 0}});
+    fb.apply({{0, 0,  1}, {0, 1, 0}});
+    fb.apply({{0, 0, -1}, {0, 0, 0}});
 
     // positive roll moment
-    // fb.apply({{0, 0, -1}, {1, 0, 0}});
-    // fb.apply({{0, 0,  1}, {0, 0, 0}});
+    fb.apply({{0, 0, -1}, {1, 0, 0}});
+    fb.apply({{0, 0,  1}, {0, 0, 0}});
 
-    fb.world_vel = fb.body_vel = {1, 0, 0};
-    fb.omega = {0, -1, 0};
-    while (fb.time / 1000000.0 < 4 * M_PI)
+    std::cout << std::fixed;
+
+    while (true)
     {
-        fb.apply({{0, 0, 1}, {0, 0, 0}});
-        std::cout << fb.time << ","
-            << fb.pos.x() << "," << fb.pos.y() << ","
-            << fb.pos.z() << std::endl;
-        uint64_t start = fb.time;
+        if (fb.time % (1000000/20) == 0)
+        {
+            std::cout << fb << std::endl;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1000/20));
+        }
         fb.step(micros);
     }
     return 0;

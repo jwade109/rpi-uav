@@ -262,7 +262,7 @@ inline Vector<3> Vector<3>::cross(const Vector& v) const
 }
 
 template <uint8_t N>
-std::ostream& operator<<(std::ostream& os, imu::Vector<N>& v)
+std::ostream& operator<<(std::ostream& os, const imu::Vector<N>& v)
 {
     for (int i = 0; i < N; i++)
     {
