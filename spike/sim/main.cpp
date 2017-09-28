@@ -40,12 +40,9 @@ namespace uav
         // vel: velocity in inertial reference frame, in m/s
         // omega: angular velocity, in rad/s
         // euler: angular position in euler angles
-        imu::Vector<3> pos;
-        imu::Vector<3> world_vel, body_vel;
-        imu::Vector<3> omega, euler;
-
-        // q: quaternion expressing orientation
+        imu::Vector<3> pos, vel, accel;
         imu::Quaternion q;
+        imu::Vector<3> omega, alpha, euler;
 
         // rotation: transformation from inertial to body frame
         imu::Matrix<3> rotation;
@@ -69,12 +66,28 @@ void uav::freebody::step(uint64_t micros)
 {
     time += micros;
 
-    imu::Vector<3> net_force, accel, net_moment, alpha;
+    imu::Vector<3> net_force, net_moment;
     for (int i = 0; i < forces.size(); i++)
     {
-        // net force is in the body frame
-        net_force += forces[i].force;
-        net_moment += forces[i].lever.cross(forces[i].force);
+        // net force is in the inertial frame
+        if (forces[i].frame == rframe::inertial)
+        {
+            net_force += forces[i].force;
+            net_moment += forces[i].lever.cross(forces[i].force);
+
+            // std::cout << "inertial: " << forces[i].force << std::endl;
+        }
+        else // forces[i].frame == body
+        {
+            auto body2world = rotation.invert();
+            auto inertial_force = body2world * forces[i].force;
+            auto inertial_lever = body2world * forces[i].lever;
+
+            // std::cout << "body: " << inertial_force << std::endl;
+
+            net_force += inertial_force;
+            net_moment += inertial_lever.cross(inertial_force);
+        }
     }
 
     alpha = net_moment / I_moment;
@@ -85,20 +98,16 @@ void uav::freebody::step(uint64_t micros)
     qw.fromAngularVelocity(omega, dt);
     qw.normalize();
 
+    // world frame accel and velocity
+    accel = net_force / mass;
+    vel += accel * dt;
+    pos += vel * dt;
+
     q = q * qw;
     q.normalize();
-
     euler = q.toEuler();
     euler.toDegrees();
     rotation = q.toMatrix();
-
-    // body frame accel and velocity
-    accel = net_force / mass;
-    body_vel += accel * dt;
-
-    world_vel = rotation.invert() * body_vel;
-
-    pos += world_vel * dt;
 
     forces.clear();
 }
@@ -113,7 +122,7 @@ std::string uav::freebody::str() const
     std::stringstream ss;
     ss << "time: " << time/1000000.0 << " mass: " << mass
        << " I: " << I_moment << std::endl
-       << "pos: " << pos << " vel: " << world_vel << std::endl
+       << "pos: " << pos << " vel: " << vel << std::endl
        << " pitch: " << euler.z()
        << " roll: " << euler.y()
        << " hdg: " << euler.x() << std::endl
@@ -126,7 +135,7 @@ std::string uav::freebody::strln() const
 {
     std::stringstream ss;
     ss << std::fixed;
-    ss << time << " | " << pos << " | " << world_vel << "\n\t "
+    ss << time << " | " << pos << " | " << vel << "\n\t "
        << euler << " | " << omega;
     return ss.str();
 }
@@ -147,24 +156,39 @@ int main()
     int count = 0;
 
     // positive heading moment
-    fb.apply({{0,  1, 0}, {1, 0, 0}, rframe::body});
-    fb.apply({{0, -1, 0}, {0, 0, 0}, rframe::body});
+    // fb.apply({{0,  1, 0}, {1, 0, 0}, rframe::body});
+    // fb.apply({{0, -1, 0}, {0, 0, 0}, rframe::body});
 
     // positive pitch moment
-    fb.apply({{0, 0,  1}, {0, 1, 0}});
-    fb.apply({{0, 0, -1}, {0, 0, 0}});
+    // fb.apply({{0, 0,  1}, {0, 1, 0}});
+    // fb.apply({{0, 0, -1}, {0, 0, 0}});
 
     // positive roll moment
-    fb.apply({{0, 0, -1}, {1, 0, 0}});
-    fb.apply({{0, 0,  1}, {0, 0, 0}});
+    // fb.apply({{0, 0, -1}, {1, 0, 0}});
+    // fb.apply({{0, 0,  1}, {0, 0, 0}});
 
-    std::cout << std::fixed;
+    fb.omega.x() = 1;
+    fb.step(M_PI * 1000000 / 4);
+    std::cout << fb << std::endl;
+    fb.omega.x() = 0;
+    fb.time = 0;
 
     while (true)
     {
+        auto mg = gravity;
+        mg.force *= fb.mass;
+        fb.apply(mg);
+
+        force_moment f = {{0, 1, 0}, {0, 0, 0}, rframe::body};
+        fb.apply(f);
         if (fb.time % (1000000/20) == 0)
         {
-            std::cout << fb << std::endl;
+            std::cout << f.force << std::endl;
+            std::cout << fb.rotation << std::endl;
+            std::cout << std::left << std::setw(10) << fb.time/1000000.0
+                      << std::left << std::setw(30) << fb.pos
+                      << std::left << std::setw(30) << fb.vel
+                      << fb.accel << std::endl;
             std::this_thread::sleep_for(std::chrono::milliseconds(1000/20));
         }
         fb.step(micros);

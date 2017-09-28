@@ -252,5 +252,18 @@ inline double Matrix<1>::determinant() const
 
 };
 
+template <uint8_t N>
+std::ostream& operator << (std::ostream& os, imu::Matrix<N> m)
+{
+    for (int i = 0; i < N; i++)
+        for (int j = 0; j < N; j++)
+        {
+            os << m(i, j);
+            if (j == N - 1) os << std::endl;
+            else os << " ";
+        }
+    return os;
+}
+
 #endif
 

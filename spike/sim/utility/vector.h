@@ -25,7 +25,9 @@
 #include <string.h>
 #include <stdint.h>
 #include <math.h>
-
+#include <iostream>
+#include <iomanip>
+#include <sstream>
 
 namespace imu
 {
@@ -246,6 +248,13 @@ public:
     double y() const { return p_vec[1]; }
     double z() const { return p_vec[2]; }
 
+    double& heading() { return p_vec[0]; }
+    double& roll() { return p_vec[1]; }
+    double& pitch() { return p_vec[2]; }
+    double heading() const { return p_vec[0]; }
+    double roll() const { return p_vec[1]; }
+    double pitch() const { return p_vec[2]; }
+
 private:
     double p_vec[N];
 };
@@ -264,11 +273,13 @@ inline Vector<3> Vector<3>::cross(const Vector& v) const
 template <uint8_t N>
 std::ostream& operator<<(std::ostream& os, const imu::Vector<N>& v)
 {
+    std::stringstream ss;
     for (int i = 0; i < N; i++)
     {
-        os << v(i);
-        if (i < N - 1) os << " ";
+        ss << v(i);
+        if (i < N - 1) ss << " ";
     }
+    os << ss.str();
     return os;
 }
 
