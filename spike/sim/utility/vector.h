@@ -274,11 +274,13 @@ template <uint8_t N>
 std::ostream& operator<<(std::ostream& os, const imu::Vector<N>& v)
 {
     std::stringstream ss;
+    ss << "<";
     for (int i = 0; i < N; i++)
     {
         ss << v(i);
         if (i < N - 1) ss << " ";
     }
+    ss << ">";
     os << ss.str();
     return os;
 }
