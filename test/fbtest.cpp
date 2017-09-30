@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "freebody.h"
+#include <freebody.h>
 
 int main()
 {
