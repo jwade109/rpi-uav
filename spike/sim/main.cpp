@@ -40,12 +40,13 @@ namespace uav
         // vel: velocity in inertial reference frame, in m/s
         // omega: angular velocity, in rad/s
         // euler: angular position in euler angles
+        // ...with rotation order Z-X'-Y''
         imu::Vector<3> pos, vel, accel;
         imu::Quaternion q;
-        imu::Vector<3> omega, alpha;
+        imu::Vector<3> euler, omega, alpha;
+        // euler: z is heading, x is pitch, y is roll
 
         imu::Vector<3> X, Y, Z;
-        double heading, pitch, roll;
 
         // rotation: transformation from inertial to body frame
         imu::Matrix<3> rotation;
@@ -60,12 +61,10 @@ namespace uav
         void setbodyomega(const imu::Vector<3>& bomega);
 
         std::string str() const;
-        std::string strln() const;
     };
 }
 
-uav::freebody::freebody() : time(0), mass(1), I_moment(1, 1, 1),
-    heading(0), pitch(0), roll(0)
+uav::freebody::freebody() : time(0), mass(1), I_moment(1, 1, 1)
 {
     rotation = q.toMatrix();
 }
@@ -75,23 +74,18 @@ void uav::freebody::step(uint64_t micros)
     time += micros;
 
     imu::Vector<3> net_force, net_moment;
-    for (int i = 0; i < forces.size(); i++)
+    for (size_t i = 0; i < forces.size(); i++)
     {
         // net force is in the inertial frame
         if (forces[i].frame == rframe::inertial)
         {
             net_force += forces[i].force;
             net_moment += forces[i].lever.cross(forces[i].force);
-
-            // std::cout << "inertial: " << forces[i].force << std::endl;
         }
         else // forces[i].frame == body
         {
-            auto body2world = rotation.invert();
-            auto inertial_force = body2world * forces[i].force;
-            auto inertial_lever = body2world * forces[i].lever;
-
-            // std::cout << "body: " << inertial_force << std::endl;
+            auto inertial_force = rotation * forces[i].force;
+            auto inertial_lever = rotation * forces[i].lever;
 
             net_force += inertial_force;
             net_moment += inertial_lever.cross(inertial_force);
@@ -115,13 +109,24 @@ void uav::freebody::step(uint64_t micros)
     q.normalize();
     rotation = q.toMatrix();
 
-    X = rotation.col_to_vector(0);
-    Y = rotation.col_to_vector(1);
-    Z = rotation.col_to_vector(2);
+    // rotated body frame basis
+    imu::Vector<3> Xpp(rotation.col_to_vector(0)),
+        Ypp(rotation.col_to_vector(1)),
+        Zpp(rotation.col_to_vector(2));
 
-    heading = atan2(rotation(0,1), rotation(1,1)) * 180.0 / M_PI;
-    pitch = asin(rotation(2,1)) * 180.0 / M_PI;
-    // how to calculate roll angle?
+    imu::Vector<3> Yp(Ypp.x(), Ypp.y(), 0);
+    Yp.normalize();
+    imu::Vector<3> Xp(Yp.cross({0, 0, 1})),
+        Zp(Xp.cross(Ypp));
+
+    euler.x() = atan2(Xp.y(), Xp.x()) * 180.0 / M_PI;
+    if (euler.x() < 0) euler.x() += 360;
+    euler.y() = asin(Ypp.z()) * 180.0 / M_PI;
+    euler.z() = atan2(Xp.dot(Zpp), Zp.dot(Zpp)) * 180.0 / M_PI;
+
+    X = Xpp;
+    Y = Ypp;
+    Z = Zpp;
 
     forces.clear();
 }
@@ -147,20 +152,10 @@ std::string uav::freebody::str() const
     ss << "time: " << time/1000000.0 << " mass: " << mass
        << " I: " << I_moment << std::endl
        << "pos: " << pos << " vel: " << vel << std::endl
-       << " pitch: " << pitch
-       << " roll: " << roll
-       << " hdg: " << heading << std::endl
+       << "Z-X-Y: " << euler << std::endl
        << "omega: " << omega << std::endl
-       << "quat: " << q;
-    return ss.str();
-}
-
-std::string uav::freebody::strln() const
-{
-    std::stringstream ss;
-    ss << std::fixed;
-    ss << time << " | " << pos << " | " << vel << "\n\t "
-       << q << " | " << omega;
+       << "quat: " << q
+       << "\nrot:\n" << rotation;
     return ss.str();
 }
 
@@ -176,51 +171,29 @@ int main()
     using namespace imu;
 
     freebody fb;
-    const int micros = 50;
-    int count = 0;
-
-    // positive heading moment
-    // fb.apply({{0,  1, 0}, {1, 0, 0}, rframe::body});
-    // fb.apply({{0, -1, 0}, {0, 0, 0}, rframe::body});
-
-    // positive pitch moment
-    // fb.apply({{0, 0,  1}, {0, 1, 0}});
-    // fb.apply({{0, 0, -1}, {0, 0, 0}});
-
-    // positive roll moment
-    // fb.apply({{0, 0, -1}, {1, 0, 0}});
-    // fb.apply({{0, 0,  1}, {0, 0, 0}});
 
     fb.omega = {0, 0,1};
-    fb.step(M_PI * 1000000 / 4);
+    fb.step(M_PI * 500000 * 30 / 90);
     fb.setbodyomega({1, 0, 0});
-    fb.step(M_PI * 1000000 / 6);
-    std::cout << fb << std::endl;
+    fb.step(M_PI * 500000 * 60 / 90);
     fb.setbodyomega({0, 1, 0});
-    fb.step(M_PI * 1000000 / 12);
     std::cout << fb << std::endl;
-    return 0;
+    std::cout << std::fixed;
+    fb.time = 0;
 
-    while (true)
+    for (int i = 0; i < 9; i++)
     {
-        auto mg = gravity;
-        mg.force *= fb.mass;
-        fb.apply(mg);
-
-        force_moment f = {{0, 1, 0}, {0, 0, 0}, rframe::body};
-        fb.apply(f);
-        if (fb.time % (1000000/20) == 0)
-        {
-            // std::cout << f.force << std::endl;
-            // std::cout << fb.rotation << std::endl;
-            std::cout << fb.q << std::endl;
-            std::cout << std::left << std::setw(10) << fb.time/1000000.0
-                      << std::left << std::setw(30) << fb.pos
-                      << std::left << std::setw(30) << fb.vel
-                      << fb.accel << std::endl;
-            std::this_thread::sleep_for(std::chrono::milliseconds(1000/20));
-        }
-        fb.step(micros);
+        fb.setbodyomega({1, 0, 0});
+        fb.step(M_PI * 500000 * 40 / 90);
+        if (i == 8) fb.step(6);
+        std::cout << fb.time/1000000.0 << " : "
+            << fb.euler << std::endl;
+        std::cout << fb.q << std::endl;
     }
+
+    fb.setbodyomega({0, 1, 0});
+    fb.step(M_PI * 500000 * 17.4 / 90);
+    std::cout << fb << std::endl;
+
     return 0;
 }
