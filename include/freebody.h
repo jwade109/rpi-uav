@@ -60,19 +60,57 @@ namespace uav
         freebody();
         
         void step(uint64_t micros);
+        void stepfor(uint64_t micros, uint64_t dt);
         void reset();
 
         void apply(const force& f);
         void apply(const moment& m);
         void apply(const force& f, const imu::Vector<3>& lever);
 
+        imu::Vector<3> bodyvel();
+        imu::Vector<3> bodyomega();
         void setbodyvel(const imu::Vector<3>& bvel);
         void setbodyomega(const imu::Vector<3>& bomega);
 
         std::string str() const;
     };
+
+    struct motor
+    {
+        enum rdir : bool { CW = true, CCW = false };
+
+        double Izz;
+        double omega;
+        bool dir;
+        imu::Vector<3> lever;
+    };
+
+    class dronebody : public freebody
+    {
+        public:
+
+        motor M0, M1, M2, M3;
+
+        dronebody();
+        void step(uint64_t micros);
+        void stepfor(uint64_t micros, uint64_t dt);
+        void reset();
+
+        void set(uint8_t n, double omega);
+        void set(double o1, double o2, double o3, double o4);
+
+        std::string str() const;
+    };
+
+    imu::Matrix<3> euler2matrix(const imu::Vector<3>& euler);
+
+    imu::Vector<3> matrix2euler(const imu::Matrix<3>& m);
 }
 
+std::ostream& operator << (std::ostream& os, const uav::motor& m);
+
 std::ostream& operator << (std::ostream& os, const uav::freebody& fb);
+
+std::ostream& operator << (std::ostream& os, const uav::dronebody& fb);
 
 std::ostream& operator << (std::ostream& os, const imu::Quaternion& q);

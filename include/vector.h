@@ -117,6 +117,8 @@ public:
     // cross() with another value for N will result in a link error.
     Vector cross(const Vector& v) const;
 
+    Vector rotate(Vector axis, double radians) const;
+
     Vector scale(double scalar) const
     {
         Vector ret;
@@ -248,17 +250,9 @@ public:
     double y() const { return p_vec[1]; }
     double z() const { return p_vec[2]; }
 
-    double& heading() { return p_vec[0]; }
-    double& roll() { return p_vec[1]; }
-    double& pitch() { return p_vec[2]; }
-    double heading() const { return p_vec[0]; }
-    double roll() const { return p_vec[1]; }
-    double pitch() const { return p_vec[2]; }
-
 private:
     double p_vec[N];
 };
-
 
 template <>
 inline Vector<3> Vector<3>::cross(const Vector& v) const
@@ -268,6 +262,14 @@ inline Vector<3> Vector<3>::cross(const Vector& v) const
         p_vec[2] * v.p_vec[0] - p_vec[0] * v.p_vec[2],
         p_vec[0] * v.p_vec[1] - p_vec[1] * v.p_vec[0]
     );
+}
+
+template <>
+inline Vector<3> Vector<3>::rotate(Vector axis, double radians) const
+{
+    axis.normalize();
+    return *this * cos(radians) + (axis.cross(*this)) * sin(radians) +
+        axis * (axis.dot(*this)) * (1 - cos(radians));
 }
 
 template <uint8_t N>
