@@ -28,11 +28,11 @@ int main(int argc, char** argv)
 
     static_assert(uav::param::fields == 23, "Check yourself");
     uav::param prm = {uav::f50hz, 0, 0,
-            {30,   0, 6,    -1},
-            {0.05, 0, 0.05, -1},
-            {0.1,  0, 0.1,  -1},
-            {0.1,  0, 0.1,  -1},
-            0.1, 0.65, 500, 9.81/4};
+        {30,  0,   40,  -1},
+        {3,   0,   0,   -1},
+        {6.0, 0,   3.5, -1},
+        {6.0, 0,   3.5, -1},
+        0.1, 0.65, 500, 9.81/4};
     uav::state init{0};
 
     bool debug = argc > 1 ? true : false;
@@ -42,9 +42,7 @@ int main(int argc, char** argv)
     pwm.begin(0x40);
     pwm.reset();
     pwm.setPWMFreq(800);
-    // uav::motor m1(pwm, 0), m2(pwm, 4), m3(pwm, 8), m4(pwm, 12);
 
-    // begin imu, bmp, and get home altitudes
     uav::info("Aligning...");
     std::cout << "Aligning..." << std::endl;
     if (c.align())
@@ -59,7 +57,7 @@ int main(int argc, char** argv)
 
     // print the params
     namespace fmt = uav::fmt;
-    auto format = fmt::attitude | fmt::altitude |
+    auto format = fmt::time | fmt::attitude | fmt::altitude |
         fmt::pid | fmt::targets | fmt::motors;
 
     std::cout << uav::param::header() << std::endl;
@@ -74,11 +72,8 @@ int main(int argc, char** argv)
         c.iterate(true);
         uav::state s = c.getstate();
 
-        auto timer = chrono::steady_clock::now();
         for (int i = 0; i < 4; i++)
             pwm.setPin(i * 4, s.motors[i] * 40, false);
-        chrono::duration<double, std::milli> mt =
-            chrono::steady_clock::now() - timer;
 
         // print the controller state
         std::cout << uav::to_string(s, format);

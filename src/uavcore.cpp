@@ -262,10 +262,10 @@ std::string uav::state::header(fmt::bitmask_t mask)
     if (b[i++]) line << setw(12) << "pov";
     if (b[i++]) line << setw(12) << "rov";
 
-    if (b[i++]) line << setw(4) << "m1";
-    if (b[i++]) line << setw(4) << "m2";
-    if (b[i++]) line << setw(4) << "m3";
-    if (b[i++]) line << setw(4) << "m4";
+    if (b[i++]) line << setw(9) << "m1(CW)";
+    if (b[i++]) line << setw(9) << "m2(CCW)";
+    if (b[i++]) line << setw(9) << "m3(CW)";
+    if (b[i++]) line << setw(9) << "m4(CCW)";
 
     if (b[i++]) line << setw(10) << "err";
 

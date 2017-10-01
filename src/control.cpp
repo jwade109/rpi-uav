@@ -15,7 +15,8 @@ namespace chrono = std::chrono;
 
 unsigned seed = chrono::system_clock::now().time_since_epoch().count();
 std::default_random_engine gen(seed);
-std::normal_distribution<double> gaussian(0.0, 1.0);
+std::normal_distribution<double> gaussian(-1.0, 1.0);
+std::uniform_real_distribution<double> uniform(-1.0, 1.0);
 
 namespace uav
 {
@@ -40,6 +41,7 @@ namespace uav
 
     int controller::align()
     {
+        uav::info("RNG seed: " + std::to_string(seed));
         const int samples = 100; // altitude samples for home point
         const auto wait = chrono::milliseconds(10);
 
@@ -106,11 +108,6 @@ namespace uav
                 now.time_since_epoch()).count();
 
         double dt = (curr.t - prev.t)/1000.0;
-
-        std::stringstream ss;
-        ss << simulator.time << " " << simulator.pos
-            << " " << simulator.euler;
-        uav::debug(ss.str());
 
         if (!first && (curr.t - prev.t) != 1000/prm.freq)
         {
@@ -247,15 +244,27 @@ namespace uav
         // all trustworthy. process pid controller responses
 
         auto deg2rad = [](double deg) { return deg * M_PI / 180.0; };
+        auto circular_err = [](double h, double t)
+        {
+            double dist = t - h;
+            if (dist > 180) return dist - 360;
+            if (dist < -180) return dist + 360;
+            return dist;
+        };
 
-        curr.hov = hpid.seek(deg2rad(curr.h),  deg2rad(curr.th), dt);
+        curr.hov = hpid.seek(0, deg2rad(circular_err(curr.h, curr.th)), dt);
         curr.pov = ppid.seek(deg2rad(curr.p),  deg2rad(curr.tp), dt);
-        curr.rov = rpid.seek(deg2rad(curr.r),  deg2rad(curr.tr), dt);
+        curr.rov = rpid.seek(0, deg2rad(circular_err(curr.r, curr.tr)), dt);
         curr.zov = zpid.seek(deg2rad(curr.dz), deg2rad(curr.tz), dt);
 
         // get default hover thrust
-        float hover = prm.mg / (cos(curr.p * M_PI / 180) *
-                                cos(curr.r * M_PI / 180));
+        float hover = prm.mg / (cos(deg2rad(curr.p)) * cos(deg2rad(curr.r)));
+        static float maxhover(prm.mg / pow(cos(M_PI/6), 2));
+        if (hover > maxhover) hover = maxhover;
+        if (hover < 0) hover = 0;
+
+        uav::debug("PITCH_ROLL_HOVER: " + std::to_string(curr.p) + ", " +
+                std::to_string(curr.r) + ", " + std::to_string(hover));
 
         // get raw motor responses by summing pid output variables
         // (linear combination dependent on motor layout)
@@ -265,12 +274,8 @@ namespace uav
         raw[2] = -curr.hov - curr.pov + curr.rov + curr.zov + hover;
         raw[3] =  curr.hov - curr.pov - curr.rov + curr.zov + hover;
 
-        // for each raw response, trim to [0, 100] and limit rate
-        for (int i = 0; i < 4; i++)
-        {
-            if (raw[i] < 0) raw[i] = 0;
-            curr.motors[i] = raw[i];
-        }
+        for (double& e : raw) e = e > 5 ? 5 : e < 0 ? 0 : e;
+        for (int i = 0; i < 4; i++) curr.motors[i] = raw[i];
 
         simulator.set(raw);
         simulator.stepfor(1000000/prm.freq, 1000);
@@ -300,21 +305,18 @@ namespace uav
     void controller::gettargets()
     {
         // arbitrary targets until a true controller is implemented
+        static uint64_t last(0);
         if (debug)
         {
-            curr.tz = prev.tz + (int) gaussian(gen);
-            curr.th = prev.th + (int) gaussian(gen);
-            curr.tp = prev.tp + (int) gaussian(gen);
-            curr.tr = prev.tr + (int) gaussian(gen);
+            if ((curr.t - last >= 20000) || curr.t == 0)
+            {
+                last = curr.t;
 
-            curr.tz = curr.tz > 50 ? 50 : curr.tz < -50 ? -50 : curr.tz;
-            curr.th = curr.th > 180 ? 180 : curr.th < -180 ? -180 : curr.th;
-            curr.tp = curr.tp > 90 ? 90 : curr.tp < -90 ? -90 : curr.tp;
-            curr.tr = curr.tr > 180 ? 180 : curr.tr < -180 ? -180 : curr.tr;
-            curr.tz = 6;
-            curr.th = 40;
-            curr.tp = -3;
-            curr.tr = 5;
+                curr.tz = uniform(gen) * 25 + 25;
+                curr.th = uniform(gen) * 180;
+                curr.tp = uniform(gen) * 30;
+                curr.tr = uniform(gen) * 30;
+            }
         }
         else curr.tz = curr.th = curr.tp = curr.tr = 0;
     }
