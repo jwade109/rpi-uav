@@ -1,5 +1,2 @@
-*.txt
-*.bin
-*.dat
-*.prm
+/*.*
 !export.txt
