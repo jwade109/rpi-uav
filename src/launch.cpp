@@ -10,7 +10,7 @@
 
 #include <ncurses.h>
 #include <control.h>
-#include <motor.h>
+#include <pwm.h>
 
 bool cont = true;
 
@@ -27,9 +27,12 @@ int main(int argc, char** argv)
     signal(SIGINT, sigint);
 
     static_assert(uav::param::fields == 23, "Check yourself");
-    uav::param prm = {uav::f50hz, 0, 0, {0, 0, 0.005, -1},
-            {0, 0, 0.015, -1}, {0.1, 0, 0.02, -1}, {0.1, 0, 0.02, -1},
-            0.1, 0.65, 500, 41};
+    uav::param prm = {uav::f50hz, 0, 0,
+            {30,   0, 6,    -1},
+            {0.05, 0, 0.05, -1},
+            {0.1,  0, 0.1,  -1},
+            {0.1,  0, 0.1,  -1},
+            0.1, 0.65, 500, 9.81/4};
     uav::state init{0};
 
     bool debug = argc > 1 ? true : false;
@@ -56,9 +59,12 @@ int main(int argc, char** argv)
 
     // print the params
     namespace fmt = uav::fmt;
+    auto format = fmt::attitude | fmt::altitude |
+        fmt::pid | fmt::targets | fmt::motors;
+
     std::cout << uav::param::header() << std::endl;
     std::cout << uav::to_string(c.getparams()) << std::endl;
-    std::cout << uav::state::header(fmt::standard) << std::endl;
+    std::cout << uav::state::header(format) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
     while ((now < start + chrono::seconds(100)) && cont)
@@ -73,10 +79,9 @@ int main(int argc, char** argv)
             pwm.setPin(i * 4, s.motors[i] * 40, false);
         chrono::duration<double, std::milli> mt =
             chrono::steady_clock::now() - timer;
-        uav::debug(std::to_string(mt.count()));
 
         // print the controller state
-        std::cout << uav::to_string(s, fmt::standard);
+        std::cout << uav::to_string(s, format);
         if (s.err)  std::cout << " !";
         else        std::cout << "  ";
         std::cout << "\r" << std::flush;

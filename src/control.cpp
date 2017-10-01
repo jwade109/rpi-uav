@@ -107,6 +107,11 @@ namespace uav
 
         double dt = (curr.t - prev.t)/1000.0;
 
+        std::stringstream ss;
+        ss << simulator.time << " " << simulator.pos
+            << " " << simulator.euler;
+        uav::debug(ss.str());
+
         if (!first && (curr.t - prev.t) != 1000/prm.freq)
         {
             uav::error("Timing error (" +
@@ -129,12 +134,10 @@ namespace uav
         }
         else
         {
-            curr.h = prev.h + gaussian(gen);
-            curr.p = prev.p + gaussian(gen);
-            curr.r = prev.r + gaussian(gen);
-
-            curr.p = curr.p > 45 ? 45 : curr.p < -45 ? -45 : curr.p;
-            curr.r = curr.r > 45 ? 45 : curr.r < -45 ? -45 : curr.r;
+            imu::Vector<3> euler = simulator.euler;
+            curr.h = euler.x();
+            curr.p = euler.y();
+            curr.r = euler.z();
 
             curr.pres[0] = prm.p1h + gaussian(gen) * 10;
             curr.pres[1] = prm.p2h + gaussian(gen) * 10;
@@ -193,12 +196,13 @@ namespace uav
             auto alt = [](float p, float hp)
                 { return 44330 * (1.0 - pow(p/hp, 0.1903)); };
 
-            
             double z1 = alt(curr.pres[0], prm.p1h);
             double z2 = alt(curr.pres[1], prm.p2h);
             double zavg = z1 * prm.gz_wam + z2 * (1 - prm.gz_wam);
             double a = dt/(prm.gz_rc + dt);
             curr.dz = a * zavg + (1 - a) * prev.dz;
+
+            if (debug) curr.dz = simulator.pos.z();
         }
 
         // get target position and attitude from controller
@@ -242,10 +246,12 @@ namespace uav
         // assumed that at this point, z, h, r, and p are
         // all trustworthy. process pid controller responses
 
-        curr.hov = hpid.seek(curr.h,  curr.th, dt);
-        curr.pov = ppid.seek(curr.p,  curr.tp, dt);
-        curr.rov = rpid.seek(curr.r,  curr.tr, dt);
-        curr.zov = zpid.seek(curr.dz, curr.tz, dt);
+        auto deg2rad = [](double deg) { return deg * M_PI / 180.0; };
+
+        curr.hov = hpid.seek(deg2rad(curr.h),  deg2rad(curr.th), dt);
+        curr.pov = ppid.seek(deg2rad(curr.p),  deg2rad(curr.tp), dt);
+        curr.rov = rpid.seek(deg2rad(curr.r),  deg2rad(curr.tr), dt);
+        curr.zov = zpid.seek(deg2rad(curr.dz), deg2rad(curr.tz), dt);
 
         // get default hover thrust
         float hover = prm.mg / (cos(curr.p * M_PI / 180) *
@@ -253,27 +259,23 @@ namespace uav
 
         // get raw motor responses by summing pid output variables
         // (linear combination dependent on motor layout)
-        float raw[4];
-        raw[0] = -curr.hov - curr.pov + curr.rov + curr.zov + hover;
+        double raw[4];
+        raw[0] = -curr.hov + curr.pov - curr.rov + curr.zov + hover;
         raw[1] =  curr.hov + curr.pov + curr.rov + curr.zov + hover;
-        raw[2] = -curr.hov + curr.pov - curr.rov + curr.zov + hover;
+        raw[2] = -curr.hov - curr.pov + curr.rov + curr.zov + hover;
         raw[3] =  curr.hov - curr.pov - curr.rov + curr.zov + hover;
 
         // for each raw response, trim to [0, 100] and limit rate
         for (int i = 0; i < 4; i++)
         {
-            raw[i] = raw[i] > 100 ? 100 : raw[i] < 0 ? 0 : raw[i];
-            /*
-            if (raw[i] > prev.motors[i] + prm.maxmrate * dt)
-                curr.motors[i] = prev.motors[i] + prm.maxmrate * dt;
-            else if (raw[i] < prev.motors[i] - prm.maxmrate * dt)
-                curr.motors[i] = prev.motors[i] - prm.maxmrate * dt;
-            else
-            */
-                curr.motors[i] = raw[i];
+            if (raw[i] < 0) raw[i] = 0;
+            curr.motors[i] = raw[i];
         }
 
-        curr.err = (uint16_t) error.to_ulong();
+        simulator.set(raw);
+        simulator.stepfor(1000000/prm.freq, 1000);
+
+        curr.err = static_cast<uint16_t>(error.to_ulong());
         curr.comptime = chrono::duration_cast<chrono::nanoseconds>(
             chrono::steady_clock::now() - stopwatch).count();
 
@@ -309,6 +311,10 @@ namespace uav
             curr.th = curr.th > 180 ? 180 : curr.th < -180 ? -180 : curr.th;
             curr.tp = curr.tp > 90 ? 90 : curr.tp < -90 ? -90 : curr.tp;
             curr.tr = curr.tr > 180 ? 180 : curr.tr < -180 ? -180 : curr.tr;
+            curr.tz = 6;
+            curr.th = 40;
+            curr.tp = -3;
+            curr.tr = 5;
         }
         else curr.tz = curr.th = curr.tp = curr.tr = 0;
     }

@@ -98,6 +98,7 @@ namespace uav
 
         void set(uint8_t n, double omega);
         void set(double o1, double o2, double o3, double o4);
+        void set(double omega[4]);
 
         std::string str() const;
     };

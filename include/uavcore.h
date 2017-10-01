@@ -18,7 +18,7 @@ namespace uav
     using calib_t       = uint8_t;
     using target_t      = int16_t;
     using pid_ov_t      = float;
-    using motor_t       = uint8_t;
+    using motor_t       = float;
     using error_t       = uint16_t;
 
     using freq_t        = uint8_t;
@@ -94,7 +94,7 @@ namespace uav
     };
 
     static_assert(state::fields == 25, "CONST_STATE_FIELDS_NOT_25");
-    static_assert(state::size == 87, "CONST_STATE_SIZE_NOT_87");
+    static_assert(state::size == 99, "CONST_STATE_SIZE_NOT_87");
 
     // uav::param //////////////////////////////////////////////////////////////
 

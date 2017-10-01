@@ -47,8 +47,7 @@ bin/serialtest: .build/test/serialtest.o .build/src/ardimu.o
 bin/gpstest: .build/test/gpstest.o .build/src/gps.o
 	$(LINK)
 
-bin/pwmtest: .build/test/pwmtest.o .build/src/pwm.o .build/src/i2c.o \
-	.build/src/motor.o
+bin/pwmtest: .build/test/pwmtest.o .build/src/pwm.o .build/src/i2c.o
 	$(LINK)
 
 bin/skips: .build/test/skips.o

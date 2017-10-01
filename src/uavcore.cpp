@@ -90,7 +90,7 @@ uav::param::bin uav::serialize(const param& p)
 uav::state::bin uav::serialize(const state& s)
 {
     static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
-    static_assert(state::size == 87, "CHECK_ASSUMED_SIZE_OF_STATE");
+    static_assert(state::size == 99, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     state::bin b;
     b.fill(0);
@@ -173,7 +173,7 @@ uav::param uav::deserialize(const param::bin& b)
 uav::state uav::deserialize(const state::bin& b)
 {
     static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
-    static_assert(state::size == 87, "CHECK_ASSUMED_SIZE_OF_STATE");
+    static_assert(state::size == 99, "CHECK_ASSUMED_SIZE_OF_STATE");
 
     state s;
     const byte *rptr = b.data();
@@ -314,9 +314,11 @@ std::string uav::to_string(const state& it, fmt::bitmask_t mask)
     line << left;
     line.setf(ios::fixed);
 
+    line << setprecision(3);
+
     int i = 0;
-    if (b[i++]) line << setw(10) << setprecision(3) << it.t/1000.0;
-    if (b[i++]) line << setw(15) << setprecision(3) << it.t_abs/1000.0;
+    if (b[i++]) line << setw(10) << it.t/1000.0;
+    if (b[i++]) line << setw(15) << it.t_abs/1000.0;
     if (b[i++]) line << setw(10) << it.comptime;
     if (b[i++]) line << setw(9) << it.temp[0];
     if (b[i++]) line << setw(9) << it.temp[1];
@@ -339,10 +341,10 @@ std::string uav::to_string(const state& it, fmt::bitmask_t mask)
     if (b[i++]) line << setw(12) << it.pov;
     if (b[i++]) line << setw(12) << it.rov;
 
-    if (b[i++]) line << setw(4) << (int) it.motors[0];
-    if (b[i++]) line << setw(4) << (int) it.motors[1];
-    if (b[i++]) line << setw(4) << (int) it.motors[2];
-    if (b[i++]) line << setw(4) << (int) it.motors[3];
+    if (b[i++]) line << setw(9) << it.motors[0];
+    if (b[i++]) line << setw(9) << it.motors[1];
+    if (b[i++]) line << setw(9) << it.motors[2];
+    if (b[i++]) line << setw(9) << it.motors[3];
 
     if (b[i++]) line << setw(10) << std::bitset<16>(it.err);
 

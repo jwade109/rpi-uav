@@ -157,7 +157,7 @@ void uav::dronebody::step(uint64_t micros)
     }
 
     auto bomega = bodyomega();
-    bomega.z() = L_m/I_moment.z();
+    bomega.z() = -L_m/I_moment.z();
     setbodyomega(bomega);
 
     freebody::step(micros);
@@ -192,6 +192,14 @@ void uav::dronebody::set(double o1, double o2, double o3, double o4)
     M1.omega = o2;
     M2.omega = o3;
     M3.omega = o4;
+}
+
+void uav::dronebody::set(double omega[4])
+{
+    M0.omega = omega[0];
+    M1.omega = omega[1];
+    M2.omega = omega[2];
+    M3.omega = omega[3];
 }
 
 std::string uav::dronebody::str() const

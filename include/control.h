@@ -11,6 +11,7 @@
 #include <pid.h>
 #include <ardimu.h>
 #include <bmp.h>
+#include <freebody.h>
 
 namespace uav
 {
@@ -40,6 +41,7 @@ namespace uav
         param prm;
 
         pid_controller zpid, hpid, ppid, rpid;
+        dronebody simulator;
 
         void gettargets();
     };
