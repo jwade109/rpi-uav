@@ -223,9 +223,6 @@ imu::Matrix<3> uav::euler2matrix(const imu::Vector<3>& euler)
         Xpp(Xp.rotate(Ypp, euler.z())),
         Zpp(Zp.rotate(Ypp, euler.z()));
 
-    std::cout << Xp << Yp << Zp << std::endl
-        << Xpp << Ypp << Zpp << std::endl;
-
     imu::Matrix<3> m;
     m.vector_to_col(Xpp, 0);
     m.vector_to_col(Ypp, 1);
