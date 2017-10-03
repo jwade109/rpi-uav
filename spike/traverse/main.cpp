@@ -2,6 +2,7 @@
 #include <utility>
 #include <tuple>
 #include <freebody.h>
+#include <pid.h>
 
 const double d2r = M_PI/180;
 
@@ -45,19 +46,23 @@ traverse(double dx, double dy, double heading, double tilt95, double maxtilt)
 
 int main()
 {
-    imu::Vector<3> euler, Zpp;
-    double dx, dy, hdg, tilt95, max;
-    std::cout << "dx: " << std::flush;
-    std::cin >> dx;
-    std::cout << "dy: " << std::flush;
-    std::cin >> dy;
-    std::cout << "hdg: " << std::flush;
-    std::cin >> hdg;
-    std::cout << "tilt95: " << std::flush;
-    std::cin >> tilt95;
-    std::cout << "max: " << std::flush;
-    std::cin >> max;
-    std::tie(euler, Zpp) = traverse(dx, dy, hdg, tilt95, max);
-    std::cout << euler << std::endl;
+    imu::Vector<2> pos(0,0), vel, accel(pos), setpoint(1000, -1400);
+    double dt = 0.01, tilt95 = 10, maxtilt = 25;
+    pid_vector<2> pv(1, 0, 1.6);
+    std::cout << "Start: " << pos << std::endl;
+
+    while (true)
+    {
+        accel = pv.seek(pos, setpoint, dt);
+        vel += accel * dt;
+        pos += vel * dt;
+        std::cout << std::setw(30) << std::left << pos
+            << std::setw(30) << std::left << accel
+            << traverse(accel.x(), accel.y(), 0,
+                tilt95, maxtilt).first << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+        std::cerr << pos << std::endl;
+    }
+
     return 0;
 }
