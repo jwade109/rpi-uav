@@ -9,6 +9,27 @@
 
 #include <pid.h>
 
+int main()
+{
+    imu::Vector<2> pos(0,0), vel, accel(pos), setpoint(10, -14);
+    double dt = 0.01;
+    pid_vector<2> pv(1, 0, 1.6);
+    std::cout << "Start: " << pos << std::endl;
+    while (true)
+    {
+        accel = pv.seek(pos, setpoint, dt);
+        vel += accel * dt;
+        pos += vel * dt;
+        std::cout << std::setw(30) << std::left << pos
+            << std::setw(30) << std::left << accel
+            << " " << setpoint << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    return 0;
+}
+
+/*
+
 bool verbose = false;
 bool toFile = false;
 int whack = -1;
@@ -160,3 +181,5 @@ int main(int argc, char** argv)
         count++;
     }
 }
+
+*/
