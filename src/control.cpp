@@ -30,7 +30,9 @@ namespace uav
         ppid(cfg.ppidg[0], cfg.ppidg[1],
             cfg.ppidg[2], (uint16_t) cfg.ppidg[3]),
         rpid(cfg.rpidg[0], cfg.rpidg[1],
-            cfg.rpidg[2], (uint16_t) cfg.rpidg[3])
+            cfg.rpidg[2], (uint16_t) cfg.rpidg[3]),
+        spid(cfg.spidg[0], cfg.spidg[1],
+            cfg.spidg[2], {cfg.spidg[3], cfg.spidg[3], cfg.spidg[3]})
     {
         prm = cfg;
         curr = initial;
@@ -120,9 +122,9 @@ namespace uav
         if (!debug)
         {
             imu_packet m = imu.get();
-            curr.h = m.heading;
-            curr.p = m.pitch;
-            curr.r = m.roll;
+            curr.pos[3] = m.heading;
+            curr.pos[4] = m.pitch;
+            curr.pos[5] = m.roll;
 
             curr.temp[0] = m.temp;
             curr.temp[1] = bmp.getTemperature();
@@ -132,9 +134,9 @@ namespace uav
         else
         {
             imu::Vector<3> euler = simulator.euler;
-            curr.h = euler.x();
-            curr.p = euler.y();
-            curr.r = euler.z();
+            curr.pos[3] = euler.x();
+            curr.pos[4] = euler.y();
+            curr.pos[5] = euler.z();
 
             curr.pres[0] = prm.p1h + gaussian(gen) * 10;
             curr.pres[1] = prm.p2h + gaussian(gen) * 10;
@@ -169,23 +171,26 @@ namespace uav
             curr.pres[1] = curr.pres[0];
 
         // verify that all attitudes are normal or zero
-        // expected values for curr.h are (-180,+180)
-        if (curr.h <= -180 || curr.h >= 180 || !std::isfinite(curr.h))
+        // expected values for heading are (-180,+180)
+        if (curr.pos[3] <= -180 || curr.pos[3] >= 180 ||
+            !std::isfinite(curr.pos[3]))
         {
             error[3] = 1;
-            curr.h = prev.h;
+            curr.pos[3] = prev.pos[3];
         }
-        // curr.p is expected to be [-90,+90]
-        if (curr.p < -90 || curr.p > 90 || !std::isfinite(curr.p))
+        // roll is expected to be [-90,+90]
+        if (curr.pos[4] < -90 || curr.pos[4] > 90 ||
+            !std::isfinite(curr.pos[4]))
         {
             error[4] = 1;
-            curr.p = prev.p;
+            curr.pos[4] = prev.pos[4];
         }
-        // curr.r should be (-180,+180)
-        if (curr.r <= -180 || curr.r >= 180 || !std::isfinite(curr.r))
+        // pitch should be (-180,+180)
+        if (curr.pos[5] <= -180 || curr.pos[5] >= 180 ||
+            !std::isfinite(curr.pos[5]))
         {
             error[5] = 1;
-            curr.r = prev.r;
+            curr.pos[5] = prev.pos[5];
         }
 
         // once readings are verified, filter altitude
@@ -197,38 +202,44 @@ namespace uav
             double z2 = alt(curr.pres[1], prm.p2h);
             double zavg = z1 * prm.gz_wam + z2 * (1 - prm.gz_wam);
             double a = dt/(prm.gz_rc + dt);
-            curr.dz = a * zavg + (1 - a) * prev.dz;
+            curr.pos[2] = a * zavg + (1 - a) * prev.pos[2];
 
-            if (debug) curr.dz = simulator.pos.z();
+            if (debug)
+            {
+                auto pos = simulator.pos;
+                curr.pos[0] = pos.x();
+                curr.pos[1] = pos.y();
+                curr.pos[2] = pos.z();
+            }
         }
 
         // get target position and attitude from controller
         gettargets();
 
         // targets should not exceed the normal range for measured values
-        if (curr.tz < -50 || curr.tz > 50)
+        if (curr.targets[2] < -50 || curr.targets[2] > 50)
         {
-            uav::error("curr.th = " + std::to_string(curr.tz));
+            uav::error("curr.targets[2] = " + std::to_string(curr.targets[2]));
             error[6] = 1;
-            curr.tz = prev.tz;
+            curr.targets[2] = prev.targets[2];
         }
-        if (curr.th <= -180 || curr.th >= 180)
+        if (curr.targets[3] <= -180 || curr.targets[3] >= 180)
         {
-            uav::error("curr.th = " + std::to_string(curr.th));
+            uav::error("curr.targets[3] = " + std::to_string(curr.targets[3]));
             error[7] = 1;
-            curr.th = prev.th;
+            curr.targets[3] = prev.targets[3];
         }
-        if (curr.tp < -90 || curr.tp > 90)
+        if (curr.targets[4] < -90 || curr.targets[4] > 90)
         {
-            uav::error("curr.tp = " + std::to_string(curr.tp));
+            uav::error("curr.targets[4] = " + std::to_string(curr.targets[4]));
             error[8] = 1;
-            curr.tp = prev.tp;
+            curr.targets[4] = prev.targets[4];
         }
-        if (curr.tr <= -180 || curr.tr >= 180)
+        if (curr.targets[5] <= -180 || curr.targets[5] >= 180)
         {
-            uav::error("curr.tr = " + std::to_string(curr.tr));
+            uav::error("curr.targets[5] = " + std::to_string(curr.targets[5]));
             error[9] = 1;
-            curr.tr = prev.tr;
+            curr.targets[5] = prev.targets[5];
         }
 
         if (first)
@@ -252,27 +263,45 @@ namespace uav
             return dist;
         };
 
-        curr.hov = hpid.seek(0, deg2rad(circular_err(curr.h, curr.th)), dt);
-        curr.pov = ppid.seek(deg2rad(curr.p),  deg2rad(curr.tp), dt);
-        curr.rov = rpid.seek(0, deg2rad(circular_err(curr.r, curr.tr)), dt);
-        curr.zov = zpid.seek(deg2rad(curr.dz), deg2rad(curr.tz), dt);
+        imu::Vector<2> P(curr.pos[0], curr.pos[1]),
+            T(curr.targets[0], curr.targets[1]);
+        imu::Vector<2> Sp = spid.seek(P, T, dt);
+        
+        imu::Vector<3> euler = traverse(Sp, curr.pos[3], 10, 30).first;
+        curr.targets[4] = euler.y();
+        curr.targets[5] = euler.z();
+
+        std::stringstream ss;
+        ss << P << " " << T << " " << euler;
+        uav::debug(ss.str());
+
+        curr.pidov[2] = zpid.seek(deg2rad(curr.pos[2]),
+            deg2rad(curr.targets[2]), dt);
+        curr.pidov[3] = hpid.seek(0, deg2rad(circular_err(
+            curr.pos[3], curr.targets[3])), dt);
+        curr.pidov[4] = ppid.seek(deg2rad(curr.pos[4]),
+            deg2rad(curr.targets[4]), dt);
+        curr.pidov[5] = rpid.seek(0, deg2rad(circular_err(
+            curr.pos[5], curr.targets[5])), dt);
 
         // get default hover thrust
-        float hover = prm.mg / (cos(deg2rad(curr.p)) * cos(deg2rad(curr.r)));
+        float hover = prm.mg / (cos(deg2rad(curr.pos[4])) *
+            cos(deg2rad(curr.pos[5])));
         static float maxhover(prm.mg / pow(cos(M_PI/6), 2));
         if (hover > maxhover) hover = maxhover;
         if (hover < 0) hover = 0;
 
-        uav::debug("PITCH_ROLL_HOVER: " + std::to_string(curr.p) + ", " +
-                std::to_string(curr.r) + ", " + std::to_string(hover));
-
         // get raw motor responses by summing pid output variables
         // (linear combination dependent on motor layout)
         double raw[4];
-        raw[0] = -curr.hov + curr.pov - curr.rov + curr.zov + hover;
-        raw[1] =  curr.hov + curr.pov + curr.rov + curr.zov + hover;
-        raw[2] = -curr.hov - curr.pov + curr.rov + curr.zov + hover;
-        raw[3] =  curr.hov - curr.pov - curr.rov + curr.zov + hover;
+        raw[0] = -curr.pidov[3] + curr.pidov[4] - curr.pidov[5] +
+                  curr.pidov[2] + hover;
+        raw[1] =  curr.pidov[3] + curr.pidov[4] + curr.pidov[5] +
+                  curr.pidov[2] + hover;
+        raw[2] = -curr.pidov[3] - curr.pidov[4] + curr.pidov[5] +
+                  curr.pidov[2] + hover;
+        raw[3] =  curr.pidov[3] - curr.pidov[4] - curr.pidov[5] +
+                  curr.pidov[2] + hover;
 
         for (double& e : raw) e = e > 5 ? 5 : e < 0 ? 0 : e;
         for (int i = 0; i < 4; i++) curr.motors[i] = raw[i];
@@ -310,14 +339,41 @@ namespace uav
         {
             if ((curr.t - last >= 20000) || curr.t == 0)
             {
+                if (last != 0) return;
                 last = curr.t;
 
-                curr.tz = uniform(gen) * 25 + 25;
-                curr.th = uniform(gen) * 180;
-                curr.tp = uniform(gen) * 30;
-                curr.tr = uniform(gen) * 30;
+                curr.targets[0] = uniform(gen) * 100;
+                curr.targets[1] = uniform(gen) * 100;
+                curr.targets[2] = uniform(gen) * 25 + 25;
+                curr.targets[3] = uniform(gen) * 180;
+                curr.targets[4] = uniform(gen) * 30;
+                curr.targets[5] = uniform(gen) * 30;
             }
         }
-        else curr.tz = curr.th = curr.tp = curr.tr = 0;
+        else curr.targets.fill(0);
     }
+}
+
+std::pair<imu::Vector<3>, imu::Vector<3>>
+uav::traverse(imu::Vector<2> S, double heading, double tilt95, double maxtilt)
+{
+    auto f = [=](double d)
+    {
+        return 2 * maxtilt / (1 + exp((log(2/1.95 - 1) / tilt95 * d))) - maxtilt;
+    };
+
+    const imu::Vector<3> X(1, 0, 0), Y(0, 1, 0), Z(0, 0, 1);
+    imu::Vector<3> T(Z.cross({S.x(), S.y(), 0})),
+        Xp(X.rotate(Z, heading * M_PI/180)), Yp(Z.cross(Xp));
+
+    double tilt = f(S.magnitude());
+
+    imu::Vector<3> Xpp(Xp.rotate(T, tilt * M_PI/180)),
+        Zpp(Z.rotate(T, tilt * M_PI/180)),
+        Ypp(Zpp.cross(Xpp)),
+        Zp(Xp.cross(Ypp));
+
+    double pitch = asin(Ypp.z()) * 180/M_PI;
+    double roll = atan2(Xp.dot(Zpp), Zp.dot(Zpp)) * 180/M_PI;
+    return {{heading, pitch, roll}, Zpp};
 }

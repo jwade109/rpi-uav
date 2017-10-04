@@ -31,19 +31,17 @@ bool uav::state::operator!=(const state& other)
 
 uav::param::bin uav::serialize(const param& p)
 {
-    return bin(p.freq) + bin(p.p1h) + bin(p.p2h) + bin(p.zpidg) + 
-        bin(p.hpidg) + bin(p.ppidg) + bin(p.rpidg) + bin(p.gz_rc) + 
-        bin(p.gz_wam) + bin(p.maxmrate) + bin(p.mg);
+    return bin(p.freq) + bin(p.p1h) + bin(p.p2h) + bin(p.spidg) +
+        bin(p.zpidg) + bin(p.hpidg) + bin(p.ppidg) + bin(p.rpidg) +
+        bin(p.gz_rc) + bin(p.gz_wam) + bin(p.mg);
 }
 
 uav::state::bin uav::serialize(const state& s)
 {
     return bin(s.t) + bin(s.t_abs) + bin(s.comptime) +
-        bin(s.temp) + bin(s.pres) + bin(s.dz) + bin(s.h) +
-        bin(s.p) + bin(s.r) + bin(s.calib) + bin(s.tz) +
-        bin(s.th) + bin(s.tp) + bin(s.tr) + bin(s.zov) +
-        bin(s.hov) + bin(s.pov) + bin(s.rov) + bin(s.motors) +
-        bin(s.err);
+        bin(s.temp) + bin(s.pres) + bin(s.pos) +
+        bin(s.calib) + bin(s.targets) + bin(s.pidov) +
+        bin(s.motors) + bin(s.err);
 }
 
 uav::param uav::deserialize(const param::bin& b)
@@ -63,7 +61,6 @@ uav::param uav::deserialize(const param::bin& b)
         bin(src, rptr, p.rpidg[i]);
     bin(src, rptr, p.gz_rc);
     bin(src, rptr, p.gz_wam);
-    bin(src, rptr, p.maxmrate);
     bin(src, rptr, p.mg);
     return p;
 }
@@ -80,19 +77,13 @@ uav::state uav::deserialize(const state::bin& b)
     bin(src, rptr, s.temp[1]);
     bin(src, rptr, s.pres[0]);
     bin(src, rptr, s.pres[1]);
-    bin(src, rptr, s.dz);
-    bin(src, rptr, s.h);
-    bin(src, rptr, s.p);
-    bin(src, rptr, s.r);
+    for (int i = 0; i < 6; i++)
+        bin(src, rptr, s.pos[i]);
     bin(src, rptr, s.calib);
-    bin(src, rptr, s.tz);
-    bin(src, rptr, s.th);
-    bin(src, rptr, s.tp);
-    bin(src, rptr, s.tr);
-    bin(src, rptr, s.zov);
-    bin(src, rptr, s.hov);
-    bin(src, rptr, s.pov);
-    bin(src, rptr, s.rov);
+    for (int i = 0; i < 6; i++)
+        bin(src, rptr, s.targets[i]);
+    for (int i = 0; i < 6; i++)
+        bin(src, rptr, s.pidov[i]);
     for (int i = 0; i < 4; i++)
         bin(src, rptr, s.motors[i]);
     bin(src, rptr, s.err);
@@ -101,14 +92,12 @@ uav::state uav::deserialize(const state::bin& b)
 
 std::string uav::param::header()
 {
-    return "freq p1h p2h zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
-           "gz_rc gz_wam maxmrate mg";
+    return "freq p1h p2h spidg(0..3) zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
+           "gz_rc gz_wam mg";
 }
 
 std::string uav::state::header(fmt::bitmask_t mask)
 {
-    static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
-
     using namespace std;
 
     std::bitset<state::size> b(mask);
@@ -118,28 +107,34 @@ std::string uav::state::header(fmt::bitmask_t mask)
     int i = 0;
     if (b[i++]) line << setw(10) << "time";
     if (b[i++]) line << setw(15) << "t_abs";
-    if (b[i++]) line << setw(10) << "comp";
+    if (b[i++]) line << setw(10) << "comp_us";
 
     if (b[i++]) line << setw(9) << "t1";
     if (b[i++]) line << setw(9) << "t2";
     if (b[i++]) line << setw(12) << "p1";
     if (b[i++]) line << setw(12) << "p2";
-    if (b[i++]) line << setw(9) << "dz";
+    if (b[i++]) line << setw(9) << "x";
+    if (b[i++]) line << setw(9) << "y";
+    if (b[i++]) line << setw(9) << "z";
 
     if (b[i++]) line << setw(9) << "hdg";
     if (b[i++]) line << setw(9) << "pitch";
     if (b[i++]) line << setw(9) << "roll";
     if (b[i++]) line << setw(4) << "cal";
 
-    if (b[i++]) line << setw(5) << "tz";
-    if (b[i++]) line << setw(5) << "th";
-    if (b[i++]) line << setw(5) << "tp";
-    if (b[i++]) line << setw(5) << "tr";
+    if (b[i++]) line << setw(9) << "tx";
+    if (b[i++]) line << setw(9) << "ty";
+    if (b[i++]) line << setw(9) << "tz";
+    if (b[i++]) line << setw(9) << "th";
+    if (b[i++]) line << setw(9) << "tp";
+    if (b[i++]) line << setw(9) << "tr";
 
-    if (b[i++]) line << setw(12) << "zov";
-    if (b[i++]) line << setw(12) << "hov";
-    if (b[i++]) line << setw(12) << "pov";
-    if (b[i++]) line << setw(12) << "rov";
+    if (b[i++]) line << setw(9) << "xov";
+    if (b[i++]) line << setw(9) << "yov";
+    if (b[i++]) line << setw(9) << "zov";
+    if (b[i++]) line << setw(9) << "hov";
+    if (b[i++]) line << setw(9) << "pov";
+    if (b[i++]) line << setw(9) << "rov";
 
     if (b[i++]) line << setw(9) << "m1(CW)";
     if (b[i++]) line << setw(9) << "m2(CCW)";
@@ -161,6 +156,9 @@ std::string uav::to_string(const param& prm)
 
     line << "[ ";
     for (int i = 0; i < 4; i++)
+        line << prm.spidg[i] << " ";
+    line << "] [ ";
+    for (int i = 0; i < 4; i++)
         line << prm.zpidg[i] << " ";
     line << "] [ ";
     for (int i = 0; i < 4; i++)
@@ -174,7 +172,6 @@ std::string uav::to_string(const param& prm)
     line << "] ";
     line << prm.gz_rc << " ";
     line << prm.gz_wam << " ";
-    line << prm.maxmrate << " ";
     line << prm.mg << " ";
 
     std::string str = line.str();
@@ -184,8 +181,6 @@ std::string uav::to_string(const param& prm)
 
 std::string uav::to_string(const state& it, fmt::bitmask_t mask)
 {
-    static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
-
     using namespace std;
 
     std::bitset<state::fields> b(mask);
@@ -198,27 +193,22 @@ std::string uav::to_string(const state& it, fmt::bitmask_t mask)
     int i = 0;
     if (b[i++]) line << setw(10) << it.t/1000.0;
     if (b[i++]) line << setw(15) << it.t_abs/1000.0;
-    if (b[i++]) line << setw(10) << it.comptime;
+    if (b[i++]) line << setw(10) << it.comptime/1000.0;
     if (b[i++]) line << setw(9) << it.temp[0];
     if (b[i++]) line << setw(9) << it.temp[1];
     if (b[i++]) line << setw(12) << it.pres[0];
     if (b[i++]) line << setw(12) << it.pres[1];
-    if (b[i++]) line << setw(9) << it.dz;
 
-    if (b[i++]) line << setw(9) << it.h;
-    if (b[i++]) line << setw(9) << it.p;
-    if (b[i++]) line << setw(9) << it.r;
+    for (int j = 0; j < 6; j++)
+        if (b[i++]) line << setw(9) << it.pos[j];
+    
     if (b[i++]) line << hex << setw(4) << (int) it.calib << dec;
 
-    if (b[i++]) line << setw(5) << (int) it.tz;
-    if (b[i++]) line << setw(5) << (int) it.th;
-    if (b[i++]) line << setw(5) << (int) it.tp;
-    if (b[i++]) line << setw(5) << (int) it.tr;
+    for (int j = 0; j < 6; j++)
+        if (b[i++]) line << setw(9) << it.targets[j];
 
-    if (b[i++]) line << setw(12) << it.zov;
-    if (b[i++]) line << setw(12) << it.hov;
-    if (b[i++]) line << setw(12) << it.pov;
-    if (b[i++]) line << setw(12) << it.rov;
+    for (int j = 0; j < 6; j++)
+        if (b[i++]) line << setw(9) << it.pidov[j];
 
     if (b[i++]) line << setw(9) << it.motors[0];
     if (b[i++]) line << setw(9) << it.motors[1];
@@ -313,8 +303,9 @@ int uav::tests::uavcore()
     param p{ f125hz, 0, 0, { 0.12, 0.3, 0.5, -1 }, { 2.3, 1.4, 0.015, -1 },
         { 0.1, 01.8, 0.02, -1 }, { 0.1, -0.45, 0.02, -1 }, 0.1, 0.65, 500, 41 };
 
-    state s{ 45, 123, 2001, 10132.7F, 10100.3F, 45.4F, 45.7F, 0.73F, 32.0F, 2.3F, -1.6F,
-        0x4f, 23, 3, -12, 102, 0.45F, 0.23F, -0.34F, 1.45F, 43, 27, 32, 51, 12 };
+    state s{ 45, 123, 2001, {10132.7, 10100.3}, {45.4, 45.7},
+        {0, 0, 0.73, 32.0, 2.3, -1.6}, 0x4f, {1, 4, 23, 3, -12, 102},
+        {0.3, -3.4, 0.45F, 0.23, -0.34, 1.45}, {43, 27, 32, 51}, 12 };
 
     std::cout << to_string(p) << std::endl;
     std::cout << to_string(s, fmt::standard) << std::endl;

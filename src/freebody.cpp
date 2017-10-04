@@ -174,6 +174,11 @@ void uav::dronebody::reset()
     *this = dronebody();
 }
 
+double uav::dronebody::tilt()
+{
+    return acos(Z.dot({0, 0, 1})) * 180/M_PI;
+}
+
 void uav::dronebody::set(uint8_t n, double omega)
 {
     switch (n)

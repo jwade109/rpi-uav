@@ -13,10 +13,10 @@ namespace uav
     using timestamp_t   = uint64_t;
     using pres_t        = float;
     using temp_t        = float;
-    using alt_t         = float;
-    using attitude_t    = float;
+    using pos_t         = float;
+    using euler_t       = float;
     using calib_t       = uint8_t;
-    using target_t      = int16_t;
+    using target_t      = float;
     using pid_ov_t      = float;
     using motor_t       = float;
     using error_t       = uint16_t;
@@ -49,16 +49,19 @@ namespace uav
             time_full       = 7,
             pressure        = 3 << 3,
             temperature     = 3 << 5,
-            altitude        = 1 << 7,
-            attitude        = 7 << 8,
-            attitude_full   = 15 << 8,
-            targets         = 15 << 12,
-            pid             = 15 << 16,
-            motors          = 15 << 20,
-            error           = 1 << 24,
+            configuration   = 63 << 7,
+            position        = 7 << 7,
+            altitude        = 1 << 9,
+            attitude        = 7 << 10,
+            attitude_full   = 15 << 10,
+            calib           = 1 << 13,
+            targets         = 63 << 14,
+            pid             = 63 << 20,
+            motors          = 15 << 26,
+            error           = 1 << 30,
 
             all = std::numeric_limits<bitmask_t>::max(),
-            standard = time | altitude | attitude | motors | error
+            standard = time | configuration | motors | error
         };
     }
 
@@ -70,11 +73,10 @@ namespace uav
         std::array<pres_t, 2> pres;         // pressure from imu/bmp
         std::array<pres_t, 2> temp;         // temperature from above
 
-        alt_t           dz;
-        attitude_t      h, p, r;            // heading, pitch, roll
+        std::array<pos_t, 6> pos;
         calib_t         calib;              // calibration status
-        target_t        tz, th, tp, tr;     // targets for 4 degrees of freedom
-        pid_ov_t        zov, hov, pov, rov; // respective pid response
+        std::array<target_t, 6> targets;    // targets for 6 degrees of freedom
+        std::array<pid_ov_t, 6> pidov;      // respective pid response
         std::array<motor_t, 4> motors;
         error_t         err;                // bitmask for storing error codes
 
@@ -82,17 +84,14 @@ namespace uav
         bool operator==(const state& other);
         bool operator!=(const state& other);
 
-        const static size_t fields = 25;
+        const static size_t fields = 31;
         const static size_t size = 3 * sizeof(timestamp_t) + 2 * sizeof(pres_t) +
-            2 * sizeof(temp_t) + sizeof(alt_t) + 3 * sizeof(attitude_t) +
-            sizeof(calib_t) + 4 * sizeof(target_t) + 4 * sizeof(pid_ov_t) +
+            2 * sizeof(temp_t) + 3 * sizeof(pos_t) + 3 * sizeof(euler_t) +
+            sizeof(calib_t) + 6 * sizeof(target_t) + 6 * sizeof(pid_ov_t) +
             4 * sizeof(motor_t) + sizeof(error_t);
 
         using bin = std::array<uint8_t, size>;
     };
-
-    static_assert(state::fields == 25, "CONST_STATE_FIELDS_NOT_25");
-    static_assert(state::size == 99, "CONST_STATE_SIZE_NOT_87");
 
     // uav::param //////////////////////////////////////////////////////////////
 
@@ -102,11 +101,10 @@ namespace uav
         home_pres_t     p1h, p2h;           // home point pres from imu/bmp
 
         // pid gains for altitude, heading, pitch, roll
-        std::array<pid_gain_t, 4> zpidg, hpidg, ppidg, rpidg;
+        std::array<pid_gain_t, 4> spidg, zpidg, hpidg, ppidg, rpidg;
 
         lpf_tau_t       gz_rc;              // RC time constant for alt lpf
         wavg_t          gz_wam;             // weighted average gain towards z1
-        mrate_t         maxmrate;           // max thrust d/dt in hz
         wgt_frac_t      mg;                 // vehicle weight/max thrust * 100
 
         static std::string header();
@@ -115,14 +113,11 @@ namespace uav
 
         const static size_t fields = 23;
         const static size_t size = sizeof(freq_t) + 2 * sizeof(home_pres_t) +
-            16 * sizeof(pid_gain_t) + sizeof(lpf_tau_t) + sizeof(wavg_t) +
-            sizeof(mrate_t) + sizeof(wgt_frac_t);
+            20 * sizeof(pid_gain_t) + sizeof(lpf_tau_t) + sizeof(wavg_t) +
+            sizeof(wgt_frac_t);
 
         using bin = std::array<uint8_t, size>;
     };
-
-    static_assert(param::fields == 23, "CONST_PARAM_FIELDS_NOT_23");
-    static_assert(param::size == 171, "CONST_PARAM_SIZE_NOT_171");
 
     // conversion functions ////////////////////////////////////////////////////
 
