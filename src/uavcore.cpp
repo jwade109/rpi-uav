@@ -11,19 +11,7 @@
 
 bool uav::param::operator==(const param& other)
 {
-    static_assert(param::fields == 23, "THIS FUNCTION MIGHT BE OUT OF DATE");
-
-    return freq == other.freq && p1h == other.p1h && p2h == other.p2h &&
-        zpidg[0] == other.zpidg[0] && zpidg[1] == other.zpidg[1] &&
-        zpidg[2] == other.zpidg[2] && zpidg[3] == other.zpidg[3] &&
-        hpidg[0] == other.hpidg[0] && hpidg[1] == other.hpidg[1] &&
-        hpidg[2] == other.hpidg[2] && hpidg[3] == other.hpidg[3] &&
-        ppidg[0] == other.ppidg[0] && ppidg[1] == other.ppidg[1] &&
-        ppidg[2] == other.ppidg[2] && ppidg[3] == other.ppidg[3] &&
-        rpidg[0] == other.rpidg[0] && rpidg[1] == other.rpidg[1] &&
-        rpidg[2] == other.rpidg[2] && rpidg[3] == other.rpidg[3] &&
-        gz_rc == other.gz_rc && gz_wam == other.gz_wam &&
-        maxmrate == other.maxmrate && mg == other.mg;
+    return serialize(*this) == serialize(other);
 }
 
 bool uav::param::operator!=(const param& other)
@@ -33,20 +21,7 @@ bool uav::param::operator!=(const param& other)
 
 bool uav::state::operator==(const state& other)
 {
-    static_assert(state::fields == 25, "THIS FUNCTION MIGHT BE OUT OF DATE");
-
-    return t == other.t && t_abs == other.t_abs &&
-        comptime == other.comptime &&
-        pres[0] == other.pres[0] && pres[1] == other.pres[1] &&
-        temp[0] == other.temp[0] && temp[1] == other.temp[1] &&
-        dz == other.dz && h == other.h && p == other.p &&
-        r == other.r && calib == other.calib &&
-        tz == other.tz && th == other.th && tp == other.tp &&
-        tr == other.tr && zov == other.zov && hov == other.hov &&
-        pov == other.pov && rov == other.rov &&
-        motors[0] == other.motors[0] && motors[1] == other.motors[1] &&
-        motors[2] == other.motors[2] && motors[3] == other.motors[3] &&
-        err == other.err;
+    return serialize(*this) == serialize(other);
 }
 
 bool uav::state::operator!=(const state& other)
@@ -56,167 +31,71 @@ bool uav::state::operator!=(const state& other)
 
 uav::param::bin uav::serialize(const param& p)
 {
-    static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
-    static_assert(param::size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM");
-
-    param::bin b;
-    b.fill(0);
-    byte *wptr = b.data();
-    memcpy(wptr, &p.freq, sizeof(p.freq));
-    wptr += sizeof(p.freq);
-    memcpy(wptr, &p.p1h, sizeof(p.p1h));
-    wptr += sizeof(p.p1h);
-    memcpy(wptr, &p.p2h, sizeof(p.p2h));
-    wptr += sizeof(p.p2h);
-    memcpy(wptr, p.zpidg, sizeof(p.zpidg[0]) * 4);
-    wptr += (sizeof(p.zpidg[0]) * 4);
-    memcpy(wptr, p.hpidg, sizeof(p.hpidg[0]) * 4);
-    wptr += (sizeof(p.hpidg[0]) * 4);
-    memcpy(wptr, p.ppidg, sizeof(p.ppidg[0]) * 4);
-    wptr += (sizeof(p.ppidg[0]) * 4);
-    memcpy(wptr, p.rpidg, sizeof(p.rpidg[0]) * 4);
-    wptr += (sizeof(p.rpidg[0]) * 4);
-    memcpy(wptr, &p.gz_rc, sizeof(p.gz_rc));
-    wptr += sizeof(p.gz_rc);
-    memcpy(wptr, &p.gz_wam, sizeof(p.gz_wam));
-    wptr += sizeof(p.gz_wam);
-    memcpy(wptr, &p.maxmrate, sizeof(p.maxmrate));
-    wptr += sizeof(p.maxmrate);
-    memcpy(wptr, &p.mg, sizeof(p.mg));
-    wptr += sizeof(p.mg);
-    return b;
+    return bin(p.freq) + bin(p.p1h) + bin(p.p2h) + bin(p.zpidg) + 
+        bin(p.hpidg) + bin(p.ppidg) + bin(p.rpidg) + bin(p.gz_rc) + 
+        bin(p.gz_wam) + bin(p.maxmrate) + bin(p.mg);
 }
 
 uav::state::bin uav::serialize(const state& s)
 {
-    static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
-    static_assert(state::size == 99, "CHECK_ASSUMED_SIZE_OF_STATE");
-
-    state::bin b;
-    b.fill(0);
-    byte *wptr = b.data();
-    memcpy(wptr, &s.t, sizeof(s.t));
-    wptr += sizeof(s.t);
-    memcpy(wptr, &s.t_abs, sizeof(s.t_abs));
-    wptr += sizeof(s.t_abs);
-    memcpy(wptr, &s.comptime, sizeof(s.comptime));
-    wptr += sizeof(s.comptime);
-    memcpy(wptr, s.temp, sizeof(s.temp[0]) * 2);
-    wptr += (sizeof(s.temp[0]) * 2);
-    memcpy(wptr, s.pres, sizeof(s.pres[0]) * 2);
-    wptr += (sizeof(s.pres[0]) * 2);
-    memcpy(wptr, &s.dz, sizeof(s.dz));
-    wptr += sizeof(s.dz);
-    memcpy(wptr, &s.h, sizeof(s.h));
-    wptr += sizeof(s.h);
-    memcpy(wptr, &s.p, sizeof(s.p));
-    wptr += sizeof(s.p);
-    memcpy(wptr, &s.r, sizeof(s.r));
-    wptr += sizeof(s.r);
-    memcpy(wptr, &s.calib, sizeof(s.calib));
-    wptr += sizeof(s.calib);
-    memcpy(wptr, &s.tz, sizeof(s.tz));
-    wptr += sizeof(s.tz);
-    memcpy(wptr, &s.th, sizeof(s.th));
-    wptr += sizeof(s.th);
-    memcpy(wptr, &s.tp, sizeof(s.tp));
-    wptr += sizeof(s.tp);
-    memcpy(wptr, &s.tr, sizeof(s.tr));
-    wptr += sizeof(s.tr);
-    memcpy(wptr, &s.zov, sizeof(s.zov));
-    wptr += sizeof(s.zov);
-    memcpy(wptr, &s.hov, sizeof(s.hov));
-    wptr += sizeof(s.hov);
-    memcpy(wptr, &s.pov, sizeof(s.pov));
-    wptr += sizeof(s.pov);
-    memcpy(wptr, &s.rov, sizeof(s.rov));
-    wptr += sizeof(s.rov);
-    memcpy(wptr, s.motors, sizeof(s.motors[0]) * 4);
-    wptr += (sizeof(s.motors[0]) * 4);
-    memcpy(wptr, &s.err, sizeof(s.err));
-    wptr += sizeof(s.err);
-    return b;
+    return bin(s.t) + bin(s.t_abs) + bin(s.comptime) +
+        bin(s.temp) + bin(s.pres) + bin(s.dz) + bin(s.h) +
+        bin(s.p) + bin(s.r) + bin(s.calib) + bin(s.tz) +
+        bin(s.th) + bin(s.tp) + bin(s.tr) + bin(s.zov) +
+        bin(s.hov) + bin(s.pov) + bin(s.rov) + bin(s.motors) +
+        bin(s.err);
 }
 
 uav::param uav::deserialize(const param::bin& b)
 {
-    static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
-    static_assert(param::size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM");
-
     param p;
-    const byte *rptr = b.data();
-    memcpy(&p.freq, rptr, sizeof(p.freq));
-    rptr += sizeof(p.freq);
-    memcpy(&p.p1h, rptr, sizeof(p.p1h));
-    rptr += sizeof(p.p1h);
-    memcpy(&p.p2h, rptr, sizeof(p.p2h));
-    rptr += sizeof(p.p2h);
-    memcpy(p.zpidg, rptr, sizeof(p.zpidg[0]) * 4);
-    rptr += (sizeof(p.zpidg[0]) * 4);
-    memcpy(p.hpidg, rptr, sizeof(p.hpidg[0]) * 4);
-    rptr += (sizeof(p.hpidg[0]) * 4);
-    memcpy(p.ppidg, rptr, sizeof(p.ppidg[0]) * 4);
-    rptr += (sizeof(p.ppidg[0]) * 4);
-    memcpy(p.rpidg, rptr, sizeof(p.rpidg[0]) * 4);
-    rptr += (sizeof(p.rpidg[0]) * 4);
-    memcpy(&p.gz_rc, rptr, sizeof(p.gz_rc));
-    rptr += sizeof(p.gz_rc);
-    memcpy(&p.gz_wam, rptr, sizeof(p.gz_wam));
-    rptr += sizeof(p.gz_wam);
-    memcpy(&p.maxmrate, rptr, sizeof(p.maxmrate));
-    rptr += sizeof(p.maxmrate);
-    memcpy(&p.mg, rptr, sizeof(p.mg));
-    rptr += sizeof(p.mg);
+    size_t rptr(0);
+    auto src = begin(b);
+    bin(src, rptr, p.freq);
+    bin(src, rptr, p.p1h);
+    bin(src, rptr, p.p2h);
+    bin(src, rptr, p.zpidg);
+    for (int i = 0; i < 4; i++)
+        bin(src, rptr, p.hpidg[i]);
+    for (int i = 0; i < 4; i++)
+        bin(src, rptr, p.ppidg[i]);
+    for (int i = 0; i < 4; i++)
+        bin(src, rptr, p.rpidg[i]);
+    bin(src, rptr, p.gz_rc);
+    bin(src, rptr, p.gz_wam);
+    bin(src, rptr, p.maxmrate);
+    bin(src, rptr, p.mg);
     return p;
 }
 
 uav::state uav::deserialize(const state::bin& b)
 {
-    static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
-    static_assert(state::size == 99, "CHECK_ASSUMED_SIZE_OF_STATE");
-
     state s;
-    const byte *rptr = b.data();
-    memcpy(&s.t, rptr, sizeof(s.t));
-    rptr += sizeof(s.t);
-    memcpy(&s.t_abs, rptr, sizeof(s.t_abs));
-    rptr += sizeof(s.t_abs);
-    memcpy(&s.comptime, rptr, sizeof(s.comptime));
-    rptr += sizeof(s.comptime);
-    memcpy(s.temp, rptr, sizeof(s.temp[0]) * 2);
-    rptr += (sizeof(s.temp[0]) * 2);
-    memcpy(s.pres, rptr, sizeof(s.pres[0]) * 2);
-    rptr += (sizeof(s.pres[0]) * 2);
-    memcpy(&s.dz, rptr, sizeof(s.dz));
-    rptr += sizeof(s.dz);
-    memcpy(&s.h, rptr, sizeof(s.h));
-    rptr += sizeof(s.h);
-    memcpy(&s.p, rptr, sizeof(s.p));
-    rptr += sizeof(s.p);
-    memcpy(&s.r, rptr, sizeof(s.r));
-    rptr += sizeof(s.r);
-    memcpy(&s.calib, rptr, sizeof(s.calib));
-    rptr += sizeof(s.calib);
-    memcpy(&s.tz, rptr, sizeof(s.tz));
-    rptr += sizeof(s.tz);
-    memcpy(&s.th, rptr, sizeof(s.th));
-    rptr += sizeof(s.th);
-    memcpy(&s.tp, rptr, sizeof(s.tp));
-    rptr += sizeof(s.tp);
-    memcpy(&s.tr, rptr, sizeof(s.tr));
-    rptr += sizeof(s.tr);
-    memcpy(&s.zov, rptr, sizeof(s.zov));
-    rptr += sizeof(s.zov);
-    memcpy(&s.hov, rptr, sizeof(s.hov));
-    rptr += sizeof(s.hov);
-    memcpy(&s.pov, rptr, sizeof(s.pov));
-    rptr += sizeof(s.pov);
-    memcpy(&s.rov, rptr, sizeof(s.rov));
-    rptr += sizeof(s.rov);
-    memcpy(s.motors, rptr, sizeof(s.motors[0]) * 4);
-    rptr += (sizeof(s.motors[0]) * 4);
-    memcpy(&s.err, rptr, sizeof(s.err));
-    rptr += sizeof(s.err);
+    size_t rptr(0);
+    const uint8_t* src = begin(b);
+    bin(src, rptr, s.t);
+    bin(src, rptr, s.t_abs);
+    bin(src, rptr, s.comptime);
+    bin(src, rptr, s.temp[0]);
+    bin(src, rptr, s.temp[1]);
+    bin(src, rptr, s.pres[0]);
+    bin(src, rptr, s.pres[1]);
+    bin(src, rptr, s.dz);
+    bin(src, rptr, s.h);
+    bin(src, rptr, s.p);
+    bin(src, rptr, s.r);
+    bin(src, rptr, s.calib);
+    bin(src, rptr, s.tz);
+    bin(src, rptr, s.th);
+    bin(src, rptr, s.tp);
+    bin(src, rptr, s.tr);
+    bin(src, rptr, s.zov);
+    bin(src, rptr, s.hov);
+    bin(src, rptr, s.pov);
+    bin(src, rptr, s.rov);
+    for (int i = 0; i < 4; i++)
+        bin(src, rptr, s.motors[i]);
+    bin(src, rptr, s.err);
     return s;
 }
 

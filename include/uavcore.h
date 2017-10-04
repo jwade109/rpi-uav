@@ -29,8 +29,6 @@ namespace uav
     using mrate_t       = uint16_t;
     using wgt_frac_t    = double;
 
-    using byte = unsigned char;
-
     enum : freq_t
     {
         f1hz = 1, f10hz = 10, f20hz = 20, f25hz = 25, f40hz = 40, f50hz = 50,
@@ -69,15 +67,15 @@ namespace uav
     struct state
     {
         timestamp_t     t, t_abs, comptime; // time in millis, computation time
-        pres_t          pres[2];            // pressure from imu/bmp
-        temp_t          temp[2];            // temperature from above
-        alt_t           dz;                 // altitude from home point
+        std::array<pres_t, 2> pres;         // pressure from imu/bmp
+        std::array<pres_t, 2> temp;         // temperature from above
 
+        alt_t           dz;
         attitude_t      h, p, r;            // heading, pitch, roll
         calib_t         calib;              // calibration status
         target_t        tz, th, tp, tr;     // targets for 4 degrees of freedom
         pid_ov_t        zov, hov, pov, rov; // respective pid response
-        motor_t         motors[4];
+        std::array<motor_t, 4> motors;
         error_t         err;                // bitmask for storing error codes
 
         static std::string header(fmt::bitmask_t);
@@ -90,7 +88,7 @@ namespace uav
             sizeof(calib_t) + 4 * sizeof(target_t) + 4 * sizeof(pid_ov_t) +
             4 * sizeof(motor_t) + sizeof(error_t);
 
-        using bin = std::array<byte, size>;
+        using bin = std::array<uint8_t, size>;
     };
 
     static_assert(state::fields == 25, "CONST_STATE_FIELDS_NOT_25");
@@ -104,7 +102,7 @@ namespace uav
         home_pres_t     p1h, p2h;           // home point pres from imu/bmp
 
         // pid gains for altitude, heading, pitch, roll
-        pid_gain_t      zpidg[4], hpidg[4], ppidg[4], rpidg[4];
+        std::array<pid_gain_t, 4> zpidg, hpidg, ppidg, rpidg;
 
         lpf_tau_t       gz_rc;              // RC time constant for alt lpf
         wavg_t          gz_wam;             // weighted average gain towards z1
@@ -120,7 +118,7 @@ namespace uav
             16 * sizeof(pid_gain_t) + sizeof(lpf_tau_t) + sizeof(wavg_t) +
             sizeof(mrate_t) + sizeof(wgt_frac_t);
 
-        using bin = std::array<byte, size>;
+        using bin = std::array<uint8_t, size>;
     };
 
     static_assert(param::fields == 23, "CONST_PARAM_FIELDS_NOT_23");
@@ -136,12 +134,53 @@ namespace uav
 
     state deserialize(const state::bin& b);
 
-    template<class T, class U> std::array<uint8_t, T::size> wrap(U *ptr)
+    template <size_t N, typename T> std::array<uint8_t, N> wrap(T *ptr)
     {
-        std::array<byte, T::size> bin;
-        byte* src = reinterpret_cast<byte*>(ptr);
-        std::copy(src, src + T::size, bin.begin());
+        std::array<uint8_t, N> bin;
+        uint8_t* src = reinterpret_cast<uint8_t*>(ptr);
+        std::copy(src, src + N, begin(bin));
         return bin;
+    }
+
+    template <typename T> std::array<uint8_t, sizeof(T)> bin(T var)
+    {
+        uint8_t* b = reinterpret_cast<uint8_t*>(&var);
+        std::array<uint8_t, sizeof(T)> array;
+        std::copy(b, b + sizeof(T), begin(array));
+        return array;
+    }
+
+    template <typename T, size_t N>
+    std::array<uint8_t, sizeof(T) * N> bin(const std::array<T, N>& vars)
+    {
+        std::array<uint8_t, sizeof(T) * N> array;
+        const uint8_t* src = reinterpret_cast<const uint8_t*>(vars.data());
+        std::copy(src, src + sizeof(T) * N, begin(array));
+        return array;
+    }
+
+    template <typename T>
+    void bin(const uint8_t* src, size_t& rptr, T& dest)
+    {
+        dest = *reinterpret_cast<const T*>(src + rptr);
+        rptr += sizeof(T);
+    }
+
+    template <size_t N, size_t M> std::array<uint8_t, N + M>
+    operator + (const std::array<uint8_t, N>& a, const std::array<uint8_t, M>& b)
+    {
+        std::array<uint8_t, N + M> c;
+        std::copy(begin(a), end(a), begin(c));
+        std::copy(begin(b), end(b), begin(c) + N);
+        return c;
+    }
+
+    template <size_t N> bool
+    operator == (const std::array<uint8_t, N>& a, const std::array<uint8_t, N>& b)
+    {
+        for (size_t i = 0; i < N; i++)
+            if (a[i] != b[i]) return false;
+        return true;
     }
 
     // std::string functions ///////////////////////////////////////////////////
