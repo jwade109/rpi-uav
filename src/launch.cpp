@@ -27,12 +27,12 @@ int main(int argc, char** argv)
     signal(SIGINT, sigint);
 
     uav::param prm = {uav::f50hz, 0, 0,
-        {1,   0,   3,  0},
-        {30,  0,   40,  -1},
-        {3,   0,   0,   -1},
-        {6.0, 0,   3.5, -1},
-        {6.0, 0,   3.5, -1},
-        0.1, 0.65, 9.81/4};
+        {3,   0, 11,   0},
+        {10,  0, 20,   3},
+        {2,   0, 0,   -1},
+        {6,   0, 4.5, -1},
+        {6,   0, 4.5, -1},
+        0.1, 0.65, 150, 30, 9.81/4};
     uav::state init{0};
 
     bool debug = argc > 1 ? true : false;
@@ -57,8 +57,7 @@ int main(int argc, char** argv)
 
     // print the params
     namespace fmt = uav::fmt;
-    auto format = fmt::time | fmt::configuration |
-        fmt::pid | fmt::targets | fmt::motors;
+    auto format = fmt::time | fmt::configuration;
 
     std::cout << uav::param::header() << std::endl;
     std::cout << uav::to_string(c.getparams()) << std::endl;

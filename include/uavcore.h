@@ -41,7 +41,7 @@ namespace uav
 
     namespace fmt
     {
-        using bitmask_t = uint32_t;
+        using bitmask_t = uint64_t;
 
         enum : bitmask_t
         {
@@ -59,6 +59,7 @@ namespace uav
             pid             = 63 << 20,
             motors          = 15 << 26,
             error           = 1 << 30,
+            status          = 1U << 31,
 
             all = std::numeric_limits<bitmask_t>::max(),
             standard = time | configuration | motors | error
@@ -79,16 +80,17 @@ namespace uav
         std::array<pid_ov_t, 6> pidov;      // respective pid response
         std::array<motor_t, 4> motors;
         error_t         err;                // bitmask for storing error codes
+        uint8_t         status;
 
         static std::string header(fmt::bitmask_t);
         bool operator==(const state& other);
         bool operator!=(const state& other);
 
-        const static size_t fields = 31;
+        const static size_t fields = 32;
         const static size_t size = 3 * sizeof(timestamp_t) + 2 * sizeof(pres_t) +
             2 * sizeof(temp_t) + 3 * sizeof(pos_t) + 3 * sizeof(euler_t) +
             sizeof(calib_t) + 6 * sizeof(target_t) + 6 * sizeof(pid_ov_t) +
-            4 * sizeof(motor_t) + sizeof(error_t);
+            4 * sizeof(motor_t) + sizeof(error_t) + sizeof(uint8_t);
 
         using bin = std::array<uint8_t, size>;
     };
@@ -105,16 +107,18 @@ namespace uav
 
         lpf_tau_t       gz_rc;              // RC time constant for alt lpf
         wavg_t          gz_wam;             // weighted average gain towards z1
+        pos_t           tilt95;
+        pos_t           maxtilt;
         wgt_frac_t      mg;                 // vehicle weight/max thrust * 100
 
         static std::string header();
         bool operator==(const param& other);
         bool operator!=(const param& other);
 
-        const static size_t fields = 23;
+        const static size_t fields = 28;
         const static size_t size = sizeof(freq_t) + 2 * sizeof(home_pres_t) +
             20 * sizeof(pid_gain_t) + sizeof(lpf_tau_t) + sizeof(wavg_t) +
-            sizeof(wgt_frac_t);
+            sizeof(pos_t) * 2 + sizeof(wgt_frac_t);
 
         using bin = std::array<uint8_t, size>;
     };

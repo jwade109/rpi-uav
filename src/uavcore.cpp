@@ -33,7 +33,8 @@ uav::param::bin uav::serialize(const param& p)
 {
     return bin(p.freq) + bin(p.p1h) + bin(p.p2h) + bin(p.spidg) +
         bin(p.zpidg) + bin(p.hpidg) + bin(p.ppidg) + bin(p.rpidg) +
-        bin(p.gz_rc) + bin(p.gz_wam) + bin(p.mg);
+        bin(p.gz_rc) + bin(p.gz_wam) + bin(p.tilt95) +
+        bin(p.maxtilt) + bin(p.mg);
 }
 
 uav::state::bin uav::serialize(const state& s)
@@ -41,7 +42,7 @@ uav::state::bin uav::serialize(const state& s)
     return bin(s.t) + bin(s.t_abs) + bin(s.comptime) +
         bin(s.temp) + bin(s.pres) + bin(s.pos) +
         bin(s.calib) + bin(s.targets) + bin(s.pidov) +
-        bin(s.motors) + bin(s.err);
+        bin(s.motors) + bin(s.err) + bin(s.status);
 }
 
 uav::param uav::deserialize(const param::bin& b)
@@ -52,15 +53,15 @@ uav::param uav::deserialize(const param::bin& b)
     bin(src, rptr, p.freq);
     bin(src, rptr, p.p1h);
     bin(src, rptr, p.p2h);
+    bin(src, rptr, p.spidg);
     bin(src, rptr, p.zpidg);
-    for (int i = 0; i < 4; i++)
-        bin(src, rptr, p.hpidg[i]);
-    for (int i = 0; i < 4; i++)
-        bin(src, rptr, p.ppidg[i]);
-    for (int i = 0; i < 4; i++)
-        bin(src, rptr, p.rpidg[i]);
+    bin(src, rptr, p.hpidg);
+    bin(src, rptr, p.ppidg);
+    bin(src, rptr, p.rpidg);
     bin(src, rptr, p.gz_rc);
     bin(src, rptr, p.gz_wam);
+    bin(src, rptr, p.tilt95);
+    bin(src, rptr, p.maxtilt);
     bin(src, rptr, p.mg);
     return p;
 }
@@ -73,27 +74,22 @@ uav::state uav::deserialize(const state::bin& b)
     bin(src, rptr, s.t);
     bin(src, rptr, s.t_abs);
     bin(src, rptr, s.comptime);
-    bin(src, rptr, s.temp[0]);
-    bin(src, rptr, s.temp[1]);
-    bin(src, rptr, s.pres[0]);
-    bin(src, rptr, s.pres[1]);
-    for (int i = 0; i < 6; i++)
-        bin(src, rptr, s.pos[i]);
+    bin(src, rptr, s.temp);
+    bin(src, rptr, s.pres);
+    bin(src, rptr, s.pos);
     bin(src, rptr, s.calib);
-    for (int i = 0; i < 6; i++)
-        bin(src, rptr, s.targets[i]);
-    for (int i = 0; i < 6; i++)
-        bin(src, rptr, s.pidov[i]);
-    for (int i = 0; i < 4; i++)
-        bin(src, rptr, s.motors[i]);
+    bin(src, rptr, s.targets);
+    bin(src, rptr, s.pidov);
+    bin(src, rptr, s.motors);
     bin(src, rptr, s.err);
+    bin(src, rptr, s.status);
     return s;
 }
 
 std::string uav::param::header()
 {
     return "freq p1h p2h spidg(0..3) zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
-           "gz_rc gz_wam mg";
+           "gz_rc gz_wam tilt95 maxtilt mg";
 }
 
 std::string uav::state::header(fmt::bitmask_t mask)
@@ -141,7 +137,8 @@ std::string uav::state::header(fmt::bitmask_t mask)
     if (b[i++]) line << setw(9) << "m3(CW)";
     if (b[i++]) line << setw(9) << "m4(CCW)";
 
-    if (b[i++]) line << setw(10) << "err";
+    if (b[i++]) line << setw(20) << "err";
+    if (b[i++]) line << setw(7) << "status";
 
     return line.str();
 }
@@ -172,6 +169,8 @@ std::string uav::to_string(const param& prm)
     line << "] ";
     line << prm.gz_rc << " ";
     line << prm.gz_wam << " ";
+    line << prm.tilt95 << " ";
+    line << prm.maxtilt << " ";
     line << prm.mg << " ";
 
     std::string str = line.str();
@@ -215,7 +214,8 @@ std::string uav::to_string(const state& it, fmt::bitmask_t mask)
     if (b[i++]) line << setw(9) << it.motors[2];
     if (b[i++]) line << setw(9) << it.motors[3];
 
-    if (b[i++]) line << setw(10) << std::bitset<16>(it.err);
+    if (b[i++]) line << setw(20) << std::bitset<16>(it.err);
+    if (b[i++]) line << setw(7) << (int) it.status;
 
     return line.str();
 }
