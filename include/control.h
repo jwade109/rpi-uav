@@ -41,10 +41,14 @@ namespace uav
         param prm;
 
         pid_controller zpid, hpid, ppid, rpid;
+        pid_vector<2> spid;
         dronebody simulator;
 
         void gettargets();
     };
+
+    std::pair<imu::Vector<3>, imu::Vector<3>>
+    traverse(imu::Vector<2> S, double heading, double tilt95, double maxtilt);
 }
 
 #endif // CONTROL_H

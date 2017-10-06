@@ -174,6 +174,11 @@ void uav::dronebody::reset()
     *this = dronebody();
 }
 
+double uav::dronebody::tilt()
+{
+    return acos(Z.dot({0, 0, 1})) * 180/M_PI;
+}
+
 void uav::dronebody::set(uint8_t n, double omega)
 {
     switch (n)
@@ -222,9 +227,6 @@ imu::Matrix<3> uav::euler2matrix(const imu::Vector<3>& euler)
         Zp(Z.rotate(Xp, euler.y())),
         Xpp(Xp.rotate(Ypp, euler.z())),
         Zpp(Zp.rotate(Ypp, euler.z()));
-
-    std::cout << Xp << Yp << Zp << std::endl
-        << Xpp << Ypp << Zpp << std::endl;
 
     imu::Matrix<3> m;
     m.vector_to_col(Xpp, 0);

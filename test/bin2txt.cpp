@@ -46,14 +46,14 @@ int main(int argc, char** argv)
 
     char* bytes = new char[fsize];
     bin.read(bytes, fsize);
-    param p = deserialize(wrap<param>(bytes));
+    param p = deserialize(wrap<param::size>(bytes));
     txt << param::header() << std::endl;
     txt << to_string(p) << std::endl << std::endl;
     txt << state::header(mask) << std::endl;
     int n = param::size;
     while (n < fsize)
     {
-        state s = deserialize(wrap<state>(bytes + n));
+        state s = deserialize(wrap<state::size>(bytes + n));
         txt << to_string(s, mask) << std::endl;
         n += state::size;
     }

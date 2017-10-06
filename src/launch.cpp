@@ -26,13 +26,13 @@ int main(int argc, char** argv)
 
     signal(SIGINT, sigint);
 
-    static_assert(uav::param::fields == 23, "Check yourself");
     uav::param prm = {uav::f50hz, 0, 0,
-        {30,  0,   40,  -1},
-        {3,   0,   0,   -1},
-        {6.0, 0,   3.5, -1},
-        {6.0, 0,   3.5, -1},
-        0.1, 0.65, 500, 9.81/4};
+        {1,   0, 3,   0},
+        {10,  0, 20,   3},
+        {2,   0, 0,   -1},
+        {6,   0, 4.5, -1},
+        {6,   0, 4.5, -1},
+        0.1, 0.65, 8, 40, 9.81/4};
     uav::state init{0};
 
     bool debug = argc > 1 ? true : false;
@@ -57,15 +57,14 @@ int main(int argc, char** argv)
 
     // print the params
     namespace fmt = uav::fmt;
-    auto format = fmt::time | fmt::attitude | fmt::altitude |
-        fmt::pid | fmt::targets | fmt::motors;
+    auto format = fmt::time | fmt::configuration | fmt::status;
 
     std::cout << uav::param::header() << std::endl;
     std::cout << uav::to_string(c.getparams()) << std::endl;
     std::cout << uav::state::header(format) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
-    while ((now < start + chrono::seconds(100)) && cont)
+    while ((now < start + chrono::seconds(5 * 60)) && cont)
     {
         // iterate the controller,
         // enable internal timing management

@@ -96,6 +96,8 @@ namespace uav
         void stepfor(uint64_t micros, uint64_t dt);
         void reset();
 
+        double tilt();
+
         void set(uint8_t n, double omega);
         void set(double o1, double o2, double o3, double o4);
         void set(double omega[4]);

@@ -11,19 +11,7 @@
 
 bool uav::param::operator==(const param& other)
 {
-    static_assert(param::fields == 23, "THIS FUNCTION MIGHT BE OUT OF DATE");
-
-    return freq == other.freq && p1h == other.p1h && p2h == other.p2h &&
-        zpidg[0] == other.zpidg[0] && zpidg[1] == other.zpidg[1] &&
-        zpidg[2] == other.zpidg[2] && zpidg[3] == other.zpidg[3] &&
-        hpidg[0] == other.hpidg[0] && hpidg[1] == other.hpidg[1] &&
-        hpidg[2] == other.hpidg[2] && hpidg[3] == other.hpidg[3] &&
-        ppidg[0] == other.ppidg[0] && ppidg[1] == other.ppidg[1] &&
-        ppidg[2] == other.ppidg[2] && ppidg[3] == other.ppidg[3] &&
-        rpidg[0] == other.rpidg[0] && rpidg[1] == other.rpidg[1] &&
-        rpidg[2] == other.rpidg[2] && rpidg[3] == other.rpidg[3] &&
-        gz_rc == other.gz_rc && gz_wam == other.gz_wam &&
-        maxmrate == other.maxmrate && mg == other.mg;
+    return serialize(*this) == serialize(other);
 }
 
 bool uav::param::operator!=(const param& other)
@@ -33,20 +21,7 @@ bool uav::param::operator!=(const param& other)
 
 bool uav::state::operator==(const state& other)
 {
-    static_assert(state::fields == 25, "THIS FUNCTION MIGHT BE OUT OF DATE");
-
-    return t == other.t && t_abs == other.t_abs &&
-        comptime == other.comptime &&
-        pres[0] == other.pres[0] && pres[1] == other.pres[1] &&
-        temp[0] == other.temp[0] && temp[1] == other.temp[1] &&
-        dz == other.dz && h == other.h && p == other.p &&
-        r == other.r && calib == other.calib &&
-        tz == other.tz && th == other.th && tp == other.tp &&
-        tr == other.tr && zov == other.zov && hov == other.hov &&
-        pov == other.pov && rov == other.rov &&
-        motors[0] == other.motors[0] && motors[1] == other.motors[1] &&
-        motors[2] == other.motors[2] && motors[3] == other.motors[3] &&
-        err == other.err;
+    return serialize(*this) == serialize(other);
 }
 
 bool uav::state::operator!=(const state& other)
@@ -56,180 +31,69 @@ bool uav::state::operator!=(const state& other)
 
 uav::param::bin uav::serialize(const param& p)
 {
-    static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
-    static_assert(param::size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM");
-
-    param::bin b;
-    b.fill(0);
-    byte *wptr = b.data();
-    memcpy(wptr, &p.freq, sizeof(p.freq));
-    wptr += sizeof(p.freq);
-    memcpy(wptr, &p.p1h, sizeof(p.p1h));
-    wptr += sizeof(p.p1h);
-    memcpy(wptr, &p.p2h, sizeof(p.p2h));
-    wptr += sizeof(p.p2h);
-    memcpy(wptr, p.zpidg, sizeof(p.zpidg[0]) * 4);
-    wptr += (sizeof(p.zpidg[0]) * 4);
-    memcpy(wptr, p.hpidg, sizeof(p.hpidg[0]) * 4);
-    wptr += (sizeof(p.hpidg[0]) * 4);
-    memcpy(wptr, p.ppidg, sizeof(p.ppidg[0]) * 4);
-    wptr += (sizeof(p.ppidg[0]) * 4);
-    memcpy(wptr, p.rpidg, sizeof(p.rpidg[0]) * 4);
-    wptr += (sizeof(p.rpidg[0]) * 4);
-    memcpy(wptr, &p.gz_rc, sizeof(p.gz_rc));
-    wptr += sizeof(p.gz_rc);
-    memcpy(wptr, &p.gz_wam, sizeof(p.gz_wam));
-    wptr += sizeof(p.gz_wam);
-    memcpy(wptr, &p.maxmrate, sizeof(p.maxmrate));
-    wptr += sizeof(p.maxmrate);
-    memcpy(wptr, &p.mg, sizeof(p.mg));
-    wptr += sizeof(p.mg);
-    return b;
+    return bin(p.freq) + bin(p.p1h) + bin(p.p2h) + bin(p.spidg) +
+        bin(p.zpidg) + bin(p.hpidg) + bin(p.ppidg) + bin(p.rpidg) +
+        bin(p.gz_rc) + bin(p.gz_wam) + bin(p.tilt95) +
+        bin(p.maxtilt) + bin(p.mg);
 }
 
 uav::state::bin uav::serialize(const state& s)
 {
-    static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
-    static_assert(state::size == 99, "CHECK_ASSUMED_SIZE_OF_STATE");
-
-    state::bin b;
-    b.fill(0);
-    byte *wptr = b.data();
-    memcpy(wptr, &s.t, sizeof(s.t));
-    wptr += sizeof(s.t);
-    memcpy(wptr, &s.t_abs, sizeof(s.t_abs));
-    wptr += sizeof(s.t_abs);
-    memcpy(wptr, &s.comptime, sizeof(s.comptime));
-    wptr += sizeof(s.comptime);
-    memcpy(wptr, s.temp, sizeof(s.temp[0]) * 2);
-    wptr += (sizeof(s.temp[0]) * 2);
-    memcpy(wptr, s.pres, sizeof(s.pres[0]) * 2);
-    wptr += (sizeof(s.pres[0]) * 2);
-    memcpy(wptr, &s.dz, sizeof(s.dz));
-    wptr += sizeof(s.dz);
-    memcpy(wptr, &s.h, sizeof(s.h));
-    wptr += sizeof(s.h);
-    memcpy(wptr, &s.p, sizeof(s.p));
-    wptr += sizeof(s.p);
-    memcpy(wptr, &s.r, sizeof(s.r));
-    wptr += sizeof(s.r);
-    memcpy(wptr, &s.calib, sizeof(s.calib));
-    wptr += sizeof(s.calib);
-    memcpy(wptr, &s.tz, sizeof(s.tz));
-    wptr += sizeof(s.tz);
-    memcpy(wptr, &s.th, sizeof(s.th));
-    wptr += sizeof(s.th);
-    memcpy(wptr, &s.tp, sizeof(s.tp));
-    wptr += sizeof(s.tp);
-    memcpy(wptr, &s.tr, sizeof(s.tr));
-    wptr += sizeof(s.tr);
-    memcpy(wptr, &s.zov, sizeof(s.zov));
-    wptr += sizeof(s.zov);
-    memcpy(wptr, &s.hov, sizeof(s.hov));
-    wptr += sizeof(s.hov);
-    memcpy(wptr, &s.pov, sizeof(s.pov));
-    wptr += sizeof(s.pov);
-    memcpy(wptr, &s.rov, sizeof(s.rov));
-    wptr += sizeof(s.rov);
-    memcpy(wptr, s.motors, sizeof(s.motors[0]) * 4);
-    wptr += (sizeof(s.motors[0]) * 4);
-    memcpy(wptr, &s.err, sizeof(s.err));
-    wptr += sizeof(s.err);
-    return b;
+    return bin(s.t) + bin(s.t_abs) + bin(s.comptime) +
+        bin(s.temp) + bin(s.pres) + bin(s.pos) +
+        bin(s.calib) + bin(s.targets) + bin(s.pidov) +
+        bin(s.motors) + bin(s.err) + bin(s.status);
 }
 
 uav::param uav::deserialize(const param::bin& b)
 {
-    static_assert(param::fields == 23, "CHECK_ASSUMED_SIZE_OF_PARAM");
-    static_assert(param::size == 171, "CHECK_ASSUMED_SIZE_OF_PARAM");
-
     param p;
-    const byte *rptr = b.data();
-    memcpy(&p.freq, rptr, sizeof(p.freq));
-    rptr += sizeof(p.freq);
-    memcpy(&p.p1h, rptr, sizeof(p.p1h));
-    rptr += sizeof(p.p1h);
-    memcpy(&p.p2h, rptr, sizeof(p.p2h));
-    rptr += sizeof(p.p2h);
-    memcpy(p.zpidg, rptr, sizeof(p.zpidg[0]) * 4);
-    rptr += (sizeof(p.zpidg[0]) * 4);
-    memcpy(p.hpidg, rptr, sizeof(p.hpidg[0]) * 4);
-    rptr += (sizeof(p.hpidg[0]) * 4);
-    memcpy(p.ppidg, rptr, sizeof(p.ppidg[0]) * 4);
-    rptr += (sizeof(p.ppidg[0]) * 4);
-    memcpy(p.rpidg, rptr, sizeof(p.rpidg[0]) * 4);
-    rptr += (sizeof(p.rpidg[0]) * 4);
-    memcpy(&p.gz_rc, rptr, sizeof(p.gz_rc));
-    rptr += sizeof(p.gz_rc);
-    memcpy(&p.gz_wam, rptr, sizeof(p.gz_wam));
-    rptr += sizeof(p.gz_wam);
-    memcpy(&p.maxmrate, rptr, sizeof(p.maxmrate));
-    rptr += sizeof(p.maxmrate);
-    memcpy(&p.mg, rptr, sizeof(p.mg));
-    rptr += sizeof(p.mg);
+    size_t rptr(0);
+    auto src = begin(b);
+    bin(src, rptr, p.freq);
+    bin(src, rptr, p.p1h);
+    bin(src, rptr, p.p2h);
+    bin(src, rptr, p.spidg);
+    bin(src, rptr, p.zpidg);
+    bin(src, rptr, p.hpidg);
+    bin(src, rptr, p.ppidg);
+    bin(src, rptr, p.rpidg);
+    bin(src, rptr, p.gz_rc);
+    bin(src, rptr, p.gz_wam);
+    bin(src, rptr, p.tilt95);
+    bin(src, rptr, p.maxtilt);
+    bin(src, rptr, p.mg);
     return p;
 }
 
 uav::state uav::deserialize(const state::bin& b)
 {
-    static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
-    static_assert(state::size == 99, "CHECK_ASSUMED_SIZE_OF_STATE");
-
     state s;
-    const byte *rptr = b.data();
-    memcpy(&s.t, rptr, sizeof(s.t));
-    rptr += sizeof(s.t);
-    memcpy(&s.t_abs, rptr, sizeof(s.t_abs));
-    rptr += sizeof(s.t_abs);
-    memcpy(&s.comptime, rptr, sizeof(s.comptime));
-    rptr += sizeof(s.comptime);
-    memcpy(s.temp, rptr, sizeof(s.temp[0]) * 2);
-    rptr += (sizeof(s.temp[0]) * 2);
-    memcpy(s.pres, rptr, sizeof(s.pres[0]) * 2);
-    rptr += (sizeof(s.pres[0]) * 2);
-    memcpy(&s.dz, rptr, sizeof(s.dz));
-    rptr += sizeof(s.dz);
-    memcpy(&s.h, rptr, sizeof(s.h));
-    rptr += sizeof(s.h);
-    memcpy(&s.p, rptr, sizeof(s.p));
-    rptr += sizeof(s.p);
-    memcpy(&s.r, rptr, sizeof(s.r));
-    rptr += sizeof(s.r);
-    memcpy(&s.calib, rptr, sizeof(s.calib));
-    rptr += sizeof(s.calib);
-    memcpy(&s.tz, rptr, sizeof(s.tz));
-    rptr += sizeof(s.tz);
-    memcpy(&s.th, rptr, sizeof(s.th));
-    rptr += sizeof(s.th);
-    memcpy(&s.tp, rptr, sizeof(s.tp));
-    rptr += sizeof(s.tp);
-    memcpy(&s.tr, rptr, sizeof(s.tr));
-    rptr += sizeof(s.tr);
-    memcpy(&s.zov, rptr, sizeof(s.zov));
-    rptr += sizeof(s.zov);
-    memcpy(&s.hov, rptr, sizeof(s.hov));
-    rptr += sizeof(s.hov);
-    memcpy(&s.pov, rptr, sizeof(s.pov));
-    rptr += sizeof(s.pov);
-    memcpy(&s.rov, rptr, sizeof(s.rov));
-    rptr += sizeof(s.rov);
-    memcpy(s.motors, rptr, sizeof(s.motors[0]) * 4);
-    rptr += (sizeof(s.motors[0]) * 4);
-    memcpy(&s.err, rptr, sizeof(s.err));
-    rptr += sizeof(s.err);
+    size_t rptr(0);
+    const uint8_t* src = begin(b);
+    bin(src, rptr, s.t);
+    bin(src, rptr, s.t_abs);
+    bin(src, rptr, s.comptime);
+    bin(src, rptr, s.temp);
+    bin(src, rptr, s.pres);
+    bin(src, rptr, s.pos);
+    bin(src, rptr, s.calib);
+    bin(src, rptr, s.targets);
+    bin(src, rptr, s.pidov);
+    bin(src, rptr, s.motors);
+    bin(src, rptr, s.err);
+    bin(src, rptr, s.status);
     return s;
 }
 
 std::string uav::param::header()
 {
-    return "freq p1h p2h zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
-           "gz_rc gz_wam maxmrate mg";
+    return "freq p1h p2h spidg(0..3) zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
+           "gz_rc gz_wam tilt95 maxtilt mg";
 }
 
 std::string uav::state::header(fmt::bitmask_t mask)
 {
-    static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
-
     using namespace std;
 
     std::bitset<state::size> b(mask);
@@ -239,35 +103,42 @@ std::string uav::state::header(fmt::bitmask_t mask)
     int i = 0;
     if (b[i++]) line << setw(10) << "time";
     if (b[i++]) line << setw(15) << "t_abs";
-    if (b[i++]) line << setw(10) << "comp";
+    if (b[i++]) line << setw(10) << "comp_us";
 
     if (b[i++]) line << setw(9) << "t1";
     if (b[i++]) line << setw(9) << "t2";
     if (b[i++]) line << setw(12) << "p1";
     if (b[i++]) line << setw(12) << "p2";
-    if (b[i++]) line << setw(9) << "dz";
+    if (b[i++]) line << setw(9) << "x";
+    if (b[i++]) line << setw(9) << "y";
+    if (b[i++]) line << setw(9) << "z";
 
     if (b[i++]) line << setw(9) << "hdg";
     if (b[i++]) line << setw(9) << "pitch";
     if (b[i++]) line << setw(9) << "roll";
     if (b[i++]) line << setw(4) << "cal";
 
-    if (b[i++]) line << setw(5) << "tz";
-    if (b[i++]) line << setw(5) << "th";
-    if (b[i++]) line << setw(5) << "tp";
-    if (b[i++]) line << setw(5) << "tr";
+    if (b[i++]) line << setw(9) << "tx";
+    if (b[i++]) line << setw(9) << "ty";
+    if (b[i++]) line << setw(9) << "tz";
+    if (b[i++]) line << setw(9) << "th";
+    if (b[i++]) line << setw(9) << "tp";
+    if (b[i++]) line << setw(9) << "tr";
 
-    if (b[i++]) line << setw(12) << "zov";
-    if (b[i++]) line << setw(12) << "hov";
-    if (b[i++]) line << setw(12) << "pov";
-    if (b[i++]) line << setw(12) << "rov";
+    if (b[i++]) line << setw(9) << "xov";
+    if (b[i++]) line << setw(9) << "yov";
+    if (b[i++]) line << setw(9) << "zov";
+    if (b[i++]) line << setw(9) << "hov";
+    if (b[i++]) line << setw(9) << "pov";
+    if (b[i++]) line << setw(9) << "rov";
 
     if (b[i++]) line << setw(9) << "m1(CW)";
     if (b[i++]) line << setw(9) << "m2(CCW)";
     if (b[i++]) line << setw(9) << "m3(CW)";
     if (b[i++]) line << setw(9) << "m4(CCW)";
 
-    if (b[i++]) line << setw(10) << "err";
+    if (b[i++]) line << setw(20) << "err";
+    if (b[i++]) line << setw(7) << "status";
 
     return line.str();
 }
@@ -282,6 +153,9 @@ std::string uav::to_string(const param& prm)
 
     line << "[ ";
     for (int i = 0; i < 4; i++)
+        line << prm.spidg[i] << " ";
+    line << "] [ ";
+    for (int i = 0; i < 4; i++)
         line << prm.zpidg[i] << " ";
     line << "] [ ";
     for (int i = 0; i < 4; i++)
@@ -295,7 +169,8 @@ std::string uav::to_string(const param& prm)
     line << "] ";
     line << prm.gz_rc << " ";
     line << prm.gz_wam << " ";
-    line << prm.maxmrate << " ";
+    line << prm.tilt95 << " ";
+    line << prm.maxtilt << " ";
     line << prm.mg << " ";
 
     std::string str = line.str();
@@ -305,8 +180,6 @@ std::string uav::to_string(const param& prm)
 
 std::string uav::to_string(const state& it, fmt::bitmask_t mask)
 {
-    static_assert(state::fields == 25, "CHECK_ASSUMED_SIZE_OF_STATE");
-
     using namespace std;
 
     std::bitset<state::fields> b(mask);
@@ -319,34 +192,35 @@ std::string uav::to_string(const state& it, fmt::bitmask_t mask)
     int i = 0;
     if (b[i++]) line << setw(10) << it.t/1000.0;
     if (b[i++]) line << setw(15) << it.t_abs/1000.0;
-    if (b[i++]) line << setw(10) << it.comptime;
+    if (b[i++]) line << setw(10) << it.comptime/1000.0;
     if (b[i++]) line << setw(9) << it.temp[0];
     if (b[i++]) line << setw(9) << it.temp[1];
     if (b[i++]) line << setw(12) << it.pres[0];
     if (b[i++]) line << setw(12) << it.pres[1];
-    if (b[i++]) line << setw(9) << it.dz;
 
-    if (b[i++]) line << setw(9) << it.h;
-    if (b[i++]) line << setw(9) << it.p;
-    if (b[i++]) line << setw(9) << it.r;
+    for (int j = 0; j < 6; j++)
+        if (b[i++]) line << setw(9) << it.pos[j];
+    
     if (b[i++]) line << hex << setw(4) << (int) it.calib << dec;
 
-    if (b[i++]) line << setw(5) << (int) it.tz;
-    if (b[i++]) line << setw(5) << (int) it.th;
-    if (b[i++]) line << setw(5) << (int) it.tp;
-    if (b[i++]) line << setw(5) << (int) it.tr;
+    for (int j = 0; j < 6; j++)
+        if (b[i++]) line << setw(9) << it.targets[j];
 
-    if (b[i++]) line << setw(12) << it.zov;
-    if (b[i++]) line << setw(12) << it.hov;
-    if (b[i++]) line << setw(12) << it.pov;
-    if (b[i++]) line << setw(12) << it.rov;
+    for (int j = 0; j < 6; j++)
+        if (b[i++]) line << setw(9) << it.pidov[j];
 
     if (b[i++]) line << setw(9) << it.motors[0];
     if (b[i++]) line << setw(9) << it.motors[1];
     if (b[i++]) line << setw(9) << it.motors[2];
     if (b[i++]) line << setw(9) << it.motors[3];
 
-    if (b[i++]) line << setw(10) << std::bitset<16>(it.err);
+    if (b[i++]) line << setw(20) << std::bitset<16>(it.err);
+    if (b[i++]) switch (it.status)
+    {
+        case 0: line << "POSITION SEEK"; break;
+        case 1: line << "POSITION HOLD"; break;
+        default: line << "UNDETERMINED"; break;
+    }
 
     return line.str();
 }
@@ -434,8 +308,9 @@ int uav::tests::uavcore()
     param p{ f125hz, 0, 0, { 0.12, 0.3, 0.5, -1 }, { 2.3, 1.4, 0.015, -1 },
         { 0.1, 01.8, 0.02, -1 }, { 0.1, -0.45, 0.02, -1 }, 0.1, 0.65, 500, 41 };
 
-    state s{ 45, 123, 2001, 10132.7F, 10100.3F, 45.4F, 45.7F, 0.73F, 32.0F, 2.3F, -1.6F,
-        0x4f, 23, 3, -12, 102, 0.45F, 0.23F, -0.34F, 1.45F, 43, 27, 32, 51, 12 };
+    state s{ 45, 123, 2001, {10132.7, 10100.3}, {45.4, 45.7},
+        {0, 0, 0.73, 32.0, 2.3, -1.6}, 0x4f, {1, 4, 23, 3, -12, 102},
+        {0.3, -3.4, 0.45F, 0.23, -0.34, 1.45}, {43, 27, 32, 51}, 12 };
 
     std::cout << to_string(p) << std::endl;
     std::cout << to_string(s, fmt::standard) << std::endl;
