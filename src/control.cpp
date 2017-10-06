@@ -211,11 +211,18 @@ int uav::controller::iterate(bool block)
         }
     }
 
-    const double epsilon = 0.01;
+    const double epsilon = 0.1;
     bool converged = true;
+    std::stringstream ss;
     for (int i = 0; i < 6 && converged; i++)
-        converged &= (abs(curr.targets[i] - curr.pos[i]) < epsilon)
-            & (abs(curr.pidov[i]) < epsilon);
+    {
+        ss << std::abs(curr.targets[i] - curr.pos[i]) << " ";
+        ss << std::abs(curr.pidov[i]) << " ";
+        converged &= ((std::abs(curr.targets[i] - curr.pos[i]) < epsilon)
+            & (std::abs(curr.pidov[i]) < epsilon));
+    }
+    ss << converged;
+    uav::debug(ss.str());
 
     curr.status = converged;
 
@@ -342,7 +349,8 @@ void uav::controller::gettargets()
     static uint64_t last(0);
     if (debug)
     {
-        if ((curr.t - last >= 25000) || curr.t == 0)
+        if (curr.status == 0) last = curr.t;
+        if ((curr.t - last >= 3000) || curr.t == 0)
         {
             last = curr.t;
 
@@ -350,8 +358,6 @@ void uav::controller::gettargets()
             curr.targets[1] = uniform(gen) * 100;
             curr.targets[2] = uniform(gen) * 25 + 25;
             curr.targets[3] = uniform(gen) * 180;
-            curr.targets[4] = uniform(gen) * 30;
-            curr.targets[5] = uniform(gen) * 30;
         }
     }
     else curr.targets.fill(0);
