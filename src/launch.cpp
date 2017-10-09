@@ -8,6 +8,7 @@
 #include <stdbool.h>
 #include <signal.h>
 
+#include <uavcore.h>
 #include <ncurses.h>
 #include <control.h>
 #include <pwm.h>

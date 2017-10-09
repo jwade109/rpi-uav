@@ -206,6 +206,27 @@ namespace uav
 
     void flush();
 
+    class logstream
+    {
+        void (*log)(std::string s);
+        std::stringstream ss;
+
+        public:
+
+        logstream(void (*logfunc)(std::string s));
+
+        template <typename T>
+        logstream& operator << (const T& t)
+        {
+            ss << t;
+            return *this;
+        }
+
+        logstream& operator << (std::ostream& (*)(std::ostream&));
+    };
+
+    extern logstream debugstream, infostream, errorstream;
+
     namespace tests
     {
         int uavcore();

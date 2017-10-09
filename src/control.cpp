@@ -41,7 +41,7 @@ uav::controller::~controller() { }
 
 int uav::controller::align()
 {
-    uav::info("RNG seed: " + std::to_string(seed));
+    uav::infostream << "RNG seed: " << seed << std::endl;
     const int samples = 100; // altitude samples for home point
     const auto wait = chrono::milliseconds(10);
 
@@ -111,9 +111,8 @@ int uav::controller::iterate(bool block)
 
     if (!first && (curr.t - prev.t) != 1000/prm.freq)
     {
-        uav::error("Timing error (" +
-                std::to_string(prev.t) + " -> " +
-                std::to_string(curr.t) + ")");
+        uav::errorstream << "Timing error ("
+            << prev.t << " -> " << curr.t << ")" << std::endl;
         error[0] = 1;
     }
 
@@ -151,43 +150,58 @@ int uav::controller::iterate(bool block)
     // 101,325 Pa (0 m MSL), and no less than 80,000 Pa (~2000 m MSL)
     if (curr.pres[0] < 80000 || curr.pres[0] > 101325)
     {
+        uav::errorstream << "pres[0] = " << curr.pres[0] << std::endl;
         error[1] = 1;
     }
     if (curr.pres[1] < 80000 || curr.pres[1] > 101325)
     {
+        uav::errorstream << "pres[1] = " << curr.pres[1] << std::endl;
         error[2] = 1;
     }
     // decision tree for correcting bad alt measurements
     if (error[1] && error[2]) // uh-oh, both altimeters are bad
     {
+        uav::info("Using previous pressure measurements");
         curr.pres[0] = prev.pres[0];
         curr.pres[1] = prev.pres[1];
     }
     else if (error[1]) // p1 is bad, p2 is good
+    {
+        uav::info("using pres[1] for value of pres[0]");
         curr.pres[0] = curr.pres[1];
+    }
     else if (error[2]) // p2 is bad, p1 is good
+    {
+        uav::info("using pres[0] for value of pres[1]");
         curr.pres[1] = curr.pres[0];
+    }
 
     // verify that all attitudes are normal or zero
     // expected values for heading are (-180,+180)
     if (curr.pos[3] <= -180 || curr.pos[3] >= 180 ||
         !std::isfinite(curr.pos[3]))
     {
+        uav::errorstream << "pos[3] = " << curr.pos[3] << std::endl;
         error[3] = 1;
+        uav::info("Using previous value of pos[3]");
         curr.pos[3] = prev.pos[3];
     }
     // roll is expected to be [-90,+90]
     if (curr.pos[4] < -90 || curr.pos[4] > 90 ||
         !std::isfinite(curr.pos[4]))
     {
+        uav::errorstream << "pos[4] = " << curr.pos[4] << std::endl;
         error[4] = 1;
+        uav::info("Using previous value of pos[4]");
         curr.pos[4] = prev.pos[4];
     }
     // pitch should be (-180,+180)
     if (curr.pos[5] <= -180 || curr.pos[5] >= 180 ||
         !std::isfinite(curr.pos[5]))
     {
+        uav::errorstream << "pos[5] = " << curr.pos[5] << std::endl;
         error[5] = 1;
+        uav::info("Using previous value of pos[5]");
         curr.pos[5] = prev.pos[5];
     }
 
@@ -211,53 +225,52 @@ int uav::controller::iterate(bool block)
         }
     }
 
+    // get target position and attitude from controller
+    gettargets();
+
     const double epsilon = 0.1;
     bool converged = true;
-    std::stringstream ss;
     for (int i = 0; i < 6 && converged; i++)
     {
-        ss << std::abs(curr.targets[i] - curr.pos[i]) << " ";
-        ss << std::abs(curr.pidov[i]) << " ";
         converged &= ((std::abs(curr.targets[i] - curr.pos[i]) < epsilon)
             & (std::abs(curr.pidov[i]) < epsilon));
     }
-    ss << converged;
-    uav::debug(ss.str());
-
     curr.status = converged;
-
-    // get target position and attitude from controller
-    gettargets();
 
     // targets should not exceed the normal range for measured values
     if (curr.targets[2] < -50 || curr.targets[2] > 50)
     {
-        uav::error("curr.targets[2] = " + std::to_string(curr.targets[2]));
+        uav::errorstream << "curr.targets[2] = " << curr.targets[2] << std::endl;
         error[6] = 1;
+        uav::info("Using previous value of targets[2]");
         curr.targets[2] = prev.targets[2];
     }
     if (curr.targets[3] <= -180 || curr.targets[3] >= 180)
     {
-        uav::error("curr.targets[3] = " + std::to_string(curr.targets[3]));
+        uav::errorstream << "curr.targets[3] = " << curr.targets[3] << std::endl;
         error[7] = 1;
+        uav::info("Using previous value of targets[3]");
         curr.targets[3] = prev.targets[3];
     }
     if (curr.targets[4] < -90 || curr.targets[4] > 90)
     {
-        uav::error("curr.targets[4] = " + std::to_string(curr.targets[4]));
+        uav::errorstream << "curr.targets[4] = " << curr.targets[4] << std::endl;
         error[8] = 1;
+        uav::info("Using previous value of targets[4]");
         curr.targets[4] = prev.targets[4];
     }
     if (curr.targets[5] <= -180 || curr.targets[5] >= 180)
     {
-        uav::error("curr.targets[5] = " + std::to_string(curr.targets[5]));
+        uav::errorstream << "curr.targets[5] = " << curr.targets[5] << std::endl;
         error[9] = 1;
+        uav::info("Using previous value of targets[5]");
         curr.targets[5] = prev.targets[5];
     }
 
     if (first)
     {
         first = false;
+        simulator.stepfor(1000000/prm.freq, 1000);
         curr.err = (uint16_t) error.to_ulong();
         curr.comptime = chrono::duration_cast<chrono::nanoseconds>(
             chrono::steady_clock::now() - stopwatch).count();

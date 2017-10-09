@@ -7,7 +7,7 @@
 #include <chrono>
 #include <cassert>
 
-#include "uavcore.h"
+#include <uavcore.h>
 
 bool uav::param::operator==(const param& other)
 {
@@ -242,6 +242,20 @@ std::string uav::timestamp()
         << setw(3) << setfill('0') << milli << "."
         << setw(3) << setfill('0') << micro << "]   ";
     return s.str();
+}
+
+uav::logstream uav::debugstream(uav::debug),
+               uav::infostream(uav::info),
+               uav::errorstream(uav::error);
+
+uav::logstream::logstream(void (* logfunc) (std::string s)) :
+    log(logfunc) { }
+
+uav::logstream& uav::logstream::operator << (std::ostream& (*)(std::ostream& os))
+{
+    log(ss.str());
+    ss.clear();
+    return *this;
 }
 
 uav::param paramlog;
