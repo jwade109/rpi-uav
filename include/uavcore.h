@@ -20,6 +20,7 @@ namespace uav
     using pid_ov_t      = float;
     using motor_t       = float;
     using error_t       = uint16_t;
+    using status_t      = uint8_t;
 
     using freq_t        = uint8_t;
     using home_pres_t   = double;
@@ -35,6 +36,11 @@ namespace uav
         f100hz = 100, f125hz = 125, f200hz = 200, f250hz = 250,
 
         fdefault = f100hz
+    };
+
+    enum : status_t
+    {
+        null_status, align, no_vel, pos_seek, pos_hold, high_tilt, upside_down
     };
 
     // formatting bitmasks /////////////////////////////////////////////////////

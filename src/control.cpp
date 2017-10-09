@@ -88,28 +88,28 @@ int uav::controller::align()
 
 int uav::controller::iterate(bool block)
 {
-    static bool first(true);
     std::bitset<16> error(0);
     prev = curr;
 
-    auto now = chrono::steady_clock::now();
-    if (first) tstart = now;
-    else if (block)
     {
-        uint64_t ts = prev.t + 1000/prm.freq;
-        while (now < tstart + chrono::milliseconds(ts))
-            now = chrono::steady_clock::now();
+        auto now = chrono::steady_clock::now();
+        if (curr.status == uav::null_status) tstart = now;
+        else if (block)
+        {
+            uint64_t ts = prev.t + 1000/prm.freq;
+            while (now < tstart + chrono::milliseconds(ts))
+                now = chrono::steady_clock::now();
+        }
+        curr.t = chrono::duration_cast<chrono::milliseconds>(
+                now - tstart).count();
+        curr.t_abs = chrono::duration_cast<chrono::milliseconds>(
+                now.time_since_epoch()).count();
     }
 
     auto stopwatch = chrono::steady_clock::now();
-    curr.t = chrono::duration_cast<chrono::milliseconds>(
-            now - tstart).count();
-    curr.t_abs = chrono::duration_cast<chrono::milliseconds>(
-            now.time_since_epoch()).count();
-
     double dt = (curr.t - prev.t)/1000.0;
 
-    if (!first && (curr.t - prev.t) != 1000/prm.freq)
+    if ((curr.status != uav::null_status) && (curr.t - prev.t) != 1000/prm.freq)
     {
         uav::errorstream << "Timing error ("
             << prev.t << " -> " << curr.t << ")" << std::endl;
@@ -140,12 +140,15 @@ int uav::controller::iterate(bool block)
         curr.temp[0] = curr.temp[1] = 25.6 + gaussian(gen) * 0.1;
     }
 
+    // get target position and attitude from controller
+    gettargets();
+
     // if a pressure measurement is deemed invalid, use the
     // other barometer's measurement, or the most recent valid
     // measurement
     //
     // for invalid attitude readings, use the previous measurement
-    
+
     // assume during normal operation, pressure will be atmost
     // 101,325 Pa (0 m MSL), and no less than 80,000 Pa (~2000 m MSL)
     if (curr.pres[0] < 80000 || curr.pres[0] > 101325)
@@ -205,38 +208,6 @@ int uav::controller::iterate(bool block)
         curr.pos[5] = prev.pos[5];
     }
 
-    // once readings are verified, filter altitude
-    {
-        auto alt = [](float p, float hp)
-            { return 44330 * (1.0 - pow(p/hp, 0.1903)); };
-
-        double z1 = alt(curr.pres[0], prm.p1h);
-        double z2 = alt(curr.pres[1], prm.p2h);
-        double zavg = z1 * prm.gz_wam + z2 * (1 - prm.gz_wam);
-        double a = dt/(prm.gz_rc + dt);
-        curr.pos[2] = a * zavg + (1 - a) * prev.pos[2];
-
-        if (debug)
-        {
-            auto pos = simulator.pos;
-            curr.pos[0] = pos.x();
-            curr.pos[1] = pos.y();
-            curr.pos[2] = pos.z();
-        }
-    }
-
-    // get target position and attitude from controller
-    gettargets();
-
-    const double epsilon = 0.1;
-    bool converged = true;
-    for (int i = 0; i < 6 && converged; i++)
-    {
-        converged &= ((std::abs(curr.targets[i] - curr.pos[i]) < epsilon)
-            & (std::abs(curr.pidov[i]) < epsilon));
-    }
-    curr.status = converged;
-
     // targets should not exceed the normal range for measured values
     if (curr.targets[2] < -50 || curr.targets[2] > 50)
     {
@@ -267,9 +238,30 @@ int uav::controller::iterate(bool block)
         curr.targets[5] = prev.targets[5];
     }
 
-    if (first)
+    // once readings are verified, filter altitude
     {
-        first = false;
+        auto alt = [](float p, float hp)
+            { return 44330 * (1.0 - pow(p/hp, 0.1903)); };
+
+        double z1 = alt(curr.pres[0], prm.p1h);
+        double z2 = alt(curr.pres[1], prm.p2h);
+        double zavg = z1 * prm.gz_wam + z2 * (1 - prm.gz_wam);
+        double a = dt/(prm.gz_rc + dt);
+        curr.pos[2] = a * zavg + (1 - a) * prev.pos[2];
+
+        if (debug)
+        {
+            auto pos = simulator.pos;
+            curr.pos[0] = pos.x();
+            curr.pos[1] = pos.y();
+            curr.pos[2] = pos.z();
+        }
+    }
+
+    // end here if this is the first iteration
+    if (curr.status == uav::null_status)
+    {
+        curr.status = uav::no_vel;
         simulator.stepfor(1000000/prm.freq, 1000);
         curr.err = (uint16_t) error.to_ulong();
         curr.comptime = chrono::duration_cast<chrono::nanoseconds>(
@@ -277,9 +269,20 @@ int uav::controller::iterate(bool block)
         return 2;
     }
     
+    // determine convergence on target position
+    {
+        const double epsilon = 0.1;
+        bool converged = true;
+        for (int i = 0; i < 6 && converged; i++)
+        {
+            converged &= ((std::abs(curr.targets[i] - curr.pos[i]) < epsilon)
+                & (std::abs(curr.pidov[i]) < epsilon));
+        }
+        curr.status = converged ? uav::pos_hold : uav::pos_seek;
+    }
+
     // assumed that at this point, z, h, r, and p are
     // all trustworthy. process pid controller responses
-
     auto deg2rad = [](double deg) { return deg * M_PI / 180.0; };
     auto circular_err = [](double h, double t)
     {
@@ -362,8 +365,8 @@ void uav::controller::gettargets()
     static uint64_t last(0);
     if (debug)
     {
-        if (curr.status == 0) last = curr.t;
-        if ((curr.t - last >= 3000) || curr.t == 0)
+        if (curr.status != uav::pos_hold) last = curr.t;
+        if ((curr.t - last >= 5000) || curr.t == 0)
         {
             last = curr.t;
 

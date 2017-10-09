@@ -215,11 +215,12 @@ std::string uav::to_string(const state& it, fmt::bitmask_t mask)
     if (b[i++]) line << setw(9) << it.motors[3];
 
     if (b[i++]) line << setw(20) << std::bitset<16>(it.err);
-    if (b[i++]) switch (it.status)
+    if (b[i++])
     {
-        case 0: line << "POSITION SEEK"; break;
-        case 1: line << "POSITION HOLD"; break;
-        default: line << "UNDETERMINED"; break;
+        line << (int) it.status << "-";
+        const char *str[] = {"NULL_STATUS", "ALIGNING", "NO_VEL", "POS_SEEK",
+            "POS_HOLD", "UPSIDE_DOWN"};
+        line << str[it.status];
     }
 
     return line.str();
