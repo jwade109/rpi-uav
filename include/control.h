@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 #include <chrono>
+#include <bitset>
 
 #include <uavcore.h>
 #include <pid.h>
@@ -45,10 +46,10 @@ namespace uav
         dronebody simulator;
 
         void gettargets();
+        static std::bitset<16> validate(const state& prev, state& curr);
+        static std::pair<imu::Vector<3>, imu::Vector<3>> traverse(
+            imu::Vector<2> S, double heading, double tilt95, double maxtilt);
     };
-
-    std::pair<imu::Vector<3>, imu::Vector<3>>
-    traverse(imu::Vector<2> S, double heading, double tilt95, double maxtilt);
 }
 
 #endif // CONTROL_H

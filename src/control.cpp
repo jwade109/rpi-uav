@@ -5,8 +5,6 @@
 #include <ctime>
 #include <cmath>
 #include <thread>
-#include <chrono>
-#include <bitset>
 #include <random>
 
 #include <control.h>
@@ -140,103 +138,10 @@ int uav::controller::iterate(bool block)
         curr.temp[0] = curr.temp[1] = 25.6 + gaussian(gen) * 0.1;
     }
 
+    error |= validate(prev, curr);
+
     // get target position and attitude from controller
     gettargets();
-
-    // if a pressure measurement is deemed invalid, use the
-    // other barometer's measurement, or the most recent valid
-    // measurement
-    //
-    // for invalid attitude readings, use the previous measurement
-
-    // assume during normal operation, pressure will be atmost
-    // 101,325 Pa (0 m MSL), and no less than 80,000 Pa (~2000 m MSL)
-    if (curr.pres[0] < 80000 || curr.pres[0] > 101325)
-    {
-        uav::errorstream << "pres[0] = " << curr.pres[0] << std::endl;
-        error[1] = 1;
-    }
-    if (curr.pres[1] < 80000 || curr.pres[1] > 101325)
-    {
-        uav::errorstream << "pres[1] = " << curr.pres[1] << std::endl;
-        error[2] = 1;
-    }
-    // decision tree for correcting bad alt measurements
-    if (error[1] && error[2]) // uh-oh, both altimeters are bad
-    {
-        uav::info("Using previous pressure measurements");
-        curr.pres[0] = prev.pres[0];
-        curr.pres[1] = prev.pres[1];
-    }
-    else if (error[1]) // p1 is bad, p2 is good
-    {
-        uav::info("using pres[1] for value of pres[0]");
-        curr.pres[0] = curr.pres[1];
-    }
-    else if (error[2]) // p2 is bad, p1 is good
-    {
-        uav::info("using pres[0] for value of pres[1]");
-        curr.pres[1] = curr.pres[0];
-    }
-
-    // verify that all attitudes are normal or zero
-    // expected values for heading are (-180,+180)
-    if (curr.pos[3] <= -180 || curr.pos[3] >= 180 ||
-        !std::isfinite(curr.pos[3]))
-    {
-        uav::errorstream << "pos[3] = " << curr.pos[3] << std::endl;
-        error[3] = 1;
-        uav::info("Using previous value of pos[3]");
-        curr.pos[3] = prev.pos[3];
-    }
-    // roll is expected to be [-90,+90]
-    if (curr.pos[4] < -90 || curr.pos[4] > 90 ||
-        !std::isfinite(curr.pos[4]))
-    {
-        uav::errorstream << "pos[4] = " << curr.pos[4] << std::endl;
-        error[4] = 1;
-        uav::info("Using previous value of pos[4]");
-        curr.pos[4] = prev.pos[4];
-    }
-    // pitch should be (-180,+180)
-    if (curr.pos[5] <= -180 || curr.pos[5] >= 180 ||
-        !std::isfinite(curr.pos[5]))
-    {
-        uav::errorstream << "pos[5] = " << curr.pos[5] << std::endl;
-        error[5] = 1;
-        uav::info("Using previous value of pos[5]");
-        curr.pos[5] = prev.pos[5];
-    }
-
-    // targets should not exceed the normal range for measured values
-    if (curr.targets[2] < -50 || curr.targets[2] > 50)
-    {
-        uav::errorstream << "curr.targets[2] = " << curr.targets[2] << std::endl;
-        error[6] = 1;
-        uav::info("Using previous value of targets[2]");
-        curr.targets[2] = prev.targets[2];
-    }
-    if (curr.targets[3] <= -180 || curr.targets[3] >= 180)
-    {
-        uav::errorstream << "curr.targets[3] = " << curr.targets[3] << std::endl;
-        error[7] = 1;
-        uav::info("Using previous value of targets[3]");
-        curr.targets[3] = prev.targets[3];
-    }
-    if (curr.targets[4] < -90 || curr.targets[4] > 90)
-    {
-        uav::errorstream << "curr.targets[4] = " << curr.targets[4] << std::endl;
-        error[8] = 1;
-        uav::info("Using previous value of targets[4]");
-        curr.targets[4] = prev.targets[4];
-    }
-    if (curr.targets[5] <= -180 || curr.targets[5] >= 180)
-    {
-        uav::errorstream << "curr.targets[5] = " << curr.targets[5] << std::endl;
-        error[9] = 1;
-        uav::info("Using previous value of targets[5]");
-        curr.targets[5] = prev.targets[5];
-    }
 
     // once readings are verified, filter altitude
     {
@@ -379,8 +284,109 @@ void uav::controller::gettargets()
     else curr.targets.fill(0);
 }
 
-std::pair<imu::Vector<3>, imu::Vector<3>>
-uav::traverse(imu::Vector<2> S, double heading, double tilt95, double maxtilt)
+std::bitset<16> uav::controller::validate(
+    const uav::state& prev, uav::state& curr)
+{
+    std::bitset<16> error;
+    // if a pressure measurement is deemed invalid, use the
+    // other barometer's measurement, or the most recent valid
+    // measurement
+    //
+    // for invalid attitude readings, use the previous measurement
+
+    // assume during normal operation, pressure will be atmost
+    // 101,325 Pa (0 m MSL), and no less than 80,000 Pa (~2000 m MSL)
+    if (curr.pres[0] < 80000 || curr.pres[0] > 101325)
+    {
+        uav::errorstream << "pres[0] = " << curr.pres[0] << std::endl;
+        error[1] = 1;
+    }
+    if (curr.pres[1] < 80000 || curr.pres[1] > 101325)
+    {
+        uav::errorstream << "pres[1] = " << curr.pres[1] << std::endl;
+        error[2] = 1;
+    }
+    // decision tree for correcting bad alt measurements
+    if (error[1] && error[2]) // uh-oh, both altimeters are bad
+    {
+        uav::info("Using previous pressure measurements");
+        curr.pres[0] = prev.pres[0];
+        curr.pres[1] = prev.pres[1];
+    }
+    else if (error[1]) // p1 is bad, p2 is good
+    {
+        uav::info("using pres[1] for value of pres[0]");
+        curr.pres[0] = curr.pres[1];
+    }
+    else if (error[2]) // p2 is bad, p1 is good
+    {
+        uav::info("using pres[0] for value of pres[1]");
+        curr.pres[1] = curr.pres[0];
+    }
+
+    // verify that all attitudes are normal or zero
+    // expected values for heading are (-180,+180)
+    if (curr.pos[3] <= -180 || curr.pos[3] >= 180 ||
+        !std::isfinite(curr.pos[3]))
+    {
+        uav::errorstream << "pos[3] = " << curr.pos[3] << std::endl;
+        error[3] = 1;
+        uav::info("Using previous value of pos[3]");
+        curr.pos[3] = prev.pos[3];
+    }
+    // roll is expected to be [-90,+90]
+    if (curr.pos[4] < -90 || curr.pos[4] > 90 ||
+        !std::isfinite(curr.pos[4]))
+    {
+        uav::errorstream << "pos[4] = " << curr.pos[4] << std::endl;
+        error[4] = 1;
+        uav::info("Using previous value of pos[4]");
+        curr.pos[4] = prev.pos[4];
+    }
+    // pitch should be (-180,+180)
+    if (curr.pos[5] <= -180 || curr.pos[5] >= 180 ||
+        !std::isfinite(curr.pos[5]))
+    {
+        uav::errorstream << "pos[5] = " << curr.pos[5] << std::endl;
+        error[5] = 1;
+        uav::info("Using previous value of pos[5]");
+        curr.pos[5] = prev.pos[5];
+    }
+
+    // targets should not exceed the normal range for measured values
+    if (curr.targets[2] < -50 || curr.targets[2] > 50)
+    {
+        uav::errorstream << "curr.targets[2] = " << curr.targets[2] << std::endl;
+        error[6] = 1;
+        uav::info("Using previous value of targets[2]");
+        curr.targets[2] = prev.targets[2];
+    }
+    if (curr.targets[3] <= -180 || curr.targets[3] >= 180)
+    {
+        uav::errorstream << "curr.targets[3] = " << curr.targets[3] << std::endl;
+        error[7] = 1;
+        uav::info("Using previous value of targets[3]");
+        curr.targets[3] = prev.targets[3];
+    }
+    if (curr.targets[4] < -90 || curr.targets[4] > 90)
+    {
+        uav::errorstream << "curr.targets[4] = " << curr.targets[4] << std::endl;
+        error[8] = 1;
+        uav::info("Using previous value of targets[4]");
+        curr.targets[4] = prev.targets[4];
+    }
+    if (curr.targets[5] <= -180 || curr.targets[5] >= 180)
+    {
+        uav::errorstream << "curr.targets[5] = " << curr.targets[5] << std::endl;
+        error[9] = 1;
+        uav::info("Using previous value of targets[5]");
+        curr.targets[5] = prev.targets[5];
+    }
+    return error;
+}
+
+std::pair<imu::Vector<3>, imu::Vector<3>> uav::controller::traverse(
+    imu::Vector<2> S, double heading, double tilt95, double maxtilt)
 {
     auto f = [=](double d)
     {
