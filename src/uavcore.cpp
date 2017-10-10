@@ -48,7 +48,7 @@ uav::state::bin uav::serialize(const state& s)
 uav::param uav::deserialize(const param::bin& b)
 {
     param p;
-    size_t rptr(0);
+    size_t rptr = 0;
     auto src = begin(b);
     bin(src, rptr, p.freq);
     bin(src, rptr, p.p1h);
@@ -69,8 +69,8 @@ uav::param uav::deserialize(const param::bin& b)
 uav::state uav::deserialize(const state::bin& b)
 {
     state s;
-    size_t rptr(0);
-    const uint8_t* src = begin(b);
+    size_t rptr = 0;
+    auto src = begin(b);
     bin(src, rptr, s.t);
     bin(src, rptr, s.t_abs);
     bin(src, rptr, s.comptime);
@@ -209,17 +209,15 @@ std::string uav::to_string(const state& it, fmt::bitmask_t mask)
     for (int j = 0; j < 6; j++)
         if (b[i++]) line << setw(9) << it.pidov[j];
 
-    if (b[i++]) line << setw(9) << it.motors[0];
-    if (b[i++]) line << setw(9) << it.motors[1];
-    if (b[i++]) line << setw(9) << it.motors[2];
-    if (b[i++]) line << setw(9) << it.motors[3];
+    for (int j = 0; j < 4; j++)
+        if (b[i++]) line << setw(9) << it.motors[j];
 
     if (b[i++]) line << setw(20) << std::bitset<16>(it.err);
     if (b[i++])
     {
         line << (int) it.status << "-";
-        const char *str[] = {"NULL_STATUS", "ALIGNING", "NO_VEL", "POS_SEEK",
-            "POS_HOLD", "UPSIDE_DOWN"};
+        const char *str[] = {"NULL_STATUS", "ALIGNING", "NO_VEL",
+            "POS_SEEK", "POS_HOLD", "UPSIDE_DOWN"};
         line << str[it.status];
     }
 
@@ -241,7 +239,7 @@ std::string uav::timestamp()
 
     s << "[" << setw(6) << setfill('0') << sec << "."
         << setw(3) << setfill('0') << milli << "."
-        << setw(3) << setfill('0') << micro << "]   ";
+        << setw(3) << setfill('0') << micro << "] ";
     return s.str();
 }
 
@@ -265,7 +263,7 @@ std::deque<std::string> textlog;
 
 void uav::reset()
 {
-    paramlog = { 0 };
+    paramlog = {0};
     statelog.clear();
     textlog.clear();
 }
@@ -287,7 +285,7 @@ void uav::debug(std::string s)
 
 void uav::info(std::string s)
 {
-    textlog.push_back("[INFO ] " + timestamp() + s);
+    textlog.push_back("[INFO]  " + timestamp() + s);
 }
 
 void uav::error(std::string s)
