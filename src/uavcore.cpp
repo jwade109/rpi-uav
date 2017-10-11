@@ -101,44 +101,44 @@ std::string uav::state::header(fmt::bitmask_t mask)
     line << left;
 
     int i = 0;
-    if (b[i++]) line << setw(10) << "time";
+    if (b[i++]) line << setw(15) << "time";
     if (b[i++]) line << setw(15) << "t_abs";
-    if (b[i++]) line << setw(10) << "comp_us";
+    if (b[i++]) line << setw(15) << "comp_us";
 
-    if (b[i++]) line << setw(9) << "t1";
-    if (b[i++]) line << setw(9) << "t2";
-    if (b[i++]) line << setw(12) << "p1";
-    if (b[i++]) line << setw(12) << "p2";
-    if (b[i++]) line << setw(9) << "x";
-    if (b[i++]) line << setw(9) << "y";
-    if (b[i++]) line << setw(9) << "z";
+    if (b[i++]) line << setw(15) << "t1";
+    if (b[i++]) line << setw(15) << "t2";
+    if (b[i++]) line << setw(15) << "p1";
+    if (b[i++]) line << setw(15) << "p2";
+    if (b[i++]) line << setw(15) << "x";
+    if (b[i++]) line << setw(15) << "y";
+    if (b[i++]) line << setw(15) << "z";
 
-    if (b[i++]) line << setw(9) << "hdg";
-    if (b[i++]) line << setw(9) << "pitch";
-    if (b[i++]) line << setw(9) << "roll";
-    if (b[i++]) line << setw(4) << "cal";
+    if (b[i++]) line << setw(15) << "hdg";
+    if (b[i++]) line << setw(15) << "pitch";
+    if (b[i++]) line << setw(15) << "roll";
+    if (b[i++]) line << setw(15) << "cal";
 
-    if (b[i++]) line << setw(9) << "tx";
-    if (b[i++]) line << setw(9) << "ty";
-    if (b[i++]) line << setw(9) << "tz";
-    if (b[i++]) line << setw(9) << "th";
-    if (b[i++]) line << setw(9) << "tp";
-    if (b[i++]) line << setw(9) << "tr";
+    if (b[i++]) line << setw(15) << "tx";
+    if (b[i++]) line << setw(15) << "ty";
+    if (b[i++]) line << setw(15) << "tz";
+    if (b[i++]) line << setw(15) << "th";
+    if (b[i++]) line << setw(15) << "tp";
+    if (b[i++]) line << setw(15) << "tr";
 
-    if (b[i++]) line << setw(9) << "xov";
-    if (b[i++]) line << setw(9) << "yov";
-    if (b[i++]) line << setw(9) << "zov";
-    if (b[i++]) line << setw(9) << "hov";
-    if (b[i++]) line << setw(9) << "pov";
-    if (b[i++]) line << setw(9) << "rov";
+    if (b[i++]) line << setw(15) << "xov";
+    if (b[i++]) line << setw(15) << "yov";
+    if (b[i++]) line << setw(15) << "zov";
+    if (b[i++]) line << setw(15) << "hov";
+    if (b[i++]) line << setw(15) << "pov";
+    if (b[i++]) line << setw(15) << "rov";
 
-    if (b[i++]) line << setw(9) << "m1(CW)";
-    if (b[i++]) line << setw(9) << "m2(CCW)";
-    if (b[i++]) line << setw(9) << "m3(CW)";
-    if (b[i++]) line << setw(9) << "m4(CCW)";
+    if (b[i++]) line << setw(15) << "m1(CW)";
+    if (b[i++]) line << setw(15) << "m2(CCW)";
+    if (b[i++]) line << setw(15) << "m3(CW)";
+    if (b[i++]) line << setw(15) << "m4(CCW)";
 
     if (b[i++]) line << setw(20) << "err";
-    if (b[i++]) line << setw(7) << "status";
+    if (b[i++]) line << setw(15) << "status";
 
     return line.str();
 }
@@ -190,27 +190,27 @@ std::string uav::to_string(const state& it, fmt::bitmask_t mask)
     line << setprecision(3);
 
     int i = 0;
-    if (b[i++]) line << setw(10) << it.t/1000.0;
+    if (b[i++]) line << setw(15) << it.t/1000.0;
     if (b[i++]) line << setw(15) << it.t_abs/1000.0;
-    if (b[i++]) line << setw(10) << it.comptime/1000.0;
-    if (b[i++]) line << setw(9) << it.temp[0];
-    if (b[i++]) line << setw(9) << it.temp[1];
-    if (b[i++]) line << setw(12) << it.pres[0];
-    if (b[i++]) line << setw(12) << it.pres[1];
+    if (b[i++]) line << setw(15) << it.comptime/1000.0;
+    if (b[i++]) line << setw(15) << it.temp[0];
+    if (b[i++]) line << setw(15) << it.temp[1];
+    if (b[i++]) line << setw(15) << it.pres[0];
+    if (b[i++]) line << setw(15) << it.pres[1];
 
     for (int j = 0; j < 6; j++)
-        if (b[i++]) line << setw(9) << it.pos[j];
+        if (b[i++]) line << setw(15) << it.pos[j];
     
-    if (b[i++]) line << hex << setw(4) << (int) it.calib << dec;
+    if (b[i++]) line << hex << setw(15) << (int) it.calib << dec;
 
     for (int j = 0; j < 6; j++)
-        if (b[i++]) line << setw(9) << it.targets[j];
+        if (b[i++]) line << setw(15) << it.targets[j];
 
     for (int j = 0; j < 6; j++)
-        if (b[i++]) line << setw(9) << it.pidov[j];
+        if (b[i++]) line << setw(15) << it.pidov[j];
 
     for (int j = 0; j < 4; j++)
-        if (b[i++]) line << setw(9) << it.motors[j];
+        if (b[i++]) line << setw(15) << it.motors[j];
 
     if (b[i++]) line << setw(20) << std::bitset<16>(it.err);
     if (b[i++])
@@ -253,7 +253,7 @@ uav::logstream::logstream(void (* logfunc) (std::string s)) :
 uav::logstream& uav::logstream::operator << (std::ostream& (*)(std::ostream& os))
 {
     log(ss.str());
-    ss.clear();
+    ss.str(std::string());
     return *this;
 }
 

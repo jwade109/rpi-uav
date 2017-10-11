@@ -98,8 +98,8 @@ namespace uav
                 d.pitch = strtod(cursor, &cursor);
                 d.roll = strtod(cursor, &cursor);
                 d.calib = strtol(cursor, &cursor, 10);
-                d.pres = strtod(cursor, &cursor);
                 d.temp = strtod(cursor, &cursor);
+                d.pres = strtod(cursor, &cursor);
                 data = d;
                 buffer.fill(0);
                 ptr = 0;
