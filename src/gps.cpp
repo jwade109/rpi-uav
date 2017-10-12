@@ -14,17 +14,11 @@ All text above must be included in any redistribution
 // by Wade Foster on 8/29/2017
 
 #include <iostream>
+#include <sstream>
 #include <vector>
-#include <cstring>
-#include <cmath>
-#include <cctype>
-#include <cstring>
-#include <unistd.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <termios.h>
 
 #include <gps.h>
+#include <wiringSerial.h>
 
 const std::string gps::pmtk_echo_100mHz("$PMTK220,10000*2F");
 const std::string gps::pmtk_echo_200mHz("$PMTK220,5000*1B");
@@ -62,27 +56,23 @@ const std::string gps::pmtk_awake("$PMTK010,002*2D");
 
 const std::string gps::pmtk_query_release("$PMTK605*31");
 
-gps::gps() : data{0}, newflag(false), cont(true), status(0), tty_fd(0) { }
+gps::gps() : data{0}, newflag(false), cont(true), status(0), fd(-1) { }
 
 gps::~gps()
 {
     cont = false;
     if (reader.joinable()) reader.join();
+    serialClose(fd);
 }
 
 int gps::begin()
 {
-    int fd = open("/dev/ttyS0", O_RDONLY | O_NONBLOCK | O_NOCTTY);
+    fd = serialOpen("/dev/ttyS0", 9600);
     if (fd < 0)
     {
-        std::cerr << "gps: Could not generate "
-                     "file descriptor" << std::endl;
+        std::cerr << "gps: could not open" << std::endl;
         return 1;
     }
-
-    tty_fd = fd;
-
-    tcflush(tty_fd, TCIOFLUSH);
 
     reader = std::thread(&gps::dowork, this);
 
@@ -109,280 +99,32 @@ gps_data gps::get()
 
 void gps::dowork()
 {
-    char ch;
-    bool reading = false;
-    std::vector<char> message;
-
+    std::stringstream message;
+    char ch = 0;
+    auto start = std::chrono::steady_clock::now();
     auto timeout = std::chrono::seconds(1);
-    auto getnow = [](){ return std::chrono::steady_clock::now(); };
-    auto start = getnow();
 
-    tcflush(tty_fd, TCIOFLUSH);
+    while (cont && ch != '$')
+    {
+        if (start + timeout < std::chrono::steady_clock::now())
+        {
+            std::cerr << "gps: timeout" << std::endl;
+            status = -1;
+            return;
+        }
+        if (serialDataAvail(fd) > 0) ch = serialGetchar(fd);
+    }
 
+    status = 1;
     while (cont)
     {
-        if (status == 0 && data.seconds != 0) status = 1;
-        else if (status == 0 && getnow() > start + timeout)
-        {
-            cont = false;
-            status = -1;
-        }
-        read(tty_fd, &ch, sizeof(ch));
         if (ch == '$')
         {
-            reading = true;
-        }
-        if (ch == 10 && reading)
-        {
-            std::string str(message.begin(), message.end());
-            if (str.find("GPGGA") != std::string::npos)
-            {
-                gps_data newgps = parse(str);
-                if (checknew(newgps, data))
-                {
-                    newflag = true;
-                    data = newgps;
-                }
-            }
-            reading = false;
+            std::cout << message.str() << std::endl;
+            message.str("");
             message.clear();
         }
-        else if (reading)
-        {
-            message.push_back(ch);
-        }
+        message << ch;
+        ch = serialGetchar(fd);
     }
-}
-
-// static helper functions /////////////////////////////////////////////////////
-
-bool gps::checknew(const gps_data& n, const gps_data& o)
-{
-    if (n.hour == 0 && o.hour == 23) return true;
-    if (n.hour != o.hour) return n.hour > o.hour;
-    if (n.minute != o.minute) return n.minute > o.minute;
-    return n.seconds > o.seconds;
-}
-
-uint8_t gps::parseHex(char c)
-{
-    if (c < '0') return 0;
-    if (c <= '9') return c - '0';
-    if (c < 'A') return 0;
-    if (c <= 'F') return (c - 'A') + 10;
-    return 0;
-}
-
-gps_data gps::parse(const std::string& nmea)
-{
-    gps_data newgps;
-    // do checksum check
-
-    // first look if we even have one
-    if (nmea[nmea.length() - 4] == '*')
-    {
-        uint16_t sum = parseHex(nmea[nmea.length() - 3]) * 16;
-        sum += parseHex(nmea[nmea.length() - 2]);
-
-        // check checksum
-        for (uint8_t i=2; i < (nmea.length() - 4); i++)
-        {
-            sum ^= nmea[i];
-        }
-        // bad checksum
-        if (sum != 0) return newgps;
-    }
-    int32_t degree;
-    long minutes;
-    char degreebuff[10];
-    // look for a few common sentences
-    if (nmea.find("$GPGGA") != std::string::npos)
-    {
-        // found GGA
-        const char *p = nmea.c_str();
-        // get time
-        p = strchr(p, ',')+1;
-        float timef = atof(p);
-        uint32_t time = timef;
-        newgps.hour = time / 10000;
-        newgps.minute = (time % 10000) / 100;
-        newgps.seconds = (time % 100);
-        newgps.milliseconds = fmod(timef, 1.0) * 1000;
-
-        // parse out latitude
-        p = strchr(p, ',')+1;
-
-        if (',' != *p)
-        {
-            strncpy(degreebuff, p, 2);
-            p += 2;
-            degreebuff[2] = '\0';
-            degree = atol(degreebuff) * 10000000;
-            strncpy(degreebuff, p, 2); // minutes
-            p += 3; // skip decimal point
-            strncpy(degreebuff + 2, p, 4);
-            degreebuff[6] = '\0';
-            minutes = 50 * atol(degreebuff) / 3;
-            newgps.latitude_fixed = degree + minutes;
-            newgps.latitude = degree / 100000 + minutes * 0.000006F;
-            newgps.latitude_degrees = (newgps.latitude-100*int(newgps.latitude/100))/60.0;
-            newgps.latitude_degrees += int(newgps.latitude/100);
-        }
-
-        p = strchr(p, ',')+1;
-        if (',' != *p)
-        {
-            if (p[0] == 'S') newgps.latitude_degrees *= -1.0;
-            if (p[0] == 'N') newgps.lat = 'N';
-            else if (p[0] == 'S') newgps.lat = 'S';
-            else if (p[0] == ',') newgps.lat = 0;
-            else return newgps;
-        }
-
-        // parse out longitude
-        p = strchr(p, ',')+1;
-        if (',' != *p)
-        {
-            strncpy(degreebuff, p, 3);
-            p += 3;
-            degreebuff[3] = '\0';
-            degree = atol(degreebuff) * 10000000;
-            strncpy(degreebuff, p, 2); // minutes
-            p += 3; // skip decimal point
-            strncpy(degreebuff + 2, p, 4);
-            degreebuff[6] = '\0';
-            minutes = 50 * atol(degreebuff) / 3;
-            newgps.longitude_fixed = degree + minutes;
-            newgps.longitude = degree / 100000 + minutes * 0.000006F;
-            newgps.longitude_degrees = (newgps.longitude-100*int(newgps.longitude/100))/60.0;
-            newgps.longitude_degrees += int(newgps.longitude/100);
-        }
-
-        p = strchr(p, ',')+1;
-        if (',' != *p)
-        {
-            if (p[0] == 'W') newgps.longitude_degrees *= -1.0;
-            if (p[0] == 'W') newgps.lon = 'W';
-            else if (p[0] == 'E') newgps.lon = 'E';
-            else if (p[0] == ',') newgps.lon = 0;
-            else return newgps;
-        }
-
-        p = strchr(p, ',')+1;
-        if (',' != *p) newgps.fixquality = atoi(p);
-
-        p = strchr(p, ',')+1;
-        if (',' != *p) newgps.satellites = atoi(p);
-
-        p = strchr(p, ',')+1;
-        if (',' != *p) newgps.HDOP = atof(p);
-
-        p = strchr(p, ',')+1;
-        if (',' != *p) newgps.altitude = atof(p);
-
-        p = strchr(p, ',')+1;
-        p = strchr(p, ',')+1;
-        if (',' != *p) newgps.geoidheight = atof(p);
-        return newgps;
-    }
-    if (strstr(nmea.c_str(), "$GPRMC"))
-    {
-        // found RMC
-        const char *p = nmea.c_str();
-
-        // get time
-        p = strchr(p, ',')+1;
-        float timef = atof(p);
-        uint32_t time = timef;
-        newgps.hour = time / 10000;
-        newgps.minute = (time % 10000) / 100;
-        newgps.seconds = (time % 100);
-
-        newgps.milliseconds = fmod(timef, 1.0) * 1000;
-
-        p = strchr(p, ',')+1;
-        // Serial.println(p);
-        if (p[0] == 'A')
-        newgps.fix = true;
-        else if (p[0] == 'V')
-        newgps.fix = false;
-        else
-        return newgps;
-
-        // parse out latitude
-        p = strchr(p, ',')+1;
-        if (',' != *p)
-        {
-            strncpy(degreebuff, p, 2);
-            p += 2;
-            degreebuff[2] = '\0';
-            long degree = atol(degreebuff) * 10000000;
-            strncpy(degreebuff, p, 2); // minutes
-            p += 3; // skip decimal point
-            strncpy(degreebuff + 2, p, 4);
-            degreebuff[6] = '\0';
-            long minutes = 50 * atol(degreebuff) / 3;
-            newgps.latitude_fixed = degree + minutes;
-            newgps.latitude = degree / 100000 + minutes * 0.000006F;
-            newgps.latitude_degrees = (newgps.latitude-100*int(newgps.latitude/100))/60.0;
-            newgps.latitude_degrees += int(newgps.latitude/100);
-        }
-
-        p = strchr(p, ',')+1;
-        if (',' != *p)
-        {
-            if (p[0] == 'S') newgps.latitude_degrees *= -1.0;
-            if (p[0] == 'N') newgps.lat = 'N';
-            else if (p[0] == 'S') newgps.lat = 'S';
-            else if (p[0] == ',') newgps.lat = 0;
-            else return newgps;
-        }
-
-        // parse out longitude
-        p = strchr(p, ',')+1;
-        if (',' != *p)
-        {
-            strncpy(degreebuff, p, 3);
-            p += 3;
-            degreebuff[3] = '\0';
-            degree = atol(degreebuff) * 10000000;
-            strncpy(degreebuff, p, 2); // minutes
-            p += 3; // skip decimal point
-            strncpy(degreebuff + 2, p, 4);
-            degreebuff[6] = '\0';
-            minutes = 50 * atol(degreebuff) / 3;
-            newgps.longitude_fixed = degree + minutes;
-            newgps.longitude = degree / 100000 + minutes * 0.000006F;
-            newgps.longitude_degrees = (newgps.longitude-100*int(newgps.longitude/100))/60.0;
-            newgps.longitude_degrees += int(newgps.longitude/100);
-        }
-
-        p = strchr(p, ',')+1;
-        if (',' != *p)
-        {
-            if (p[0] == 'W') newgps.longitude_degrees *= -1.0;
-            if (p[0] == 'W') newgps.lon = 'W';
-            else if (p[0] == 'E') newgps.lon = 'E';
-            else if (p[0] == ',') newgps.lon = 0;
-            else return newgps;
-        }
-        // speed
-        p = strchr(p, ',')+1;
-        if (',' != *p) newgps.speed = atof(p);
-
-        p = strchr(p, ',')+1;
-        if (',' != *p) newgps.angle = atof(p);
-
-        p = strchr(p, ',')+1;
-        if (',' != *p)
-        {
-            uint32_t fulldate = atof(p);
-            newgps.day = fulldate / 10000;
-            newgps.month = (fulldate % 10000) / 100;
-            newgps.year = (fulldate % 100);
-        }
-        // we dont parse the remaining, yet!
-        return newgps;
-    }
-    return newgps;
 }

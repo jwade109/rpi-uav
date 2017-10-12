@@ -1,115 +1,88 @@
-#include <ardimu.h>
-
-#include <cstring>
 #include <iostream>
-#include <fcntl.h>
+#include <string>
+#include <sstream>
 
-namespace uav
+#include <ardimu.h>
+#include <wiringSerial.h>
+
+uav::arduino::arduino(): data{0}, fd(-1), cont(true), status(0) { }
+
+uav::arduino::~arduino()
 {
-    arduino::arduino(): data{0}, cont(true), status(-1) { }
+    cont = false;
+    if (parser.joinable()) parser.join();
+    serialClose(fd);
+}
 
-    arduino::~arduino()
+int uav::arduino::begin()
+{
+    fd = serialOpen("/dev/ttyACM0", 115200);
+    if (fd < 0)
     {
-        cont = false;
-        if (parser.joinable()) parser.join();
-        in.close();
+        std::cerr << "arduino: failed to open" << std::endl;
+        return 1;
     }
 
-    int arduino::begin()
+    parser = std::thread(&arduino::parse, this);
+
+    while (status == 0);
+    if (status == -1) return 2;
+
+    return 0;
+}
+
+const uav::imu_packet& uav::arduino::get() const
+{
+    return data;
+}
+
+void uav::arduino::parse()
+{
+    bool recieved = false;
+    char ch = 0;
+    std::stringstream ss;
+
+    auto start = std::chrono::steady_clock::now();
+    auto timeout = std::chrono::seconds(3);
+
+    while (cont)
     {
-        int fd = open("/dev/ttyACM0", O_RDWR);
-        if (fd < 0)
+        if (start + timeout < std::chrono::steady_clock::now())
         {
-            std::cerr << "Arduino: Could not generate "
-                         "file descriptor" << std::endl;
-            return 1;
+            std::cerr << "arduino: timeout" << std::endl;
+            status = -1;
+            return;
         }
-        struct termios attr;
-        int rt = -tcgetattr(fd, &attr);
-        rt -= cfsetispeed(&attr, baud);
-        rt -= cfsetospeed(&attr, baud);
-        rt -= tcsetattr(fd, TCSANOW, &attr);
-        if (rt < 0)
-        {
-            std::cerr << "arduino: Failed to set "
-                         "baud rate" << std::endl;
-            return 2;
-        }
-
-        in.open("/dev/ttyACM0");
-        if (!in)
-        {
-            std::cerr << "arduino: Could not open "
-                         "/dev/ttyACM0" << std::endl;
-            return 3;
-        }
-
-        parser = std::thread(&arduino::parse, this);
-
-        while (status < 0);
-        if (status) return 4;
-
-        return 0;
+        if (ch == '#') break;
+        if (serialDataAvail(fd) > 0) ch = serialGetchar(fd);
     }
 
-    const imu_packet& arduino::get() const
-    {
-        return data;
-    }
+    status = 1;
 
-    void arduino::parse()
+    while (cont)
     {
-        size_t ptr = 0;
-        bool recieved = false;
-        char ch;
-        std::array<char, buffer_size> buffer;
-
-        while (in.get(ch) && cont)
+        if (ch == '<')
         {
-            if (ch == '#') status = 0;
-            else if (ch == '!')
-            {
-                buffer.fill(0);
-                buffer[0] = '!';
-                in.get(ch);
-                buffer[1] = ch;
-                for (size_t i = 2; i < buffer_size && ch != '!'; i++)
-                {
-                    in.get(ch);
-                    buffer[i] = ch;
-                }
-                fprintf(stderr, "Arduino: Reporting error: "
-                        "\"%s\"\n", buffer.data());
-                cont = false;
-                status = 1;
-            }
-            else if (ch == '<')
-            {
-                recieved = true;
-                in.get(ch);
-            }
-            else if (ch == '>')
-            {
-                recieved = false;
-                imu_packet d;
-                char* cursor;
-                d.millis = strtol(buffer.data(), &cursor, 10);
-                d.heading = strtod(cursor, &cursor);
-                d.pitch = strtod(cursor, &cursor);
-                d.roll = strtod(cursor, &cursor);
-                d.calib = strtol(cursor, &cursor, 10);
-                d.temp = strtod(cursor, &cursor);
-                d.pres = strtod(cursor, &cursor);
-                data = d;
-                buffer.fill(0);
-                ptr = 0;
-            }
-
-            if (recieved)
-            {
-                buffer[ptr] = ch;
-                ++ptr;
-            }
+            recieved = true;
+            ch = serialGetchar(fd);
         }
+        else if (ch == '>')
+        {
+            recieved = false;
+            imu_packet d;
+            char* cursor;
+            d.millis = strtol(ss.str().c_str(), &cursor, 10);
+            d.heading = strtod(cursor, &cursor);
+            d.pitch = strtod(cursor, &cursor);
+            d.roll = strtod(cursor, &cursor);
+            d.calib = strtol(cursor, &cursor, 10);
+            d.temp = strtod(cursor, &cursor);
+            d.pres = strtod(cursor, &cursor);
+            data = d;
+            ss.str("");
+            ss.clear();
+        }
+        if (recieved) ss << ch;
+        ch = serialGetchar(fd);
     }
 }

@@ -23,8 +23,6 @@ All text above must be included in any redistribution
 #ifndef GPS_H
 #define GPS_H
 
-#include <fstream>
-#include <inttypes.h>
 #include <thread>
 #include <string>
 
@@ -76,7 +74,7 @@ class gps
     bool newflag;
     bool cont;
     int status;
-    int tty_fd;
+    int fd;
 
     void dowork();
 

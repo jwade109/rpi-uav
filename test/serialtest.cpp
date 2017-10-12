@@ -17,7 +17,6 @@ int main(int argc, char** argv)
         std::cerr << "Error initializing IMU: " << init << std::endl;
         return 1;
     }
-    std::this_thread::sleep_for(seconds(1));
 
     auto start = steady_clock::now();
     auto runtime = milliseconds(0);
