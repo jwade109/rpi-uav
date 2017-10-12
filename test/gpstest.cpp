@@ -9,7 +9,7 @@
 
 int main()
 {
-    gps r;
+    uav::gps r;
     int ret = r.begin();
     if (ret)
     {
