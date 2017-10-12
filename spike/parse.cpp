@@ -4,6 +4,8 @@
 #include <array>
 #include <vector>
 
+#include <wiringSerial.h>
+
 struct utc_time
 {
     uint8_t hour, minute, second;
@@ -130,6 +132,25 @@ struct gpgsv
     std::vector<sat_info> sats;
 };
 
+std::ostream& operator << (std::ostream& os, const gpgsv::sat_info& s)
+{
+    os << "prn: " << (int) s.PRN << " elev: " << (int) s.elevation
+       << " az: " << s.azimuth << " snr: " << (int) s.SNR;
+    return os;
+}
+
+std::ostream& operator << (std::ostream& os, const gpgsv& g)
+{
+    os << "msg " << (int) g.msg_num << "/" << (int) g.num_msgs
+       << " sats: " << (int) g.sats_in_view << std::endl;
+    for (int i = 0; i < g.sats.size(); i++)
+    {
+        os << "[" << g.sats[i] << "]";
+        if (i < g.sats.size() - 1) os << std::endl;
+    }
+    return os;
+}
+
 // contains the track made good and speed relative to the ground
 struct gpvtg
 {
@@ -143,6 +164,16 @@ struct gpvtg
     char speed_ind_kph;
     char mode_ind;
 };
+
+std::ostream& operator << (std::ostream& os, const gpvtg& g)
+{
+    os << "track: " << g.track_true << " " << g.track_indicator
+       << " trk mag: " << g.track_mag << " " << g.mag_indicator
+       << " knots: " << g.ground_speed_knots << " " << g.speed_ind_knots
+       << " kph: " << g.ground_speed_kph << " " << g.speed_ind_kph
+       << " " << g.mode_ind;
+    return os;
+}
 
 utc_time parse_utc(const std::string& data)
 {
@@ -280,6 +311,63 @@ gprmc parse_gprmc(const std::string& nmea)
     return ret;
 }
 
+gpgsv parse_gpgsv(const std::string& nmea)
+{
+    gpgsv ret;
+    std::stringstream ss(nmea);
+    std::string token;
+    std::getline(ss, token, ',');
+    ret.num_msgs = std::stoi(token);
+    std::getline(ss, token, ',');
+    ret.msg_num = std::stoi(token);
+    std::getline(ss, token, ',');
+    ret.sats_in_view = std::stoi(token);
+
+    int i = 0;
+    while (std::getline(ss, token, ','))
+    {
+        gpgsv::sat_info s;
+        s.PRN = std::stoi(token);
+        std::getline(ss, token, ',');
+        s.elevation = token.empty() ? 0 : std::stoi(token);
+        std::getline(ss, token, ',');
+        s.azimuth = token.empty() ? 0 : std::stoi(token);
+        std::getline(ss, token, ',');
+        s.SNR = token.empty() ? 0 : std::stoi(token);
+        ret.sats.push_back(s);
+    }
+    return ret;
+}
+
+gpvtg parse_gpvtg(const std::string& nmea)
+{
+    std::stringstream ss(nmea);
+    std::string token;
+    gpvtg ret;
+
+    std::getline(ss, token, ',');
+    ret.track_true = token.empty() ? 0 : std::stod(token);
+    std::getline(ss, token, ',');
+    ret.track_indicator = token.empty() ? '!' : token[0];
+    std::getline(ss, token, ',');
+    ret.track_mag = token.empty() ? 0 : std::stod(token);
+    std::getline(ss, token, ',');
+    ret.mag_indicator = token.empty() ? '!' : token[0];
+
+    std::getline(ss, token, ',');
+    ret.ground_speed_knots = token.empty() ? 0 : std::stod(token);
+    std::getline(ss, token, ',');
+    ret.speed_ind_knots = token.empty() ? '!' : token[0];
+    std::getline(ss, token, ',');
+    ret.ground_speed_kph = token.empty() ? 0 : std::stod(token);
+    std::getline(ss, token, ',');
+    ret.speed_ind_kph = token.empty() ? '!' : token[0];
+    std::getline(ss, token, ',');
+    ret.mode_ind = token.empty() ? '!' : token[0];
+
+    return ret;
+}
+
 void parse(const std::string& nmea)
 {
     std::stringstream ss(nmea);
@@ -295,24 +383,45 @@ void parse(const std::string& nmea)
     int id = -1;
     for (int i = 0; i < 5; i++) if (header == headers[i]) id = i;
 
-    std::cout << "(" << header << ")[" << data << "]" << std::endl;
-    if (id == 0) std::cout << parse_gpgga(data) << std::endl;
-    if (id == 1) std::cout << parse_gpgsa(data) << std::endl;
-    if (id == 3) std::cout << parse_gprmc(data) << std::endl;
+    std::cout << "~ " << header << " " << data << std::endl;
+    // if (id == 0) std::cout << parse_gpgga(data) << "\n" << std::endl;
+    // if (id == 1) std::cout << parse_gpgsa(data) << "\n" << std::endl;
+    // if (id == 2) std::cout << parse_gpgsv(data) << "\n" << std::endl;
+    // if (id == 3) std::cout << parse_gprmc(data) << "\n" << std::endl;
+    // if (id == 4) std::cout << parse_gpvtg(data) << "\n" << std::endl;
 }
 
 int main()
 {
     auto strings =
-        {"$GPGGA,134658.00,5106.9792,N,11402.3003,W,2,09,1.0,1048.47,M,-16.27,M,08,AAAA*60",
-         "$GPGGA,134658.00,5106.9792,N,11402.3003,W,2,09,1.0,1048.47,M,-16.27,M,,*60",
+        {"$GPGGA,134658.00,5106.9792,N,11402.3003,W,2,09,1.0,"
+            "1048.47,M,-16.27,M,08,AAAA*60",
+         "$GPGGA,134658.00,5106.9792,N,11402.3003,W,2,09,1.0,"
+             "1048.47,M,-16.27,M,,*60",
          "$GPGSA,M,3,17,02,30,04,05,10,09,06,31,12,,,1.2,0.8,0.9*35",
-         "$GPGSV,3,1,11,18,87,050,48,22,56,250,49,21,55,122,49,03,40,284,47*78",
-         "$GPRMC,144326.00,A,5107.0017737,N,11402.3291611,W,0.080,323.3,210307,3.24,E,A*20",
+         "$GPGSV,3,1,11,18,87,050,48,22,56,250,49,21,55,122,49,03,"
+             "40,284,47*78",
+         "$GPGSV,3,1,11,18,87,050,,22,56,250,49,21,55,122,,*78",
+         "$GPRMC,144326.00,A,5107.0017737,N,11402.3291611,W,0.080,"
+             "323.3,210307,3.24,E,A*20",
          "$GPVTG,172.516,T,155.295,M,0.049,N,0.090,K,D*2B"};
 
-    for (auto e : strings)
+    int fd = serialOpen("/dev/ttyS0", 9600);
+    if (fd < 0) return 1;
+
+    std::stringstream message;
+    bool reading = false;
+    while (true)
     {
-        parse(e);
+        char ch = serialGetchar(fd);
+        if (ch == '$' && !reading)
+            reading = true;
+        else if (ch == '$' && reading)
+        {
+            parse(message.str());
+            message.str("");
+            message.clear();
+        }
+        message << ch;
     }
 }
