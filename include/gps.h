@@ -120,23 +120,11 @@ struct gpgsv
 
 struct gps_data
 {
-    uint8_t hour, minute, seconds, year, month, day;
-    uint16_t milliseconds;
-
-    // Floating point latitude and longitude value in degrees.
-    float latitude, longitude;
-
-    // Fixed point latitude and longitude value with degrees stored
-    // in units of 1/100000 degrees, and minutes stored in units of
-    // 1/100000 degrees. See pull #13 for more details:
-    // https://github.com/adafruit/Adafruit-GPS-Library/pull/13
-    int32_t latitude_fixed, longitude_fixed;
-    float latitude_degrees, longitude_degrees;
-    float geoidheight, altitude;
-    float speed, angle, magvariation, HDOP;
-    char lat, lon, mag;
-    bool fix;
-    uint8_t fixquality, satellites;
+    gpgga gga;
+    gpgsa gsa;
+    gprmc rmc;
+    gpvtg vtg;
+    std::vector<gpgsv> gsv;
 };
 
 struct locus_info
@@ -155,6 +143,7 @@ class gps
 
     bool isnew() const;
     gps_data get();
+    bool update(gps_data& gp);
 
     int begin();
 
@@ -169,6 +158,7 @@ class gps
     int fd;
 
     void dowork();
+    void update_info(std::stringstream& ss);
 
     // position echo rate commands (formerly PMTK_SET_NMEA_UPDATE_XXX_HERTZ)
     static const std::string
