@@ -76,7 +76,7 @@ int uav::gps::begin()
     fd = serialOpen("/dev/ttyS0", 9600);
     if (fd < 0)
     {
-        std::cerr << "gps: could not open" << std::endl;
+        std::cerr << "gps: failed to open /dev/ttyS0" << std::endl;
         return 1;
     }
 
@@ -85,7 +85,7 @@ int uav::gps::begin()
     while (status == 0);
     if (status == -1)
     {
-        std::cerr << "gps: failed to communicate!" << std::endl;
+        std::cerr << "gps: connection timed out" << std::endl;
         return 2;
     }
 
@@ -122,7 +122,6 @@ void uav::gps::dowork()
     {
         if (start + timeout < std::chrono::steady_clock::now())
         {
-            std::cerr << "gps: timeout" << std::endl;
             status = -1;
             return;
         }

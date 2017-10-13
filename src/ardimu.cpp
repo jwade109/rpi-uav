@@ -19,14 +19,18 @@ int uav::arduino::begin()
     fd = serialOpen("/dev/ttyACM0", 115200);
     if (fd < 0)
     {
-        std::cerr << "arduino: failed to open" << std::endl;
+        std::cerr << "arduino: failed to open /dev/ttyACM0" << std::endl;
         return 1;
     }
 
     parser = std::thread(&arduino::parse, this);
 
     while (status == 0);
-    if (status == -1) return 2;
+    if (status == -1)
+    {
+        std::cerr << "arduino: connection timed out" << std::endl;
+        return 2;
+    }
 
     return 0;
 }
@@ -49,7 +53,6 @@ void uav::arduino::parse()
     {
         if (start + timeout < std::chrono::steady_clock::now())
         {
-            std::cerr << "arduino: timeout" << std::endl;
             status = -1;
             return;
         }
