@@ -27,6 +27,8 @@ All text above must be included in any redistribution
 #include <string>
 #include <vector>
 
+#include <vector.h>
+
 namespace uav
 {
 
@@ -36,13 +38,26 @@ struct utc_time
     uint16_t ms;
 };
 
+struct angular
+{
+    bool sign;
+    uint8_t degrees, minutes, seconds;
+    uint16_t milliseconds;
+
+    int32_t fixed() const;
+};
+
+struct coordinate
+{
+    angular lat, lon;
+};
+
 // contains time, position and fix related data of the GNSS receiver
 struct gpgga
 {
     utc_time utc;
+    coordinate pos;
 
-    uint32_t latitude, longitude;
-    char latdir, londir;
     uint8_t fix_quality;
     uint8_t num_sats;
     float hdop;
@@ -73,8 +88,7 @@ struct gprmc
     utc_time utc;
 
     char pos_status;
-    uint32_t latitude, longitude;
-    char latdir, londir;
+    coordinate pos;
     double ground_speed;
     double track_angle;
 
@@ -191,6 +205,10 @@ class gps
 
 std::ostream& operator << (std::ostream& os, const utc_time& u);
 
+std::ostream& operator << (std::ostream& os, const angular& a);
+
+std::ostream& operator << (std::ostream& os, const coordinate& c);
+
 std::ostream& operator << (std::ostream& os, const gpgga& g);
 
 std::ostream& operator << (std::ostream& os, const gpgsa& g);
@@ -203,11 +221,13 @@ std::ostream& operator << (std::ostream& os, const gpgsv& g);
 
 std::ostream& operator << (std::ostream& os, const gpvtg& g);
 
+imu::Vector<2> operator - (const coordinate& l, const coordinate& r);
+
 utc_time parse_utc(const std::string& data);
 
-uint32_t parse_lat(const std::string& data);
+angular parse_lat(const std::string& data);
 
-uint32_t parse_lon(const std::string& data);
+angular parse_lon(const std::string& data);
 
 gpgga parse_gpgga(const std::string& data);
 

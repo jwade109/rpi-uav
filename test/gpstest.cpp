@@ -31,21 +31,33 @@ int main()
         return 1;
     }
     uav::gps_data gp{0};
+    uav::coordinate home;
+
+    while (gp.gga.num_sats == 0)
+    {
+        r.update(gp);
+        home = gp.gga.pos;
+    }
+
+    // uav::low_pass xlpf(2), ylpf(2);
+
     while (1)
     {
         if (r.update(gp));
         {
-            std::cout << "\r"
-                << load() << " "
-                << (int) gp.rmc.month << "/"
+            auto rel = gp.gga.pos - home;
+
+            // imu::Vector<2> rel_filt =
+            //     {xlpf.step(rel.x(), 0.02), ylpf(rel.y(), 0.02)};
+
+            std::cout << (int) gp.rmc.month << "/"
                 << (int) gp.rmc.day << "/"
                 << (int) gp.rmc.year << " "
                 << gp.gga.utc << " "
-                << gp.gga.latitude << " "
-                << gp.gga.latdir << " "
-                << gp.gga.longitude << " "
-                << gp.gga.londir << " "
-                << (int) gp.gga.num_sats << "    " << std::flush;
+                << gp.gga.pos.lat << " "
+                << gp.gga.pos.lon << " "
+                << (int) gp.gga.num_sats << " "
+                << rel << " " << std::endl; // rel_filt << std::endl;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
