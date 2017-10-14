@@ -14,7 +14,8 @@ INC = -I include/
 LINK = $(CC) $(LF) $^ -o $@ $(LIB)
 
 all: launch utilities
-utilities: pidtest bmptest serialtest gpstest pwmtest skips bin2txt fbtest
+utilities: pidtest bmptest serialtest gpstest \
+    pwmtest skips bin2txt fbtest filtertest
 
 install:
 	yes | sudo apt-get install libncurses5-dev wiringpi
@@ -32,6 +33,7 @@ pwmtest: bin/pwmtest
 skips: bin/skips
 bin2txt: bin/bin2txt
 fbtest: bin/fbtest
+filtertest: bin/filtertest
 
 ### Test executables ###
 
@@ -57,6 +59,9 @@ bin/bin2txt: .build/test/bin2txt.o .build/src/uavcore.o
 	$(LINK)
 
 bin/fbtest: .build/test/fbtest.o .build/src/freebody.o
+	$(LINK)
+
+bin/filtertest: .build/test/filtertest.o .build/src/filters.o
 	$(LINK)
 
 ### Pattern recipes ###

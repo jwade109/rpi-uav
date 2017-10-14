@@ -8,6 +8,7 @@
 #include <random>
 
 #include <control.h>
+#include <filters.h>
 
 namespace chrono = std::chrono;
 
@@ -59,27 +60,25 @@ int uav::controller::align()
         std::this_thread::sleep_for(chrono::seconds(3));
     }
 
-    prm.p1h = 0;
-    prm.p2h = 0;
-
     auto start = chrono::steady_clock::now();
+    uav::running_average avg1, avg2;
     for (int i = 0; i < samples; i++)
     {
         if (!debug)
         {
-            prm.p1h += imu.get().pres;
-            prm.p2h += bmp.getPressure();
+            avg1.step(imu.get().pres);
+            avg2.step(bmp.getPressure());
         }
         else
         {
-            prm.p1h += 101200 + gaussian(gen) * 10;
-            prm.p2h += 101150 + gaussian(gen) * 10;
+            avg1.step(101200 + gaussian(gen) * 10);
+            avg2.step(101150 + gaussian(gen) * 10);
         }
         start+=wait;
         std::this_thread::sleep_until(start);
     }
-    prm.p1h /= samples;
-    prm.p2h /= samples;
+    prm.p1h = avg1.value;
+    prm.p2h = avg2.value;
 
     return 0;
 }
@@ -145,14 +144,14 @@ int uav::controller::iterate(bool block)
 
     // once readings are verified, filter altitude
     {
+        static uav::low_pass lpf(prm.gz_rc);
         auto alt = [](float p, float hp)
             { return 44330 * (1.0 - pow(p/hp, 0.1903)); };
 
         double z1 = alt(curr.pres[0], prm.p1h);
         double z2 = alt(curr.pres[1], prm.p2h);
         double zavg = z1 * prm.gz_wam + z2 * (1 - prm.gz_wam);
-        double a = dt/(prm.gz_rc + dt);
-        curr.pos[2] = a * zavg + (1 - a) * prev.pos[2];
+        curr.pos[2] = lpf.step(zavg, dt);
 
         if (debug)
         {
@@ -202,7 +201,7 @@ int uav::controller::iterate(bool block)
     imu::Vector<2> Sp = spid.seek(P, T, dt);
     curr.pidov[0] = Sp.x();
     curr.pidov[1] = Sp.y();
-    
+
     imu::Vector<3> euler = traverse(Sp, curr.pos[3],
         prm.tilt95, prm.maxtilt).first;
     curr.targets[4] = euler.y();
