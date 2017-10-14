@@ -1,14 +1,22 @@
 #include <filters.h>
 
-uav::low_pass::low_pass(double rc) : value(0), rc(rc) { }
+uav::low_pass::low_pass(double rc) : value(0), rc(rc), first(true) { }
 
 double uav::low_pass::step(double sample, double dt)
 {
-    static bool init(false);
-    if (!init) { value = sample; init = true; }
+    if (first) { value = sample; first = false; }
     if (dt == 0) return value;
     double a = dt/(rc + dt);
     return (value = a * sample + (1 - a) * value);
+}
+
+uav::high_pass::high_pass(double rc) : value(0), rc(rc), lpf(rc) { }
+
+double uav::high_pass::step(double sample, double dt)
+{
+    if (dt == 0) return value;
+    lpf.rc = rc;
+    return (value = sample - lpf.step(sample, dt));
 }
 
 uav::running_average::running_average() : value(0), num_samples(0) { }
