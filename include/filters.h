@@ -16,6 +16,25 @@ class low_pass
     low_pass(double rc);
 
     double step(double sample, double dt);
+
+    private:
+
+    bool first;
+};
+
+class high_pass
+{
+    public:
+
+    double value, rc;
+
+    high_pass(double rc);
+
+    double step(double sample, double dt);
+
+    private:
+
+    low_pass lpf;
 };
 
 class running_average
