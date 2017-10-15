@@ -58,7 +58,7 @@ int main()
                 << gp.gga.pos.lat << " "
                 << gp.gga.pos.lon << " "
                 << (int) gp.gga.num_sats << " "
-                << rel << " " << rel_filt << std::endl;
+                << "\r" << std::flush; // rel << " " << rel_filt << std::endl;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }

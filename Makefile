@@ -15,7 +15,7 @@ LINK = $(CC) $(LF) $^ -o $@ $(LIB)
 
 all: launch utilities
 utilities: pidtest bmptest serialtest gpstest \
-    pwmtest skips bin2txt fbtest filtertest
+    pwmtest skips units bin2txt fbtest filtertest
 
 install:
 	yes | sudo apt-get install libncurses5-dev wiringpi
@@ -32,6 +32,7 @@ gpstest: bin/gpstest
 pwmtest: bin/pwmtest
 skips: bin/skips
 bin2txt: bin/bin2txt
+units: bin/units
 fbtest: bin/fbtest
 filtertest: bin/filtertest
 
@@ -56,6 +57,10 @@ bin/skips: .build/test/skips.o
 	$(LINK)
 
 bin/bin2txt: .build/test/bin2txt.o .build/src/uavcore.o
+	$(LINK)
+
+bin/units: .build/test/units.o .build/src/ardimu.o \
+	.build/src/gps.o .build/src/bmp.o .build/src/i2c.o
 	$(LINK)
 
 bin/fbtest: .build/test/fbtest.o .build/src/freebody.o
