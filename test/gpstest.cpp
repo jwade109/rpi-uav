@@ -6,6 +6,7 @@
 #include <sstream>
 
 #include <gps.h>
+#include <filters.h>
 
 char load()
 {
@@ -39,7 +40,7 @@ int main()
         home = gp.gga.pos;
     }
 
-    // uav::low_pass xlpf(2), ylpf(2);
+    uav::low_pass xlpf(2), ylpf(2);
 
     while (1)
     {
@@ -47,8 +48,8 @@ int main()
         {
             auto rel = gp.gga.pos - home;
 
-            // imu::Vector<2> rel_filt =
-            //     {xlpf.step(rel.x(), 0.02), ylpf(rel.y(), 0.02)};
+            imu::Vector<2> rel_filt =
+                {xlpf.step(rel.x(), 0.02), ylpf.step(rel.y(), 0.02)};
 
             std::cout << (int) gp.rmc.month << "/"
                 << (int) gp.rmc.day << "/"
@@ -57,7 +58,7 @@ int main()
                 << gp.gga.pos.lat << " "
                 << gp.gga.pos.lon << " "
                 << (int) gp.gga.num_sats << " "
-                << rel << " " << std::endl; // rel_filt << std::endl;
+                << rel << " " << rel_filt << std::endl;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
