@@ -36,7 +36,7 @@ namespace uav
         const static size_t buffer_size = 1000;
         const static speed_t baud = B115200;
 
-        std::ifstream in;
+        int fd;
         std::thread parser;
         bool cont;
         int status;

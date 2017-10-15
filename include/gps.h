@@ -23,30 +23,122 @@ All text above must be included in any redistribution
 #ifndef GPS_H
 #define GPS_H
 
-#include <fstream>
-#include <inttypes.h>
 #include <thread>
 #include <string>
+#include <vector>
+
+#include <vector.h>
+
+namespace uav
+{
+
+struct utc_time
+{
+    uint8_t hour, minute, second;
+    uint16_t ms;
+};
+
+struct angular
+{
+    bool sign;
+    uint8_t degrees, minutes, seconds;
+    uint16_t milliseconds;
+
+    int32_t fixed() const;
+};
+
+struct coordinate
+{
+    angular lat, lon;
+};
+
+// contains time, position and fix related data of the GNSS receiver
+struct gpgga
+{
+    utc_time utc;
+    coordinate pos;
+
+    uint8_t fix_quality;
+    uint8_t num_sats;
+    float hdop;
+    double altitude;
+    char alt_unit;
+    double undulation;
+    char und_unit;
+
+    bool has_dgps;
+    uint8_t corr_age;
+    std::string base_ID;
+};
+
+// contains GNSS receiver operating mode, satellites used
+// for navigation, and DOP values
+struct gpgsa
+{
+    char mode_char;
+    uint8_t mode_num;
+    // up to 12 satellites' PRN numbers
+    std::vector<uint8_t> sat_prns;
+    float pdop, hdop, vdop;
+};
+
+// contains time, date, position, track made good and speed data
+struct gprmc
+{
+    utc_time utc;
+
+    char pos_status;
+    coordinate pos;
+    double ground_speed;
+    double track_angle;
+
+    uint8_t day, month, year;
+
+    double mag_var;
+    char var_dir;
+    char pos_mode;
+};
+
+// contains the track made good and speed relative to the ground
+struct gpvtg
+{
+    double track_true;
+    char track_indicator;
+    double track_mag;
+    char mag_indicator;
+    double ground_speed_knots;
+    char speed_ind_knots;
+    double ground_speed_kph;
+    char speed_ind_kph;
+    char mode_ind;
+};
+
+// contains the number of GPS SVs in view, PRN numbers,
+// elevation, azimuth and SNR value
+struct gpgsv
+{
+    struct sat_info
+    {
+        uint8_t PRN;
+        uint8_t elevation;
+        uint16_t azimuth;
+        uint8_t SNR;
+    };
+
+    uint8_t num_msgs;
+    uint8_t msg_num;
+    uint8_t sats_in_view;
+
+    std::vector<sat_info> sats;
+};
 
 struct gps_data
 {
-    uint8_t hour, minute, seconds, year, month, day;
-    uint16_t milliseconds;
-
-    // Floating point latitude and longitude value in degrees.
-    float latitude, longitude;
-
-    // Fixed point latitude and longitude value with degrees stored
-    // in units of 1/100000 degrees, and minutes stored in units of
-    // 1/100000 degrees. See pull #13 for more details:
-    // https://github.com/adafruit/Adafruit-GPS-Library/pull/13
-    int32_t latitude_fixed, longitude_fixed;
-    float latitude_degrees, longitude_degrees;
-    float geoidheight, altitude;
-    float speed, angle, magvariation, HDOP;
-    char lat, lon, mag;
-    bool fix;
-    uint8_t fixquality, satellites;
+    gpgga gga;
+    gpgsa gsa;
+    gprmc rmc;
+    gpvtg vtg;
+    std::vector<gpgsv> gsv;
 };
 
 struct locus_info
@@ -65,6 +157,7 @@ class gps
 
     bool isnew() const;
     gps_data get();
+    bool update(gps_data& gp);
 
     int begin();
 
@@ -76,13 +169,10 @@ class gps
     bool newflag;
     bool cont;
     int status;
-    int tty_fd;
+    int fd;
 
     void dowork();
-
-    static gps_data parse(const std::string& nmea);
-    static uint8_t parseHex(char c);
-    static bool checknew(const gps_data& n, const gps_data& o);
+    void update_info(std::stringstream& ss);
 
     // position echo rate commands (formerly PMTK_SET_NMEA_UPDATE_XXX_HERTZ)
     static const std::string
@@ -112,5 +202,43 @@ class gps
     // request for updates on antenna status
     pgcmd_antenna, pgcmd_noantenna;
 };
+
+std::ostream& operator << (std::ostream& os, const utc_time& u);
+
+std::ostream& operator << (std::ostream& os, const angular& a);
+
+std::ostream& operator << (std::ostream& os, const coordinate& c);
+
+std::ostream& operator << (std::ostream& os, const gpgga& g);
+
+std::ostream& operator << (std::ostream& os, const gpgsa& g);
+
+std::ostream& operator << (std::ostream& os, const gprmc& g);
+
+std::ostream& operator << (std::ostream& os, const gpgsv::sat_info& s);
+
+std::ostream& operator << (std::ostream& os, const gpgsv& g);
+
+std::ostream& operator << (std::ostream& os, const gpvtg& g);
+
+imu::Vector<2> operator - (const coordinate& l, const coordinate& r);
+
+utc_time parse_utc(const std::string& data);
+
+angular parse_lat(const std::string& data);
+
+angular parse_lon(const std::string& data);
+
+gpgga parse_gpgga(const std::string& data);
+
+gpgsa parse_gpgsa(const std::string& nmea);
+
+gprmc parse_gprmc(const std::string& nmea);
+
+gpgsv parse_gpgsv(const std::string& nmea);
+
+gpvtg parse_gpvtg(const std::string& nmea);
+
+} // namespace uav
 
 #endif // GPS_H
