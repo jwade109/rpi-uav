@@ -44,8 +44,8 @@ mass_estimator::mass_estimator(uint8_t f, double acc_rc,
 
 double mass_estimator::step(double Fz, double az)
 {
+    if (az == 9.81) return value;
     double smooth_accel = accel_lpf.step(az, dt);
-    if (isnan(smooth_accel)) return value;
     double m_hat = Fz/(smooth_accel + 9.81);
 
     double local_m_hat = moving.step(m_hat);
@@ -55,15 +55,16 @@ double mass_estimator::step(double Fz, double az)
     if (large_gap && !diverged) global = uav::running_average();
     diverged = large_gap;
 
-    return (value = diverged ?
-            std::max(global_m_hat, local_m_hat) : global_m_hat);
+    std::cout << local_m_hat << "\t" << global_m_hat << "\t";
+
+    return value = diverged ? local_m_hat : global_m_hat;
 }
 
 int main(int argc, char** argv)
 {
     mass_estimator me(50);
 
-    std::cout << "i\tmass\tacc\tm_hat"
+    std::cout << "i\tmass\tlocal\tglobal\tret"
         << std::fixed << std::endl;
 
     double true_accel = 4.3; // m/s^2
@@ -75,15 +76,15 @@ int main(int argc, char** argv)
         if (i == 2000) true_accel = 0.7;
         if (i == 4000) { true_accel = 7.4; true_force = 9.0; };
         if (i == 6000) { true_accel = 0; true_force = 0; };
-        if (i == 8000) { true_accel = -6; true_force = 1; };
+        if (i == 8000) { true_accel = -12.3; true_force = -1; };
 
         double true_mass = true_force/(true_accel + 9.81);
         double noisy_accel = true_accel + gaussian(gen) * 2;
 
+        std::cout << i++ << "\t" << true_mass << "\t";
         double m_hat = me.step(true_force, noisy_accel);
 
-        std::cout << i++ << "\t" << true_mass << "\t"
-            << noisy_accel << "\t" << m_hat << std::endl;
+        std::cout << m_hat << std::endl;
     }
     return 0;
 }
