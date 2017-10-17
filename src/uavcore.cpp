@@ -8,6 +8,7 @@
 #include <cassert>
 
 #include <uavcore.h>
+#include <freebody.h>
 
 bool uav::param::operator==(const param& other)
 {
@@ -118,6 +119,11 @@ std::string uav::state::header(fmt::bitmask_t mask)
     if (b[i++]) line << setw(15) << "roll";
     if (b[i++]) line << setw(15) << "cal";
 
+    if (b[i++]) line << setw(15) << "qw";
+    if (b[i++]) line << setw(15) << "qx";
+    if (b[i++]) line << setw(15) << "qy";
+    if (b[i++]) line << setw(15) << "qz";
+
     if (b[i++]) line << setw(15) << "tx";
     if (b[i++]) line << setw(15) << "ty";
     if (b[i++]) line << setw(15) << "tz";
@@ -182,12 +188,9 @@ std::string uav::to_string(const state& it, fmt::bitmask_t mask)
 {
     using namespace std;
 
-    std::bitset<state::fields> b(mask);
+    std::bitset<64> b(mask);
     stringstream line;
-    line << left;
-    line.setf(ios::fixed);
-
-    line << setprecision(3);
+    line << left << fixed << setprecision(3);
 
     int i = 0;
     if (b[i++]) line << setw(15) << it.t/1000.0;
@@ -202,6 +205,15 @@ std::string uav::to_string(const state& it, fmt::bitmask_t mask)
         if (b[i++]) line << setw(15) << it.pos[j];
     
     if (b[i++]) line << hex << setw(15) << (int) it.calib << dec;
+
+    imu::Quaternion q;
+    imu::Vector<3> euler(it.pos[3], it.pos[4], it.pos[5]);
+    euler.toRadians();
+    q.fromMatrix(uav::euler2matrix(euler));
+    if (b[i++]) line << setw(15) << q.w();
+    if (b[i++]) line << setw(15) << q.x();
+    if (b[i++]) line << setw(15) << q.y();
+    if (b[i++]) line << setw(15) << q.z();
 
     for (int j = 0; j < 6; j++)
         if (b[i++]) line << setw(15) << it.targets[j];

@@ -58,7 +58,9 @@ int main(int argc, char** argv)
 
     // print the params
     namespace fmt = uav::fmt;
-    auto format = fmt::time | fmt::configuration | fmt::status;
+    auto format = fmt::time | fmt::configuration | fmt::quaternion;
+
+    std::cout << format << std::endl;
 
     std::cout << uav::param::header() << std::endl;
     std::cout << uav::to_string(c.getparams()) << std::endl;
