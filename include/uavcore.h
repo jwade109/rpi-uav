@@ -2,6 +2,7 @@
 #define UAV_CORE_H
 
 #include <fstream>
+#include <sstream>
 #include <deque>
 #include <array>
 #include <limits>
