@@ -1,19 +1,15 @@
-#include <stdbool.h>
 #include <stdint.h>
 #include <string.h>
+#include <errno.h>
+
 #include <wiringPiI2C.h>
 #include <i2c.h>
 
-i2cdev::i2cdev()
-{
-    i2c_addr = 0;
-    fd = -1;
-}
+i2cdev::i2cdev() : i2c_addr(0), fd(-1) { }
 
-i2cdev::i2cdev(uint8_t addr)
+i2cdev::i2cdev(uint8_t addr) : i2c_addr(addr)
 {
-    i2c_addr = addr;
-    fd = wiringPiI2CSetup(addr);
+    open(i2c_addr);
 }
 
 i2cdev::~i2cdev() { }
@@ -27,12 +23,18 @@ bool i2cdev::open(uint8_t addr)
 
 bool i2cdev::ready() const
 {
-    return fd > 0;
+    read8(0);
+    return fd > 0 && errno == 0;
 }
 
 uint8_t i2cdev::addr() const
 {
     return i2c_addr;
+}
+
+i2cdev::operator bool() const
+{
+    return ready();
 }
 
 void i2cdev::readlen(uint8_t reg, uint8_t* buf, uint8_t len) const

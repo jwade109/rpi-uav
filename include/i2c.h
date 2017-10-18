@@ -1,7 +1,7 @@
 #ifndef I2C_H
 #define I2C_H
 
-#include <stdint.h>
+#include <cstdint>
 
 class i2cdev
 {
@@ -14,6 +14,8 @@ class i2cdev
     bool open(uint8_t addr);
     bool ready() const;
     uint8_t addr() const;
+    
+    operator bool() const;
 
     void readlen(uint8_t reg, uint8_t* buf, uint8_t len) const;
     uint8_t read8(uint8_t reg) const;
