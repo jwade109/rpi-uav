@@ -11,12 +11,12 @@ namespace uav
     struct imu_packet
     {
         uint64_t millis;
-        float heading;
-        float pitch;
-        float roll;
+        double heading;
+        double pitch;
+        double roll;
         uint8_t calib;
-        float temp;
-        float pres;
+        double pres;
+        double ax, ay, az;
     };
 
     class arduino

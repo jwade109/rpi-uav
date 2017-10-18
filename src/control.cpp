@@ -17,19 +17,14 @@ std::default_random_engine gen(seed);
 std::normal_distribution<double> gaussian(-1.0, 1.0);
 std::uniform_real_distribution<double> uniform(-1.0, 1.0);
 
-uav::controller::controller(state initial, param cfg, bool debug):
+uav::controller::controller(state initial, param cfg):
 
-    debug(debug),
-    zpid(cfg.zpidg[0], cfg.zpidg[1],
-        cfg.zpidg[2], (uint16_t) cfg.zpidg[3]),
-    hpid(cfg.hpidg[0], cfg.hpidg[1],
-        cfg.hpidg[2], (uint16_t) cfg.hpidg[3]),
-    ppid(cfg.ppidg[0], cfg.ppidg[1],
-        cfg.ppidg[2], (uint16_t) cfg.ppidg[3]),
-    rpid(cfg.rpidg[0], cfg.rpidg[1],
-        cfg.rpidg[2], (uint16_t) cfg.rpidg[3]),
-    spid(cfg.spidg[0], cfg.spidg[1],
-        cfg.spidg[2], {cfg.spidg[3], cfg.spidg[3], cfg.spidg[3]})
+    xpid(cfg.spidg[0], cfg.spidg[1], cfg.spidg[2], cfg.spidg[3]),
+    ypid(cfg.spidg[0], cfg.spidg[1], cfg.spidg[2], cfg.spidg[3]),
+    zpid(cfg.zpidg[0], cfg.zpidg[1], cfg.zpidg[2], cfg.zpidg[3]),
+    hpid(cfg.hpidg[0], cfg.hpidg[1], cfg.hpidg[2], cfg.hpidg[3]),
+    ppid(cfg.ppidg[0], cfg.ppidg[1], cfg.ppidg[2], cfg.ppidg[3]),
+    rpid(cfg.rpidg[0], cfg.rpidg[1], cfg.rpidg[2], cfg.rpidg[3])
 {
     prm = cfg;
     curr = initial;
@@ -38,48 +33,9 @@ uav::controller::controller(state initial, param cfg, bool debug):
 
 uav::controller::~controller() { }
 
-int uav::controller::align()
+int uav::controller::begin()
 {
-    uav::infostream << "RNG seed: " << seed << std::endl;
-    const int samples = 100; // altitude samples for home point
-    const auto wait = chrono::milliseconds(10);
-
-    if (!debug)
-    {
-        int ret1 = imu.begin();
-        int ret2 = bmp.begin();
-        if (ret1 | ret2)
-        {
-            std::stringstream ss;
-            ss << "Drone alignment failure (IMU: " << ret1
-                << ", BMP: " << ret2 << ")";
-            std::cerr << ss.str() << "\n";
-            uav::error(ss.str());
-            return 1;
-        }
-        std::this_thread::sleep_for(chrono::seconds(3));
-    }
-
     auto start = chrono::steady_clock::now();
-    uav::running_average avg1, avg2;
-    for (int i = 0; i < samples; i++)
-    {
-        if (!debug)
-        {
-            avg1.step(imu.get().pres);
-            avg2.step(bmp.getPressure());
-        }
-        else
-        {
-            avg1.step(101200 + gaussian(gen) * 10);
-            avg2.step(101150 + gaussian(gen) * 10);
-        }
-        start+=wait;
-        std::this_thread::sleep_until(start);
-    }
-    prm.p1h = avg1.value;
-    prm.p2h = avg2.value;
-
     return 0;
 }
 
@@ -113,54 +69,22 @@ int uav::controller::iterate(bool block)
         error[0] = 1;
     }
 
-    if (!debug)
-    {
-        imu_packet m = imu.get();
-        curr.pos[3] = m.heading;
-        curr.pos[4] = m.pitch;
-        curr.pos[5] = m.roll;
+    /*
+    imu_packet m = imu.get();
+    curr.pos[3] = m.heading;
+    curr.pos[4] = m.pitch;
+    curr.pos[5] = m.roll;
 
-        curr.temp[0] = m.temp;
-        curr.temp[1] = bmp.getTemperature();
-        curr.pres[0] = m.pres;
-        curr.pres[1] = bmp.getPressure();
-    }
-    else
-    {
-        imu::Vector<3> euler = simulator.euler;
-        curr.pos[3] = euler.x();
-        curr.pos[4] = euler.y();
-        curr.pos[5] = euler.z();
-
-        curr.pres[0] = prm.p1h + gaussian(gen) * 10;
-        curr.pres[1] = prm.p2h + gaussian(gen) * 10;
-        curr.temp[0] = curr.temp[1] = 25.6 + gaussian(gen) * 0.1;
-    }
+    curr.pres[0] = m.pres;
+    curr.pres[1] = bmp.getPressure();
+    */
 
     error |= validate(prev, curr);
 
     // get target position and attitude from controller
     gettargets();
 
-    // once readings are verified, filter altitude
-    {
-        static uav::low_pass lpf(prm.gz_rc);
-        auto alt = [](float p, float hp)
-            { return 44330 * (1.0 - pow(p/hp, 0.1903)); };
-
-        double z1 = alt(curr.pres[0], prm.p1h);
-        double z2 = alt(curr.pres[1], prm.p2h);
-        double zavg = z1 * prm.gz_wam + z2 * (1 - prm.gz_wam);
-        curr.pos[2] = lpf.step(zavg, dt);
-
-        if (debug)
-        {
-            auto pos = simulator.pos;
-            curr.pos[0] = pos.x();
-            curr.pos[1] = pos.y();
-            curr.pos[2] = pos.z();
-        }
-    }
+    // TODO add altitude filter here
 
     // end here if this is the first iteration
     if (curr.status == uav::null_status)
@@ -196,14 +120,12 @@ int uav::controller::iterate(bool block)
         return dist;
     };
 
-    imu::Vector<2> P(curr.pos[0], curr.pos[1]),
-        T(curr.targets[0], curr.targets[1]);
-    imu::Vector<2> Sp = spid.seek(P, T, dt);
-    curr.pidov[0] = Sp.x();
-    curr.pidov[1] = Sp.y();
+    curr.pidov[0] = xpid.seek(curr.pos[0], curr.targets[0], dt);
+    curr.pidov[1] = xpid.seek(curr.pos[1], curr.targets[1], dt);
 
-    imu::Vector<3> euler = traverse(Sp, curr.pos[3],
-        prm.tilt95, prm.maxtilt).first;
+    imu::Vector<3> euler = traverse({curr.pidov[0], curr.pidov[1]},
+            curr.pos[3], prm.tilt95, prm.maxtilt).first;
+
     curr.targets[4] = euler.y();
     curr.targets[5] = euler.z();
 
@@ -267,20 +189,16 @@ void uav::controller::gettargets()
 {
     // arbitrary targets until a true controller is implemented
     static uint64_t last(0);
-    if (debug)
+    if (curr.status != uav::pos_hold) last = curr.t;
+    if ((curr.t - last >= 5000) || curr.t == 0)
     {
-        if (curr.status != uav::pos_hold) last = curr.t;
-        if ((curr.t - last >= 5000) || curr.t == 0)
-        {
-            last = curr.t;
+        last = curr.t;
 
-            curr.targets[0] = uniform(gen) * 100;
-            curr.targets[1] = uniform(gen) * 100;
-            curr.targets[2] = uniform(gen) * 25 + 25;
-            curr.targets[3] = uniform(gen) * 180;
-        }
+        curr.targets[0] = uniform(gen) * 100;
+        curr.targets[1] = uniform(gen) * 100;
+        curr.targets[2] = uniform(gen) * 25 + 25;
+        curr.targets[3] = uniform(gen) * 180;
     }
-    else curr.targets.fill(0);
 }
 
 std::bitset<16> uav::controller::validate(

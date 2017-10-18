@@ -1,7 +1,7 @@
 #include <stdbool.h>
 #include <pid.h>
 
-pid_controller::pid_controller(double Kp, double Ki, double Kd, uint16_t max)
+pid_controller::pid_controller(double Kp, double Ki, double Kd, double max)
     : Kp(Kp), Ki(Ki), Kd(Kd), max_int(max)
 {
     reset();

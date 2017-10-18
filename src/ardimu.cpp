@@ -79,8 +79,10 @@ void uav::arduino::parse()
             d.pitch = strtod(cursor, &cursor);
             d.roll = strtod(cursor, &cursor);
             d.calib = strtol(cursor, &cursor, 10);
-            d.temp = strtod(cursor, &cursor);
             d.pres = strtod(cursor, &cursor);
+            d.ax = strtod(cursor, &cursor);
+            d.ay = strtod(cursor, &cursor);
+            d.az = strtod(cursor, &cursor);
             data = d;
             ss.str("");
             ss.clear();

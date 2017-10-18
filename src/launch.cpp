@@ -27,28 +27,27 @@ int main(int argc, char** argv)
 
     signal(SIGINT, sigint);
 
-    uav::param prm = {uav::f50hz, 0, 0,
+    uav::param prm = {uav::f50hz,
         {1,   0, 3,   0},
         {10,  0, 20,   3},
         {2,   0, 0,   -1},
         {6,   0, 4.5, -1},
         {6,   0, 4.5, -1},
-        0.1, 0.65, 8, 40, 9.81/4};
+        8, 40, 9.81/4};
     uav::state init{0};
 
-    bool debug = argc > 1 ? true : false;
-    uav::controller c(init, prm, debug);
+    uav::controller c(init, prm);
 
     pwm_driver pwm;
     pwm.begin(0x40);
     pwm.reset();
     pwm.setPWMFreq(800);
 
-    uav::info("Aligning...");
-    std::cout << "Aligning..." << std::endl;
-    if (c.align())
+    uav::info("Initializing...");
+    std::cout << "Initializing..." << std::endl;
+    if (c.begin())
     {
-        std::cout << "Failed to align!" << std::endl;
+        std::cout << "Failed to start!" << std::endl;
         uav::flush();
         return 1;
     }

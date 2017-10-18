@@ -32,18 +32,17 @@ bool uav::state::operator!=(const state& other)
 
 uav::param::bin uav::serialize(const param& p)
 {
-    return bin(p.freq) + bin(p.p1h) + bin(p.p2h) + bin(p.spidg) +
-        bin(p.zpidg) + bin(p.hpidg) + bin(p.ppidg) + bin(p.rpidg) +
-        bin(p.gz_rc) + bin(p.gz_wam) + bin(p.tilt95) +
-        bin(p.maxtilt) + bin(p.mg);
+    return bin(p.freq) + bin(p.spidg) + bin(p.zpidg) +
+        bin(p.hpidg) + bin(p.ppidg) + bin(p.rpidg) +
+        bin(p.tilt95) + bin(p.maxtilt) + bin(p.mg);
 }
 
 uav::state::bin uav::serialize(const state& s)
 {
     return bin(s.t) + bin(s.t_abs) + bin(s.comptime) +
-        bin(s.temp) + bin(s.pres) + bin(s.pos) +
-        bin(s.calib) + bin(s.targets) + bin(s.pidov) +
-        bin(s.motors) + bin(s.err) + bin(s.status);
+        bin(s.pres) + bin(s.pos) + bin(s.calib) +
+        bin(s.targets) + bin(s.pidov) + bin(s.motors) +
+        bin(s.err) + bin(s.status);
 }
 
 uav::param uav::deserialize(const param::bin& b)
@@ -52,15 +51,11 @@ uav::param uav::deserialize(const param::bin& b)
     size_t rptr = 0;
     auto src = begin(b);
     bin(src, rptr, p.freq);
-    bin(src, rptr, p.p1h);
-    bin(src, rptr, p.p2h);
     bin(src, rptr, p.spidg);
     bin(src, rptr, p.zpidg);
     bin(src, rptr, p.hpidg);
     bin(src, rptr, p.ppidg);
     bin(src, rptr, p.rpidg);
-    bin(src, rptr, p.gz_rc);
-    bin(src, rptr, p.gz_wam);
     bin(src, rptr, p.tilt95);
     bin(src, rptr, p.maxtilt);
     bin(src, rptr, p.mg);
@@ -75,7 +70,6 @@ uav::state uav::deserialize(const state::bin& b)
     bin(src, rptr, s.t);
     bin(src, rptr, s.t_abs);
     bin(src, rptr, s.comptime);
-    bin(src, rptr, s.temp);
     bin(src, rptr, s.pres);
     bin(src, rptr, s.pos);
     bin(src, rptr, s.calib);
@@ -89,8 +83,8 @@ uav::state uav::deserialize(const state::bin& b)
 
 std::string uav::param::header()
 {
-    return "freq p1h p2h spidg(0..3) zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
-           "gz_rc gz_wam tilt95 maxtilt mg";
+    return "freq spidg(0..3) zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
+           "tilt95 maxtilt mg";
 }
 
 std::string uav::state::header(fmt::bitmask_t mask)
@@ -106,8 +100,6 @@ std::string uav::state::header(fmt::bitmask_t mask)
     if (b[i++]) line << setw(15) << "t_abs";
     if (b[i++]) line << setw(15) << "comp_us";
 
-    if (b[i++]) line << setw(15) << "t1";
-    if (b[i++]) line << setw(15) << "t2";
     if (b[i++]) line << setw(15) << "p1";
     if (b[i++]) line << setw(15) << "p2";
     if (b[i++]) line << setw(15) << "x";
@@ -154,8 +146,6 @@ std::string uav::to_string(const param& prm)
     std::stringstream line;
 
     line << (int) prm.freq << " ";
-    line << prm.p1h << " ";
-    line << prm.p2h << " ";
 
     line << "[ ";
     for (int i = 0; i < 4; i++)
@@ -173,8 +163,6 @@ std::string uav::to_string(const param& prm)
     for (int i = 0; i < 4; i++)
         line << prm.rpidg[i] << " ";
     line << "] ";
-    line << prm.gz_rc << " ";
-    line << prm.gz_wam << " ";
     line << prm.tilt95 << " ";
     line << prm.maxtilt << " ";
     line << prm.mg << " ";
@@ -196,8 +184,6 @@ std::string uav::to_string(const state& it, fmt::bitmask_t mask)
     if (b[i++]) line << setw(15) << it.t/1000.0;
     if (b[i++]) line << setw(15) << it.t_abs/1000.0;
     if (b[i++]) line << setw(15) << it.comptime/1000.0;
-    if (b[i++]) line << setw(15) << it.temp[0];
-    if (b[i++]) line << setw(15) << it.temp[1];
     if (b[i++]) line << setw(15) << it.pres[0];
     if (b[i++]) line << setw(15) << it.pres[1];
 
@@ -326,28 +312,4 @@ void uav::flush()
         text << textlog.front() << "\n";
         textlog.pop_front();
     }
-}
-
-int uav::tests::uavcore()
-{
-    param p{ f125hz, 0, 0, { 0.12, 0.3, 0.5, -1 }, { 2.3, 1.4, 0.015, -1 },
-        { 0.1, 01.8, 0.02, -1 }, { 0.1, -0.45, 0.02, -1 }, 0.1, 0.65, 500, 41 };
-
-    state s{ 45, 123, 2001, {10132.7, 10100.3}, {45.4, 45.7},
-        {0, 0, 0.73, 32.0, 2.3, -1.6}, 0x4f, {1, 4, 23, 3, -12, 102},
-        {0.3, -3.4, 0.45F, 0.23, -0.34, 1.45}, {43, 27, 32, 51}, 12 };
-
-    std::cout << to_string(p) << std::endl;
-    std::cout << to_string(s, fmt::standard) << std::endl;
-
-    auto pnew = deserialize(serialize(p));
-    auto snew = deserialize(serialize(s));
-
-    std::cout << to_string(pnew) << std::endl;
-    std::cout << to_string(snew, fmt::standard) << std::endl;
-
-    if (p != pnew) return 1;
-    if (s != snew) return 2;
-
-    return 0;
 }
