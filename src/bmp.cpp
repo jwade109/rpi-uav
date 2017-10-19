@@ -6,10 +6,12 @@
 
 #include <bmp.h>
 
+const uint8_t BMP085_CHIPID = 0x55;
+
 using namespace std::chrono;
 
 uav::bmp085::bmp085(): slp(1013.25), temp(0),
-    press(0), alt(0), cont(true) { }
+    press(0), alt(0), cont(false) { }
 
 uav::bmp085::~bmp085()
 {
@@ -82,6 +84,8 @@ int32_t uav::bmp085::computeB5(int32_t ut)
 
 int uav::bmp085::begin(uint8_t addr, bmp085_mode_t mode)
 {
+    if (cont) return 0;
+
     int ret = i2c.open(addr);
     if (!ret)
     {
@@ -105,6 +109,7 @@ int uav::bmp085::begin(uint8_t addr, bmp085_mode_t mode)
     bmp085Mode = mode;
     readCoefficients();
 
+    cont = true;
     reader = std::thread(&bmp085::work, this);
 
     return 0;

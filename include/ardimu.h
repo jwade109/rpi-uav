@@ -1,48 +1,44 @@
 #ifndef ARDIMU_H
 #define ARDIMU_H
 
-#include <fstream>
 #include <cstdlib>
 #include <thread>
-#include <termios.h>
+#include <vector.h>
 
 namespace uav
 {
-    struct imu_packet
-    {
-        uint64_t millis;
-        double heading;
-        double pitch;
-        double roll;
-        uint8_t calib;
-        double pres;
-        double ax, ay, az;
-    };
 
-    class arduino
-    {
-        public:
+struct arduino_data
+{
+    uint64_t millis;
+    imu::Vector<3> euler;
+    uint8_t calib;
+    double pres;
+    imu::Vector<3> acc;
+};
 
-        arduino();
-        ~arduino();
+class arduino
+{
+    public:
 
-        int begin();
-        const imu_packet& get() const;
+    arduino();
+    ~arduino();
 
-        private:
-        
-        imu_packet data;
+    int begin();
+    const arduino_data& get() const;
 
-        const static size_t buffer_size = 1000;
-        const static speed_t baud = B115200;
+    private:
+    
+    arduino_data data;
 
-        int fd;
-        std::thread parser;
-        bool cont;
-        int status;
+    int fd;
+    std::thread parser;
+    bool cont;
+    int status;
 
-        void parse();
-    };
-}
+    void parse();
+};
+
+} // namespace uav
 
 #endif // ARDIMU_H

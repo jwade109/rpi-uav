@@ -57,7 +57,7 @@ const std::string uav::gps::pmtk_awake("$PMTK010,002*2D");
 
 const std::string uav::gps::pmtk_query_release("$PMTK605*31");
 
-uav::gps::gps() : data{0}, newflag(false), cont(true), status(0), fd(-1) { }
+uav::gps::gps() : data{0}, newflag(false), cont(false), status(0), fd(-1) { }
 
 uav::gps::~gps()
 {
@@ -68,6 +68,8 @@ uav::gps::~gps()
 
 int uav::gps::begin()
 {
+    if (cont) return 0;
+
     fd = serialOpen("/dev/ttyS0", 9600);
     if (fd < 0)
     {
@@ -75,11 +77,14 @@ int uav::gps::begin()
         return 1;
     }
 
+    cont = true;
     reader = std::thread(&uav::gps::dowork, this);
 
     while (status == 0);
     if (status == -1)
     {
+        cont = false;
+        if (reader.joinable()) reader.join();
         std::cerr << "gps: connection timed out" << std::endl;
         return 2;
     }

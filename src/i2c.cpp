@@ -23,6 +23,7 @@ bool i2cdev::open(uint8_t addr)
 
 bool i2cdev::ready() const
 {
+    errno = 0;
     read8(0);
     return fd > 0 && errno == 0;
 }

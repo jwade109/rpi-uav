@@ -18,13 +18,13 @@ int main()
         "ax\tay\taz" << std::endl;
     while (1)
     {
-        uav::imu_packet m = imu.get();
+        uav::arduino_data m = imu.get();
         std::cout << "  " << m.millis << "\t"
-                  << m.heading << "\t" << m.pitch << "\t"
-                  << m.roll << "\t" << std::hex << (int) m.calib
+                  << m.euler.x() << "\t" << m.euler.y() << "\t"
+                  << m.euler.z() << "\t" << std::hex << (int) m.calib
                   << std::dec << "\t" << m.pres << "\t"
-                  << m.ax << "\t" << m.ay << "\t"
-                  << m.az << "\r" << std::flush;
+                  << m.acc.x() << "\t" << m.acc.y() << "\t"
+                  << m.acc.z() << "\r" << std::flush;
         std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
     return 0;

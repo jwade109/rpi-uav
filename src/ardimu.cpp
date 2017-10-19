@@ -5,7 +5,7 @@
 #include <ardimu.h>
 #include <wiringSerial.h>
 
-uav::arduino::arduino(): data{0}, fd(-1), cont(true), status(0) { }
+uav::arduino::arduino(): data{0}, fd(-1), cont(false), status(0) { }
 
 uav::arduino::~arduino()
 {
@@ -16,6 +16,8 @@ uav::arduino::~arduino()
 
 int uav::arduino::begin()
 {
+    if (cont) return 0;
+
     fd = serialOpen("/dev/ttyACM0", 115200);
     if (fd < 0)
     {
@@ -23,11 +25,14 @@ int uav::arduino::begin()
         return 1;
     }
 
+    cont = true;
     parser = std::thread(&arduino::parse, this);
 
     while (status == 0);
     if (status == -1)
     {
+        cont = false;
+        if (parser.joinable()) parser.join();
         std::cerr << "arduino: connection timed out" << std::endl;
         return 2;
     }
@@ -35,7 +40,7 @@ int uav::arduino::begin()
     return 0;
 }
 
-const uav::imu_packet& uav::arduino::get() const
+const uav::arduino_data& uav::arduino::get() const
 {
     return data;
 }
@@ -72,17 +77,17 @@ void uav::arduino::parse()
         else if (ch == '>')
         {
             recieved = false;
-            imu_packet d;
+            arduino_data d;
             char* cursor;
             d.millis = strtol(ss.str().c_str(), &cursor, 10);
-            d.heading = strtod(cursor, &cursor);
-            d.pitch = strtod(cursor, &cursor);
-            d.roll = strtod(cursor, &cursor);
+            d.euler.x() = strtod(cursor, &cursor);
+            d.euler.y() = strtod(cursor, &cursor);
+            d.euler.z() = strtod(cursor, &cursor);
             d.calib = strtol(cursor, &cursor, 10);
             d.pres = strtod(cursor, &cursor);
-            d.ax = strtod(cursor, &cursor);
-            d.ay = strtod(cursor, &cursor);
-            d.az = strtod(cursor, &cursor);
+            d.acc.x() = strtod(cursor, &cursor);
+            d.acc.y() = strtod(cursor, &cursor);
+            d.acc.z() = strtod(cursor, &cursor);
             data = d;
             ss.str("");
             ss.clear();
