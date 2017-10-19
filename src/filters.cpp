@@ -28,7 +28,7 @@ double uav::running_average::step(double sample)
         sample/(num_samples + 1));
 }
 
-uav::moving_average::moving_average(uint8_t num_samples) :
+uav::moving_average::moving_average(unsigned num_samples) :
     value(0), num_samples(num_samples) { }
 
 double uav::moving_average::step(double sample)

@@ -56,7 +56,7 @@ bin/pwmtest: .build/test/pwmtest.o .build/src/pwm.o .build/src/i2c.o
 bin/skips: .build/test/skips.o
 	$(LINK)
 
-bin/bin2txt: .build/test/bin2txt.o .build/src/uavcore.o
+bin/bin2txt: .build/test/bin2txt.o .build/src/uavcore.o .build/src/freebody.o
 	$(LINK)
 
 bin/units: .build/test/units.o .build/src/ardimu.o \

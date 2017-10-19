@@ -72,6 +72,9 @@ namespace uav
         float getPressure();
         float getAltitude(); // default slp 1013.25 hPa
 
+        // takes pressure in kPa
+        static double altitude(double p, double hp = 101.325);
+
         private:
 
         float temp, press, alt;

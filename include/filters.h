@@ -54,9 +54,9 @@ class moving_average
     public:
 
     double value;
-    uint8_t num_samples;
+    unsigned num_samples;
 
-    moving_average(uint8_t num_samples);
+    moving_average(unsigned num_samples);
 
     double step(double sample);
 

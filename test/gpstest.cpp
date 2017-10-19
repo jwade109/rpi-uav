@@ -57,6 +57,7 @@ int main()
                 << gp.gga.utc << " "
                 << gp.gga.pos.lat << " "
                 << gp.gga.pos.lon << " "
+                << gp.gga.altitude << " "
                 << (int) gp.gga.num_sats << " "
                 << "\r" << std::flush; // rel << " " << rel_filt << std::endl;
         }

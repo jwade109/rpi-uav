@@ -2,6 +2,7 @@
 #define UAV_CORE_H
 
 #include <fstream>
+#include <sstream>
 #include <deque>
 #include <array>
 #include <limits>
@@ -61,11 +62,12 @@ namespace uav
             attitude        = 7 << 10,
             attitude_full   = 15 << 10,
             calib           = 1 << 13,
-            targets         = 63 << 14,
-            pid             = 63 << 20,
-            motors          = 15 << 26,
-            error           = 1 << 30,
-            status          = 1U << 31,
+            quaternion      = 15 << 14,
+            targets         = 63 << 18,
+            pid             = 63 << 24,
+            motors          = 15ULL << 30,
+            error           = 1ULL << 34,
+            status          = 1ULL << 35,
 
             all = std::numeric_limits<bitmask_t>::max(),
             standard = time | configuration | motors | error
