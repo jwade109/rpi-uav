@@ -57,7 +57,7 @@ const std::string uav::gps::pmtk_awake("$PMTK010,002*2D");
 
 const std::string uav::gps::pmtk_query_release("$PMTK605*31");
 
-uav::gps::gps() : data{0}, newflag(false), cont(false), status(0), fd(-1) { }
+uav::gps::gps() : data({0}), newflag(false), cont(false), status(0), fd(-1) { }
 
 uav::gps::~gps()
 {
@@ -152,18 +152,21 @@ void uav::gps::update_info(std::stringstream& nmea)
     int id = -1;
     for (int i = 0; i < 5 && id < 0; i++)
         if (header == head[i]) id = i;
+
+    gps_data newgps = data;
     switch (id)
     {
-        case 0: data.gga = parse_gpgga(msg); break;
-        case 1: data.gsa = parse_gpgsa(msg); break;
-        case 2: data.vtg = parse_gpvtg(msg); break;
-        case 3: data.rmc = parse_gprmc(msg); break;
+        case 0: newgps.gga = parse_gpgga(msg); break;
+        case 1: newgps.gsa = parse_gpgsa(msg); break;
+        case 2: newgps.vtg = parse_gpvtg(msg); break;
+        case 3: newgps.rmc = parse_gprmc(msg); break;
         case 4: auto gsv = parse_gpgsv(msg);
-            if (gsv.msg_num == 1) data.gsv.clear();
-            data.gsv.push_back(gsv);
+            if (gsv.msg_num == 1) newgps.gsv.clear();
+            newgps.gsv.push_back(gsv);
             break;
     }
-    newflag |= (id > -1);
+    data = newgps;
+    newflag = newflag.load() | (id > -1);
 }
 
 std::ostream& uav::operator << (std::ostream& os, const uav::utc_time& u)

@@ -3,7 +3,6 @@
 #include <ardimu.h>
 #include <bmp.h>
 #include <gps.h>
-#include <lsm.h>
 
 int main()
 {
@@ -28,12 +27,5 @@ int main()
         std::cout << "Test failed, returned: " << ret << std::endl;
     else std::cout << "Test success." << std::endl;
 
-    std::cout << "Testing LSM303..." << std::endl;
-    uav::lsm303 lsm;
-    ret = lsm.begin();
-    if (ret > 0)
-        std::cout << "Test failed, returned: " << ret << std::endl;
-    else std::cout << "Test success." << std::endl;
-    
     return 0;
 }

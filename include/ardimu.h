@@ -3,6 +3,7 @@
 
 #include <cstdlib>
 #include <thread>
+#include <atomic>
 #include <vector.h>
 
 namespace uav
@@ -25,16 +26,15 @@ class arduino
     ~arduino();
 
     int begin();
-    const arduino_data& get() const;
+    arduino_data get() const;
 
     private:
     
-    arduino_data data;
+    std::atomic<arduino_data> data;
+    std::atomic<bool> cont;
+    std::atomic<int> status, fd;
 
-    int fd;
     std::thread parser;
-    bool cont;
-    int status;
 
     void parse();
 };

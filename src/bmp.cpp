@@ -11,7 +11,7 @@ const uint8_t BMP085_CHIPID = 0x55;
 using namespace std::chrono;
 
 uav::bmp085::bmp085(): slp(1013.25), temp(0),
-    press(0), alt(0), cont(false) { }
+    press(0), alt(0), data({0}), cont(false) { }
 
 uav::bmp085::~bmp085()
 {
@@ -196,11 +196,10 @@ void uav::bmp085::work()
 {
     while (cont)
     {
-        float t = updateTemperature();
-        float p = updatePressure();
-        temp = t;
-        press = p;
+        temp = updateTemperature();
+        press = updatePressure();
         alt = 44330 * (1.0 - pow(0.01 * press / slp, 0.1903));
+        data = bmp085_data{temp, press};
     }
 }
 

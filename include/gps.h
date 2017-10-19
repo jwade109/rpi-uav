@@ -24,6 +24,7 @@ All text above must be included in any redistribution
 #define GPS_H
 
 #include <thread>
+#include <atomic>
 #include <string>
 #include <vector>
 
@@ -163,13 +164,11 @@ class gps
 
     private:
 
-    gps_data data;
-    std::thread reader;
+    std::atomic<gps_data> data;
+    std::atomic<bool> newflag, cont;
+    std::atomic<int> status, fd;
 
-    bool newflag;
-    bool cont;
-    int status;
-    int fd;
+    std::thread reader;
 
     void dowork();
     void update_info(std::stringstream& ss);

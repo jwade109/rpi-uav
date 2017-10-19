@@ -1,15 +1,11 @@
 #include <iostream>
-#include <iomanip>
 #include <chrono>
 #include <thread>
 #include <cmath>
-#include <cassert>
-#include <string.h>
-#include <stdbool.h>
 #include <signal.h>
 
 #include <uavcore.h>
-#include <ncurses.h>
+#include <sensors.h>
 #include <control.h>
 #include <pwm.h>
 
@@ -39,25 +35,33 @@ int main(int argc, char** argv)
     uav::controller c(init, prm);
 
     pwm_driver pwm;
-    pwm.begin(0x40);
-    pwm.reset();
-    pwm.setPWMFreq(800);
-
-    uav::info("Initializing...");
-    std::cout << "Initializing..." << std::endl;
-    if (c.begin())
+    if (pwm.begin(0x40) > 0)
     {
-        std::cout << "Failed to start!" << std::endl;
+        std::cerr << "PWM init failed." << std::endl;
+        uav::error << "PWM init failed." << std::endl;
         uav::flush();
         return 1;
     }
-    std::cout << "Alignment complete." << std::endl;
+    pwm.reset();
+    pwm.setPWMFreq(800);
+
+    uav::sensor_hub sensors;
+
+    uav::info("Initializing...");
+    std::cout << "Initializing..." << std::endl;
+    if (sensors.begin() > 0)
+    {
+        std::cerr << "Sensor init failed." << std::endl;
+        uav::error("Sensor init failed.");
+        uav::flush();
+        return 1;
+    }
 
     uav::include(c.getparams());
 
     // print the params
     namespace fmt = uav::fmt;
-    auto format = fmt::time | fmt::configuration | fmt::quaternion;
+    auto format = fmt::time | fmt::config | fmt::quat;
 
     std::cout << format << std::endl;
 
@@ -68,9 +72,7 @@ int main(int argc, char** argv)
     auto start = chrono::steady_clock::now(), now = start;
     while ((now < start + chrono::seconds(5 * 60)) && cont)
     {
-        // iterate the controller,
-        // enable internal timing management
-        c.iterate(true);
+        c.step(uav::raw_data{0});
         uav::state s = c.getstate();
 
         for (int i = 0; i < 4; i++)

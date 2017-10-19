@@ -87,57 +87,64 @@ std::string uav::param::header()
            "tilt95 maxtilt mg";
 }
 
-std::string uav::state::header(fmt::bitmask_t mask)
+std::string uav::state::header(fmt::bitmask_t b)
 {
     using namespace std;
-
-    std::bitset<state::size> b(mask);
     stringstream line;
     line << left;
 
-    int i = 0;
-    if (b[i++]) line << setw(15) << "time";
-    if (b[i++]) line << setw(15) << "t_abs";
-    if (b[i++]) line << setw(15) << "comp_us";
-
-    if (b[i++]) line << setw(15) << "p1";
-    if (b[i++]) line << setw(15) << "p2";
-    if (b[i++]) line << setw(15) << "x";
-    if (b[i++]) line << setw(15) << "y";
-    if (b[i++]) line << setw(15) << "z";
-
-    if (b[i++]) line << setw(15) << "hdg";
-    if (b[i++]) line << setw(15) << "pitch";
-    if (b[i++]) line << setw(15) << "roll";
-    if (b[i++]) line << setw(15) << "cal";
-
-    if (b[i++]) line << setw(15) << "qw";
-    if (b[i++]) line << setw(15) << "qx";
-    if (b[i++]) line << setw(15) << "qy";
-    if (b[i++]) line << setw(15) << "qz";
-
-    if (b[i++]) line << setw(15) << "tx";
-    if (b[i++]) line << setw(15) << "ty";
-    if (b[i++]) line << setw(15) << "tz";
-    if (b[i++]) line << setw(15) << "th";
-    if (b[i++]) line << setw(15) << "tp";
-    if (b[i++]) line << setw(15) << "tr";
-
-    if (b[i++]) line << setw(15) << "xov";
-    if (b[i++]) line << setw(15) << "yov";
-    if (b[i++]) line << setw(15) << "zov";
-    if (b[i++]) line << setw(15) << "hov";
-    if (b[i++]) line << setw(15) << "pov";
-    if (b[i++]) line << setw(15) << "rov";
-
-    if (b[i++]) line << setw(15) << "m1(CW)";
-    if (b[i++]) line << setw(15) << "m2(CCW)";
-    if (b[i++]) line << setw(15) << "m3(CW)";
-    if (b[i++]) line << setw(15) << "m4(CCW)";
-
-    if (b[i++]) line << setw(20) << "err";
-    if (b[i++]) line << setw(15) << "status";
-
+    if (b & fmt::time)
+    {
+        line << setw(15) << "time";
+    }
+    if (b & fmt::time_full)
+    {
+        line << setw(15) << "t_abs" << setw(15) << "comp_us";
+    }
+    if (b & fmt::pressure)
+    {
+        line << setw(15) << "p1" << setw(15) << "p2";
+    }
+    if (b & fmt::position)
+    {
+        line << setw(15) << "x" << setw(15) << "y" << setw(15) << "z";
+    }
+    if (b & fmt::attitude)
+    {
+        line << setw(15) << "α" << setw(15) << "β" << setw(15) << "γ";
+    }
+    if (b & fmt::calib)
+    {
+        line << setw(15) << "cal";
+    }
+    if (b & fmt::quat)
+    {
+        line << setw(15) << "qw" << setw(15) << "qx"
+             << setw(15) << "qy" << setw(15) << "qz";
+    }
+    if (b & fmt::targets)
+    {
+        line << setw(15) << "tx" << setw(15) << "ty" << setw(15) << "tz"
+             << setw(15) << "tα" << setw(15) << "tβ" << setw(15) << "tγ";
+    }
+    if (b & fmt::pid)
+    {
+        line << setw(15) << "xov" << setw(15) << "yov" << setw(15) << "zov"
+             << setw(15) << "αov" << setw(15) << "βov" << setw(15) << "γov";
+    }
+    if (b & fmt::motors)
+    {
+        line << setw(15) << "m1" << setw(15) << "m2"
+             << setw(15) << "m3" << setw(15) << "m4";
+    }
+    if (b & fmt::error)
+    {
+        line << setw(20) << "err";
+    }
+    if (b & fmt::status)
+    {
+        line << setw(15) << "status";
+    }
     return line.str();
 }
 
@@ -172,53 +179,75 @@ std::string uav::to_string(const param& prm)
     return str;
 }
 
-std::string uav::to_string(const state& it, fmt::bitmask_t mask)
+std::string uav::to_string(const state& it, fmt::bitmask_t b)
 {
     using namespace std;
 
-    std::bitset<64> b(mask);
     stringstream line;
     line << left << fixed << setprecision(3);
 
-    int i = 0;
-    if (b[i++]) line << setw(15) << it.t/1000.0;
-    if (b[i++]) line << setw(15) << it.t_abs/1000.0;
-    if (b[i++]) line << setw(15) << it.comptime/1000.0;
-    if (b[i++]) line << setw(15) << it.pres[0];
-    if (b[i++]) line << setw(15) << it.pres[1];
-
-    for (int j = 0; j < 6; j++)
-        if (b[i++]) line << setw(15) << it.pos[j];
-    
-    if (b[i++]) line << hex << setw(15) << (int) it.calib << dec;
-
-    imu::Quaternion q;
-    imu::Vector<3> euler(it.pos[3], it.pos[4], it.pos[5]);
-    euler.toRadians();
-    q.fromMatrix(uav::euler2matrix(euler));
-    if (b[i++]) line << setw(15) << q.w();
-    if (b[i++]) line << setw(15) << q.x();
-    if (b[i++]) line << setw(15) << q.y();
-    if (b[i++]) line << setw(15) << q.z();
-
-    for (int j = 0; j < 6; j++)
-        if (b[i++]) line << setw(15) << it.targets[j];
-
-    for (int j = 0; j < 6; j++)
-        if (b[i++]) line << setw(15) << it.pidov[j];
-
-    for (int j = 0; j < 4; j++)
-        if (b[i++]) line << setw(15) << it.motors[j];
-
-    if (b[i++]) line << setw(20) << std::bitset<16>(it.err);
-    if (b[i++])
+    if (b & fmt::time)
+    {
+        line << setw(15) << it.t/1000.0;
+    }
+    if (b & fmt::time_full)
+    {
+        line << setw(15) << it.t_abs/1000.0
+             << setw(15) << it.comptime/1000.0;
+    }
+    if (b & fmt::pressure)
+    {
+        line << setw(15) << it.pres[0] << setw(15) << it.pres[1];
+    }
+    if (b & fmt::position)
+    {
+        for (int i = 0; i < 3; i++)
+        line << setw(15) << it.pos[i];
+    }
+    if (b & fmt::attitude)
+    {
+        for (int i = 3; i < 6; i++)
+        line << setw(15) << it.pos[i];
+    }
+    if (b & fmt::calib)
+    {
+        line << hex << setw(15) << (int) it.calib << dec;
+    }
+    if (b & fmt::quat)
+    {
+        imu::Quaternion q;
+        imu::Vector<3> euler(it.pos[3], it.pos[4], it.pos[5]);
+        euler.toRadians();
+        q.fromMatrix(uav::euler2matrix(euler));
+        line << setw(15) << q.w() << setw(15) << q.x()
+             << setw(15) << q.y() << setw(15) << q.z();
+    }
+    if (b & fmt::targets)
+    {
+        for (int i = 0; i < 6; i++)
+        line << setw(15) << it.targets[i];
+    }
+    if (b & fmt::pid)
+    {
+        for (int i = 0; i < 6; i++)
+        line << setw(15) << it.pidov[i];
+    }
+    if (b & fmt::motors)
+    {
+        for (int i = 0; i < 4; i++)
+        line << setw(15) << it.motors[i];
+    }
+    if (b & fmt::error)
+    {
+        line << setw(20) << std::bitset<16>(it.err);
+    }
+    if (b & fmt::status)
     {
         line << (int) it.status << "-";
         const char *str[] = {"NULL_STATUS", "ALIGNING", "NO_VEL",
             "POS_SEEK", "POS_HOLD", "UPSIDE_DOWN"};
         line << str[it.status];
     }
-
     return line.str();
 }
 
@@ -241,23 +270,26 @@ std::string uav::timestamp()
     return s.str();
 }
 
-uav::logstream uav::debugstream(uav::debug),
-               uav::infostream(uav::info),
-               uav::errorstream(uav::error);
+uav::param paramlog;
+std::deque<uav::state> statelog;
+std::deque<std::string> textlog;
 
-uav::logstream::logstream(void (* logfunc) (std::string s)) :
-    log(logfunc) { }
+uav::logstream uav::debug("DEBUG"), uav::info("INFO"), uav::error("ERROR");
+
+uav::logstream::logstream(const std::string& streamname) :
+    name(streamname) { }
 
 uav::logstream& uav::logstream::operator << (std::ostream& (*)(std::ostream& os))
 {
-    log(ss.str());
+    textlog.push_back("[" + name + "]\t" + timestamp() + ss.str());
     ss.str(std::string());
     return *this;
 }
 
-uav::param paramlog;
-std::deque<uav::state> statelog;
-std::deque<std::string> textlog;
+void uav::logstream::operator () (const std::string& s)
+{
+    textlog.push_back("[" + name + "]\t" + timestamp() + s);
+}
 
 void uav::reset()
 {
@@ -274,21 +306,6 @@ void uav::include(uav::param p)
 void uav::include(uav::state s)
 {
     statelog.push_back(s);
-}
-
-void uav::debug(std::string s)
-{
-    textlog.push_back("[DEBUG] " + timestamp() + s);
-}
-
-void uav::info(std::string s)
-{
-    textlog.push_back("[INFO]  " + timestamp() + s);
-}
-
-void uav::error(std::string s)
-{
-    textlog.push_back("[ERROR] " + timestamp() + s);
 }
 
 void uav::flush()

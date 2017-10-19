@@ -2,6 +2,7 @@
 #define BMP_H
 
 #include <thread>
+#include <atomic>
 #include <adasensor.h>
 #include <i2c.h>
 #include <stdlib.h>
@@ -9,7 +10,7 @@
 namespace uav
 {
 
-enum
+enum : uint8_t
 {
     BMP085_REGISTER_CAL_AC1            = 0xAA,  // R   Calibration data (16 bits)
     BMP085_REGISTER_CAL_AC2            = 0xAC,  // R   Calibration data (16 bits)
@@ -32,16 +33,15 @@ enum
     BMP085_REGISTER_READPRESSURECMD    = 0x34
 };
 
-typedef enum
+enum bmp085_mode_t : uint8_t
 {
     ULTRALOWPOWER          = 0,
     STANDARD               = 1,
     HIGHRES                = 2,
     ULTRAHIGHRES           = 3
-}
-bmp085_mode_t;
+};
 
-typedef struct
+struct bmp085_calib_data
 {
     int16_t  ac1;
     int16_t  ac2;
@@ -54,11 +54,11 @@ typedef struct
     int16_t  mb;
     int16_t  mc;
     int16_t  md;
-}
-bmp085_calib_data;
+};
 
 struct bmp085_data
 {
+    double temp;
     double pressure;
 };
 
@@ -66,24 +66,28 @@ class bmp085
 {
     public:
 
-    float slp;
+    const double slp;
 
     bmp085();
     ~bmp085();
 
     int begin(uint8_t addr = 0x77, bmp085_mode_t mode = ULTRAHIGHRES);
+
     float getTemperature();
     float getPressure();
     float getAltitude(); // default slp 1013.25 hPa
+
+    bmp085_data get() const;
 
     // takes pressure in kPa
     static double altitude(double p, double hp = 101.325);
 
     private:
 
-    float temp, press, alt;
+    std::atomic<double> temp, press, alt;
+    std::atomic<bmp085_data> data;
+    std::atomic<bool> cont;
     std::thread reader;
-    bool cont;
 
     i2cdev i2c;
     bmp085_calib_data bmp085_coeffs;

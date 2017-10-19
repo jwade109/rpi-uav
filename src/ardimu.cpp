@@ -5,7 +5,7 @@
 #include <ardimu.h>
 #include <wiringSerial.h>
 
-uav::arduino::arduino(): data{0}, fd(-1), cont(false), status(0) { }
+uav::arduino::arduino(): data({0}), cont(false), status(0), fd(-1) { }
 
 uav::arduino::~arduino()
 {
@@ -40,7 +40,7 @@ int uav::arduino::begin()
     return 0;
 }
 
-const uav::arduino_data& uav::arduino::get() const
+uav::arduino_data uav::arduino::get() const
 {
     return data;
 }

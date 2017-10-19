@@ -9,7 +9,7 @@ DEP = $(patsubst %.o, %.d, $(SOBJ) $(TOBJ))
 CC = g++
 CF = -g -std=c++14 -Wall -Wpedantic
 LF = -g
-LIB = -lncurses -lwiringPi -pthread
+LIB = -lncurses -lwiringPi -pthread -latomic
 INC = -I include/
 LINK = $(CC) $(LF) $^ -o $@ $(LIB)
 
@@ -60,7 +60,7 @@ bin/bin2txt: .build/test/bin2txt.o .build/src/uavcore.o .build/src/freebody.o
 	$(LINK)
 
 bin/units: .build/test/units.o .build/src/ardimu.o .build/src/gps.o \
-	.build/src/bmp.o .build/src/lsm.o .build/src/i2c.o
+	.build/src/bmp.o .build/src/i2c.o
 	$(LINK)
 
 bin/fbtest: .build/test/fbtest.o .build/src/freebody.o

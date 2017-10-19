@@ -49,28 +49,26 @@ enum : status_t
 
 namespace fmt
 {
-    using bitmask_t = uint64_t;
+    using bitmask_t = uint16_t;
 
     enum : bitmask_t
     {
         time            = 1,
-        time_full       = 7,
-        pressure        = 3 << 3,
-        configuration   = 63 << 5,
-        position        = 7 << 5,
-        altitude        = 1 << 7,
-        attitude        = 7 << 8,
-        attitude_full   = 15 << 8,
-        calib           = 1 << 11,
-        quaternion      = 15 << 12,
-        targets         = 63 << 16,
-        pid             = 63 << 22,
-        motors          = 15ULL << 38,
-        error           = 1ULL << 32,
-        status          = 1ULL << 33,
+        time_full       = (1 << 1) | time,
+        pressure        = 1 << 2,
+        position        = 1 << 3,
+        attitude        = 1 << 4,
+        config          = position | attitude,
+        calib           = 1 << 5,
+        quat            = 1 << 6,
+        targets         = 1 << 7,
+        pid             = 1 << 8,
+        motors          = 1 << 9,
+        error           = 1 << 10,
+        status          = 1 << 11,
 
         all = std::numeric_limits<bitmask_t>::max(),
-        standard = time | configuration | motors | error
+        standard = time | config | motors | status
     };
 }
 
@@ -201,22 +199,16 @@ void include(param p);
 
 void include(state s);
 
-void debug(std::string s);
-
-void info(std::string s);
-
-void error(std::string s);
-
 void flush();
 
 class logstream
 {
-    void (*log)(std::string s);
     std::stringstream ss;
+    const std::string name;
 
     public:
 
-    logstream(void (*logfunc)(std::string s));
+    logstream(const std::string& name);
 
     template <typename T>
     logstream& operator << (const T& t)
@@ -225,10 +217,12 @@ class logstream
         return *this;
     }
 
+    void operator () (const std::string& s);
+
     logstream& operator << (std::ostream& (*)(std::ostream&));
 };
 
-extern logstream debugstream, infostream, errorstream;
+extern logstream debug, info, error;
 
 } // namespace uav
 
