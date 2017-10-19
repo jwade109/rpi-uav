@@ -12,26 +12,25 @@ long int last_millis = 0;
 void setup(void)
 {
     Serial.begin(115200);
-    int x = bno.begin();
-    int y = bmp.begin();
+    bool x = bno.begin();
+    bool y = bmp.begin();
 
-    if (x + y < 2)
+    if (!x || !y)
     {
+        Serial.println("WARN");
         for(;;)
         {
-            Serial.print("! BNO055: ");
-            Serial.print(x);
-            Serial.print(" BMP280: ");
-            Serial.print(y);
-            Serial.println(" !");
+            if (!x)
+            Serial.print("BNO ERROR ");
+            if (!y)
+            Serial.print("BMP ERROR ");
+            Serial.println();
             delay(1000);
         }
     }
 
     bno.setExtCrystalUse(true);
 
-    Serial.print('#');
-    delay(1000);
     Serial.print('#');
 }
 
@@ -47,7 +46,7 @@ void loop(void)
     imu::Vector<3> euler = bno.getQuat().toEuler();
     Serial.print(euler.x() * 180/PI);
     Serial.print(' ');
-    Serial.print(euler.y() * 180/PI);
+    Serial.print(-euler.y() * 180/PI);
     Serial.print(' ');
     Serial.print(euler.z() * 180/PI);
     Serial.print(' ');
@@ -57,9 +56,16 @@ void loop(void)
     Serial.print((s << 6) + (g << 4) + (a << 2) + m);
     Serial.print(' ');
 
-    Serial.print(bmp.readTemperature());
-    Serial.print(' ');
     Serial.print(bmp.readPressure());
+    Serial.print(' ');
+
+    imu::Vector<3> accel = bno.getVector(Adafruit_BNO055::VECTOR_LINEARACCEL);
+    Serial.print(-accel.y());
+    Serial.print(' ');
+    Serial.print(accel.x());
+    Serial.print(' ');
+    Serial.print(accel.z());
+    Serial.print(' ');
 
     Serial.println('>');
 }
