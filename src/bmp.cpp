@@ -192,6 +192,11 @@ float uav::bmp085::getPressure()
     return press;
 }
 
+uav::bmp085_data uav::bmp085::get() const
+{
+    return data.load();
+}
+
 void uav::bmp085::work()
 {
     while (cont)

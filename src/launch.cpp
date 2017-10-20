@@ -34,6 +34,7 @@ int main(int argc, char** argv)
 
     uav::controller c(init, prm);
 
+    /*
     pwm_driver pwm;
     if (pwm.begin(0x40) > 0)
     {
@@ -44,6 +45,7 @@ int main(int argc, char** argv)
     }
     pwm.reset();
     pwm.setPWMFreq(800);
+    */
 
     uav::sensor_hub sensors;
 
@@ -75,8 +77,8 @@ int main(int argc, char** argv)
         c.step(uav::raw_data{0});
         uav::state s = c.getstate();
 
-        for (int i = 0; i < 4; i++)
-            pwm.setPin(i * 4, s.motors[i] * 40, false);
+        // for (int i = 0; i < 4; i++)
+        //    pwm.setPin(i * 4, s.motors[i] * 40, false);
 
         // print the controller state
         std::cout << uav::to_string(s, format);
