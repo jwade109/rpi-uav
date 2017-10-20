@@ -21,7 +21,8 @@ int main(int argc, char** argv)
     typedef std::chrono::duration<double> fsec;
 
     double position = 0, setpoint = 10, P = 1, I = 0.02, D = 2;
-    auto dt = milliseconds(10);
+    const uint8_t freq = 100;
+    auto dt = milliseconds(1000/freq);
 
     for (int i = 1; i < argc; i++)
     {
@@ -97,7 +98,7 @@ int main(int argc, char** argv)
         dataFile.open("pid.txt", std::ios::out);
     }
 
-    pid_controller control(P, I, D, -1);
+    pid_controller control(freq, P, I, D);
     double vel = 0;
     int count = 0;
     
@@ -119,7 +120,7 @@ int main(int argc, char** argv)
 
     for (auto t = milliseconds(0); t < minutes(1); t += dt)
     {
-        double resp = control.seek(position, setpoint,
+        double resp = control.seek_linear(position, setpoint,
                 duration_cast<fsec>(dt).count());
         vel += (resp - error_ext) * duration_cast<fsec>(dt).count();
         if (count == whack * 100)

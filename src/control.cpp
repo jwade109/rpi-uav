@@ -51,17 +51,9 @@ int uav::controller::step(const uav::raw_data& raw)
 
     // assumed that at this point, z, h, r, and p are
     // all trustworthy. process pid controller responses
-    auto deg2rad = [](double deg) { return deg * M_PI / 180.0; };
-    auto circular_err = [](double h, double t)
-    {
-        double dist = t - h;
-        if (dist > 180) return dist - 360;
-        if (dist < -180) return dist + 360;
-        return dist;
-    };
 
-    curr.pidov[0] = xpid.seek(curr.pos[0], curr.targets[0], dt);
-    curr.pidov[1] = ypid.seek(curr.pos[1], curr.targets[1], dt);
+    curr.pidov[0] = xpid.seek_linear(curr.pos[0], curr.targets[0], dt);
+    curr.pidov[1] = ypid.seek_linear(curr.pos[1], curr.targets[1], dt);
 
     imu::Vector<3> euler = traverse({curr.pidov[0], curr.pidov[1]},
             curr.pos[3], prm.tilt95, prm.maxtilt).first;
@@ -69,14 +61,10 @@ int uav::controller::step(const uav::raw_data& raw)
     curr.targets[4] = euler.y();
     curr.targets[5] = euler.z();
 
-    curr.pidov[2] = zpid.seek(deg2rad(curr.pos[2]),
-        deg2rad(curr.targets[2]), dt);
-    curr.pidov[3] = hpid.seek(0, deg2rad(circular_err(
-        curr.pos[3], curr.targets[3])), dt);
-    curr.pidov[4] = ppid.seek(deg2rad(curr.pos[4]),
-        deg2rad(curr.targets[4]), dt);
-    curr.pidov[5] = rpid.seek(0, deg2rad(circular_err(
-        curr.pos[5], curr.targets[5])), dt);
+    curr.pidov[2] = zpid.seek_linear(curr.pos[2], curr.targets[2], dt);
+    curr.pidov[3] = hpid.seek_degrees(curr.pos[3], curr.targets[3], dt);
+    curr.pidov[4] = ppid.seek_degrees(curr.pos[4], curr.targets[4], dt);
+    curr.pidov[5] = rpid.seek_degrees(curr.pos[5], curr.targets[5], dt);
 
     // get default hover thrust
     float hover = prm.mg / (cos(deg2rad(curr.pos[4])) *

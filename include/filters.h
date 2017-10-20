@@ -90,6 +90,14 @@ template <uint8_t N> class derivative
 
     double operator () (double x) { return step(x); }
 
+    void reset()
+    {
+        value = 0;
+        current = NAN;
+        samples = 0;
+        d_dx.reset();
+    }
+
     private:
 
     double current;
@@ -105,6 +113,7 @@ template <> class derivative<0>
 
     double step(double sample) { return sample; }
     double operator () (double x) { return x; }
+    void reset() { }
 };
 
 template <uint8_t N> class integral
@@ -126,6 +135,12 @@ template <uint8_t N> class integral
 
     double operator () (double x) { return step(x); }
 
+    void reset()
+    {
+        value = 0;
+        sum_dx.reset();
+    }
+
     private:
 
     integral<N-1> sum_dx;
@@ -139,6 +154,7 @@ template <> class integral<0>
 
     double step(double sample) { return sample; }
     double operator () (double x) { return x; }
+    void reset() { }
 };
 
 } // namespace uav
