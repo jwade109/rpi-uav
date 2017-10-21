@@ -97,7 +97,7 @@ std::string uav::state::header(fmt::bitmask_t b)
     {
         line << setw(15) << "time";
     }
-    if (b & fmt::time_full)
+    if (b & (fmt::time_full & ~fmt::time))
     {
         line << setw(15) << "t_abs" << setw(15) << "comp_us";
     }
@@ -111,7 +111,7 @@ std::string uav::state::header(fmt::bitmask_t b)
     }
     if (b & fmt::attitude)
     {
-        line << setw(15) << "α" << setw(15) << "β" << setw(15) << "γ";
+        line << setw(15) << "hdg" << setw(15) << "pitch" << setw(15) << "roll";
     }
     if (b & fmt::calib)
     {
@@ -125,12 +125,12 @@ std::string uav::state::header(fmt::bitmask_t b)
     if (b & fmt::targets)
     {
         line << setw(15) << "tx" << setw(15) << "ty" << setw(15) << "tz"
-             << setw(15) << "tα" << setw(15) << "tβ" << setw(15) << "tγ";
+             << setw(15) << "th" << setw(15) << "tp" << setw(15) << "tr";
     }
     if (b & fmt::pid)
     {
         line << setw(15) << "xov" << setw(15) << "yov" << setw(15) << "zov"
-             << setw(15) << "αov" << setw(15) << "βov" << setw(15) << "γov";
+             << setw(15) << "hov" << setw(15) << "pov" << setw(15) << "rov";
     }
     if (b & fmt::motors)
     {
@@ -190,7 +190,7 @@ std::string uav::to_string(const state& it, fmt::bitmask_t b)
     {
         line << setw(15) << it.t/1000.0;
     }
-    if (b & fmt::time_full)
+    if (b & (fmt::time_full & ~fmt::time))
     {
         line << setw(15) << it.t_abs/1000.0
              << setw(15) << it.comptime/1000.0;

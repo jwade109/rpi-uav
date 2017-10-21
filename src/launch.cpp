@@ -60,12 +60,7 @@ int main(int argc, char** argv)
     }
 
     uav::include(c.getparams());
-
-    // print the params
-    namespace fmt = uav::fmt;
-    auto format = fmt::time | fmt::config | fmt::quat;
-
-    std::cout << format << std::endl;
+    auto format = uav::fmt::time | uav::fmt::config;
 
     std::cout << uav::param::header() << std::endl;
     std::cout << uav::to_string(c.getparams()) << std::endl;

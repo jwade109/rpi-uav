@@ -84,7 +84,7 @@ int uav::controller::step(const uav::raw_data& raw)
 
     return 0;
 }
-    
+
 uav::state uav::controller::getstate()
 {
     return curr;
