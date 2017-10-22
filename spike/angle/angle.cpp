@@ -1,30 +1,42 @@
-#include <angles.h>
+#include <angle.h>
 
 namespace uav
 {
 
-angle::angle(double rad) : radians(atan2(sin(rad), cos(rad))) { }
+angle::angle() : rotations(0), radians(0) { }
 
-angle::angle(const angle& a) : radians(a.rad()) { }
+angle::angle(double rads, int rots) :
+    rotations(rots + std::lround(rads/(2*M_PI))),
+    radians(rads - (std::lround(rads/(2*M_PI))*2*M_PI)) { }
+
+angle::angle(const angle& a) : radians(a.rad()), rotations(a.rot()) { }
 
 double angle::rad() const { return radians; }
 
 double angle::deg() const { return (180/M_PI) * radians; }
 
+int angle::rot() const { return rotations; }
+
+angle angle::operator - ()
+{
+    return *this * -1;
+}
+
 angle& angle::operator = (const angle& a)
 {
     radians = a.rad();
+    rotations = a.rot();
     return *this;
 }
 
 angle angle::operator + (const angle& a) const
 {
-    return angle(radians + a.rad());
+    return angle(radians + a.rad(), rotations + a.rot());
 }
 
 angle angle::operator - (const angle& a) const
 {
-    return angle(radians - a.rad());
+    return angle(radians - a.rad(), rotations - a.rot());
 }
 
 angle& angle::operator += (const angle& a)
@@ -39,7 +51,7 @@ angle& angle::operator -= (const angle& a)
 
 bool angle::operator == (const angle& a) const
 {
-    return radians == a.rad();
+    return radians == a.rad() && rotations == a.rot();
 }
 
 bool angle::operator != (const angle& a) const
@@ -49,12 +61,12 @@ bool angle::operator != (const angle& a) const
 
 bool angle::operator > (const angle& a) const
 {
-    return (*this - a).rad() > 0;
+    return rotations*2*M_PI + radians - a.rot()*2*M_PI - a.rad() > 0;
 }
 
 bool angle::operator < (const angle& a) const
 {
-    return (*this - a).rad() < 0;
+    return rotations*2*M_PI + radians - a.rot()*2*M_PI - a.rad() < 0;
 }
 
 bool angle::operator >= (const angle& a) const
@@ -69,12 +81,12 @@ bool angle::operator <= (const angle& a) const
 
 angle::operator double () const
 {
-    return radians;
+    return radians + rotations*2*M_PI;;
 }
 
 std::ostream& operator << (std::ostream& os, const angle& a)
 {
-    return os << a.deg();
+    return os << a.rot() << "x" << a.deg();
 }
 
 namespace angle_literals

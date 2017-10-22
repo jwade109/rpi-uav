@@ -11,12 +11,15 @@ class angle
 {
     public:
 
-    angle(double rads);
+    angle();
+    angle(double rads, int rots = 0);
     angle(const angle& a);
 
     double rad() const;
     double deg() const;
+    int rot() const;
 
+    angle operator - ();
     angle& operator = (const angle& a);
     angle operator + (const angle& a) const;
     angle operator - (const angle& a) const;
@@ -39,6 +42,7 @@ class angle
 
     private:
 
+    int rotations;
     double radians;
 };
 
@@ -46,12 +50,12 @@ std::ostream& operator << (std::ostream& os, const angle& a);
 
 template <typename T> angle angle::operator * (T scalar) const
 {
-    return angle(radians * scalar);
+    return angle(radians * scalar, rotations * scalar);
 }
 
 template <typename T> angle angle::operator / (T divisor) const
 {
-    return angle(radians / divisor);
+    return angle(radians / divisor, rotations / divisor);
 }
 
 template <typename T> angle& angle::operator *= (T scalar)
