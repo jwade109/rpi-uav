@@ -34,19 +34,21 @@ int main()
     uav::gps_data gp{0};
     uav::coordinate home;
 
+    uav::low_pass xlpf(2), ylpf(2);
+
     while (gp.gga.num_sats == 0)
     {
+        std::cout << load() << "\r" << std::flush;
         r.update(gp);
-        home = gp.gga.pos;
     }
 
-    uav::low_pass xlpf(2), ylpf(2);
+    home = gp.gga.pos;
 
     while (1)
     {
         if (r.update(gp));
         {
-            auto rel = gp.gga.pos - home;
+            imu::Vector<2> rel = gp.gga.pos - home;
 
             imu::Vector<2> rel_filt =
                 {xlpf.step(rel.x(), 0.02), ylpf.step(rel.y(), 0.02)};
@@ -59,7 +61,8 @@ int main()
                 << gp.gga.pos.lon << " "
                 << gp.gga.altitude << " "
                 << (int) gp.gga.num_sats << " "
-                << "\r" << std::flush; // rel << " " << rel_filt << std::endl;
+                << rel << " " << rel_filt
+                << "               \r" << std::flush;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }

@@ -2,9 +2,7 @@
 #define PID_H
 
 #include <stdint.h>
-#include <limits>
 #include <cmath>
-#include <vector.h>
 #include <filters.h>
 
 class pid_controller
@@ -19,8 +17,7 @@ class pid_controller
     pid_controller(uint8_t freq, double Kp, double Ki,
                    double Kd, double max = INFINITY);
     void reset();
-    double seek_linear(double actual, double setpoint, double dt);
-    double seek_degrees(double actual, double setpoint, double dt);
+    double seek(double actual, double setpoint);
 
     private:
 

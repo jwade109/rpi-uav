@@ -120,8 +120,7 @@ int main(int argc, char** argv)
 
     for (auto t = milliseconds(0); t < minutes(1); t += dt)
     {
-        double resp = control.seek_linear(position, setpoint,
-                duration_cast<fsec>(dt).count());
+        double resp = control.seek(position, setpoint);
         vel += (resp - error_ext) * duration_cast<fsec>(dt).count();
         if (count == whack * 100)
         {
