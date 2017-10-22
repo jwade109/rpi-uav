@@ -26,10 +26,14 @@ class angle
     angle& operator += (const angle& a);
     angle& operator -= (const angle& a);
 
-    template <typename T> angle operator * (T scalar) const;
-    template <typename T> angle operator / (T divisor) const;
-    template <typename T> angle& operator *= (T scalar);
-    template <typename T> angle& operator /= (T scalar);
+    angle& operator = (double rads);
+
+    angle operator * (double scalar) const;
+    angle operator / (double divisor) const;
+    angle& operator *= (double scalar);
+    angle& operator /= (double divisor);
+
+    double operator / (const angle& divisor) const;
 
     bool operator == (const angle& a) const;
     bool operator != (const angle& a) const;
@@ -46,27 +50,9 @@ class angle
     double radians;
 };
 
+angle target_azimuth(angle current, angle desired);
+
 std::ostream& operator << (std::ostream& os, const angle& a);
-
-template <typename T> angle angle::operator * (T scalar) const
-{
-    return angle(radians * scalar, rotations * scalar);
-}
-
-template <typename T> angle angle::operator / (T divisor) const
-{
-    return angle(radians / divisor, rotations / divisor);
-}
-
-template <typename T> angle& angle::operator *= (T scalar)
-{
-    return (*this = *this * scalar);
-}
-
-template <typename T> angle& angle::operator /= (T divisor)
-{
-    return (*this = *this / divisor);
-}
 
 namespace angle_literals
 {

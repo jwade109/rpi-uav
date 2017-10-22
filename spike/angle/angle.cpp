@@ -1,9 +1,11 @@
 #include <angle.h>
+#include <iomanip>
+#include <sstream>
 
 namespace uav
 {
 
-angle::angle() : rotations(0), radians(0) { }
+angle::angle() : angle(0, 0) { }
 
 angle::angle(double rads, int rots) :
     rotations(rots + std::lround(rads/(2*M_PI))),
@@ -19,7 +21,7 @@ int angle::rot() const { return rotations; }
 
 angle angle::operator - ()
 {
-    return *this * -1;
+    return angle(-radians, -rotations);
 }
 
 angle& angle::operator = (const angle& a)
@@ -47,6 +49,36 @@ angle& angle::operator += (const angle& a)
 angle& angle::operator -= (const angle& a)
 {
     return (*this = *this - a);
+}
+
+angle& angle::operator = (double rads)
+{
+    return *this = angle(rads);
+}
+
+angle angle::operator * (double scalar) const
+{
+    return angle((radians + 2*M_PI * rotations) * scalar);
+}
+
+angle angle::operator / (double divisor) const
+{
+    return *this * (1/divisor);
+}
+
+angle& angle::operator *= (double scalar)
+{
+    return (*this = *this * scalar);
+}
+
+angle& angle::operator /= (double divisor)
+{
+    return (*this = *this / divisor);
+}
+
+double angle::operator / (const angle& a) const
+{
+    return (radians + 2*M_PI*rotations) / (a.rad() + 2*M_PI*a.rot());
 }
 
 bool angle::operator == (const angle& a) const
@@ -84,9 +116,17 @@ angle::operator double () const
     return radians + rotations*2*M_PI;;
 }
 
+angle target_azimuth(angle current, angle desired)
+{
+    angle diff((desired - current).rad());
+    return current + diff;
+}
+
 std::ostream& operator << (std::ostream& os, const angle& a)
 {
-    return os << a.rot() << "x" << a.deg();
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(3) << a.rot() << "x" << a.deg();
+    return os << ss.str();
 }
 
 namespace angle_literals
