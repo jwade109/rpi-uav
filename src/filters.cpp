@@ -24,8 +24,8 @@ uav::running_average::running_average() : value(0), num_samples(0) { }
 double uav::running_average::step(double sample)
 {
     if (num_samples++ == 0) return (value = sample);
-    return (value = value * ((1.0 * num_samples)/(num_samples + 1)) +
-        sample/(num_samples + 1));
+    return (value = value * ((1.0 * (num_samples - 1))/num_samples) +
+        sample/num_samples);
 }
 
 uav::moving_average::moving_average(unsigned num_samples) :
@@ -45,3 +45,17 @@ double uav::moving_average::step(double sample)
     samples.pop_front();
     return (value = value + (sample - to_remove)/num_samples);
 }
+
+uav::running_variance::running_variance() :
+    value(0), num_samples(0), S(0) { }
+
+double uav::running_variance::step(double sample)
+{
+    num_samples++;
+    double m_old = mean.value;
+    mean.step(sample);
+    S += (sample - mean.value) * (sample - m_old);
+    if (num_samples == 1) return 0;
+    return value = S/(num_samples - 1);
+}
+

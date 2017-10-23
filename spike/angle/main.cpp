@@ -7,16 +7,18 @@
 #include <angle.h>
 #include <pid.h>
 
+
+
 int main()
 {
     using namespace uav::angle_literals;
     using namespace std::chrono_literals;
 
+    std::default_random_engine gen;
+    std::uniform_real_distribution<double> rand(0, 1);
+
     const uint8_t freq = 50;
     const double dt = 1.0/freq;
-
-    std::default_random_engine gen;
-    std::uniform_real_distribution<double> gauss(-1, 1);
 
     pid_controller pid(freq, 45, 0, 12);
     uav::angle pos, setpoint = 0_deg, vel = 10, accel = 0;
@@ -39,7 +41,7 @@ int main()
 
         if (std::chrono::steady_clock::now() - start > 3s)
         {
-            auto target = uav::angle(gauss(gen) * 10);
+            auto target = uav::angle(rand(gen) * 10);
             setpoint = uav::target_azimuth(pos, target);
             start = std::chrono::steady_clock::now();
         }

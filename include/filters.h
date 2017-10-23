@@ -66,6 +66,23 @@ class moving_average
     std::deque<double> samples;
 };
 
+class running_variance
+{
+    public:
+
+    double value;
+
+    running_variance();
+
+    double step(double sample);
+
+    private:
+
+    unsigned num_samples;
+    double S;
+    running_average mean;
+};
+
 template <uint8_t N> class derivative
 {
     public:
