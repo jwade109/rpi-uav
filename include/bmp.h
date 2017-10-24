@@ -79,9 +79,6 @@ class bmp085
 
     bmp085_data get() const;
 
-    // takes pressure in kPa
-    static double altitude(double p, double hp = 101.325);
-
     private:
 
     std::atomic<double> temp, press, alt;

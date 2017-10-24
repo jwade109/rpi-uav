@@ -165,6 +165,11 @@ angle operator "" _deg(long double degrees)
     return angle(degrees * (M_PI/180));
 }
 
+double uav::altitude(double atm)
+{
+    return 44330 * (1.0 - pow(atm, 0.1903));
+}
+
 } // namespace uav::angle_literals;
 
 bool param::operator==(const param& other)

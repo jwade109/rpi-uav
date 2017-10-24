@@ -74,6 +74,9 @@ angle operator "" _deg(long double degrees);
 
 } // namespace uav::angle_literals
 
+// takes pressure in atm
+double altitude(double atm);
+
 // data representation typedefs ////////////////////////////////////////////
 
 using timestamp_t   = uint64_t;

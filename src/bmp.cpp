@@ -202,13 +202,8 @@ void uav::bmp085::work()
     while (cont)
     {
         temp = updateTemperature();
-        press = updatePressure();
-        alt = 44330 * (1.0 - pow(0.01 * press / slp, 0.1903));
+        press = updatePressure()/1013.25;
+        alt = 44330 * (1.0 - pow(press, 0.1903));
         data = bmp085_data{temp, press};
     }
-}
-
-double uav::bmp085::altitude(double p, double hp)
-{
-    return 44330 * (1.0 - pow(p / hp, 0.1903));
 }
