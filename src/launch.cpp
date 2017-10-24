@@ -69,7 +69,7 @@ int main(int argc, char** argv)
     auto start = chrono::steady_clock::now(), now = start;
     while ((now < start + chrono::seconds(5 * 60)) && cont)
     {
-        c.step(uav::raw_data{0});
+        c.step(sensors.get());
         uav::state s = c.getstate();
 
         // for (int i = 0; i < 4; i++)

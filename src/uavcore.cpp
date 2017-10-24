@@ -1,43 +1,200 @@
 #include <iostream>
 #include <iomanip>
 #include <string>
-#include <cstring>
+#include <cmath>
 #include <sstream>
 #include <bitset>
 #include <chrono>
-#include <cassert>
 
 #include <uavcore.h>
 #include <freebody.h>
 
-bool uav::param::operator==(const param& other)
+namespace uav
+{
+
+angle angle::from_degrees(double degs) { return angle(degs*(M_PI/180), 0); }
+
+angle angle::from_radians(double rads) { return angle(rads, 0); }
+
+angle angle::from_rotations(int rots) { return angle(0, rots); }
+
+angle::angle() : angle(0, 0) { }
+
+angle::angle(double rads, int rots) :
+    rotations(rots + std::lround(rads/(2*M_PI))),
+    radians(rads - (std::lround(rads/(2*M_PI))*2*M_PI)) { }
+
+angle::angle(const angle& a) : rotations(a.rot()), radians(a.rad()) { }
+
+double angle::rad() const { return radians; }
+
+double angle::deg() const { return (180/M_PI) * radians; }
+
+int angle::rot() const { return rotations; }
+
+angle angle::operator - ()
+{
+    return angle(-radians, -rotations);
+}
+
+angle& angle::operator = (const angle& a)
+{
+    radians = a.rad();
+    rotations = a.rot();
+    return *this;
+}
+
+angle angle::operator + (const angle& a) const
+{
+    return angle(radians + a.rad(), rotations + a.rot());
+}
+
+angle angle::operator - (const angle& a) const
+{
+    return angle(radians - a.rad(), rotations - a.rot());
+}
+
+angle& angle::operator += (const angle& a)
+{
+    return (*this = *this + a);
+}
+
+angle& angle::operator -= (const angle& a)
+{
+    return (*this = *this - a);
+}
+
+angle& angle::operator = (double rads)
+{
+    return *this = angle(rads);
+}
+
+angle angle::operator * (double scalar) const
+{
+    return angle((radians + 2*M_PI * rotations) * scalar);
+}
+
+angle angle::operator / (double divisor) const
+{
+    return *this * (1/divisor);
+}
+
+angle& angle::operator *= (double scalar)
+{
+    return (*this = *this * scalar);
+}
+
+angle& angle::operator /= (double divisor)
+{
+    return (*this = *this / divisor);
+}
+
+double angle::operator / (const angle& a) const
+{
+    return (radians + 2*M_PI*rotations) / (a.rad() + 2*M_PI*a.rot());
+}
+
+bool angle::operator == (const angle& a) const
+{
+    return radians == a.rad() && rotations == a.rot();
+}
+
+bool angle::operator != (const angle& a) const
+{
+    return !(*this == a);
+}
+
+bool angle::operator > (const angle& a) const
+{
+    return rotations*2*M_PI + radians - a.rot()*2*M_PI - a.rad() > 0;
+}
+
+bool angle::operator < (const angle& a) const
+{
+    return rotations*2*M_PI + radians - a.rot()*2*M_PI - a.rad() < 0;
+}
+
+bool angle::operator >= (const angle& a) const
+{
+    return (*this == a) || (*this > a);
+}
+
+bool angle::operator <= (const angle& a) const
+{
+    return (*this == a) || (*this < a);
+}
+
+angle::operator double () const
+{
+    return radians + rotations*2*M_PI;;
+}
+
+angle target_azimuth(angle current, angle desired)
+{
+    angle diff((desired - current).rad());
+    return current + diff;
+}
+
+std::ostream& operator << (std::ostream& os, const angle& a)
+{
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(3) << a.rot() << "x" << a.deg();
+    return os << ss.str();
+}
+
+namespace angle_literals
+{
+
+angle operator "" _rad(unsigned long long radians)
+{
+    return angle(radians);
+}
+
+angle operator "" _deg(unsigned long long degrees)
+{
+    return angle(degrees * (M_PI/180));
+}
+
+angle operator "" _rad(long double radians)
+{
+    return angle(radians);
+}
+
+angle operator "" _deg(long double degrees)
+{
+    return angle(degrees * (M_PI/180));
+}
+
+} // namespace uav::angle_literals;
+
+bool param::operator==(const param& other)
 {
     return serialize(*this) == serialize(other);
 }
 
-bool uav::param::operator!=(const param& other)
+bool param::operator!=(const param& other)
 {
     return !(*this == other);
 }
 
-bool uav::state::operator==(const state& other)
+bool state::operator==(const state& other)
 {
     return serialize(*this) == serialize(other);
 }
 
-bool uav::state::operator!=(const state& other)
+bool state::operator!=(const state& other)
 {
     return !(*this == other);
 }
 
-uav::param::bin uav::serialize(const param& p)
+param::bin serialize(const param& p)
 {
     return bin(p.freq) + bin(p.spidg) + bin(p.zpidg) +
         bin(p.hpidg) + bin(p.ppidg) + bin(p.rpidg) +
         bin(p.tilt95) + bin(p.maxtilt) + bin(p.mg);
 }
 
-uav::state::bin uav::serialize(const state& s)
+state::bin serialize(const state& s)
 {
     return bin(s.t) + bin(s.t_abs) + bin(s.comptime) +
         bin(s.pres) + bin(s.pos) + bin(s.calib) +
@@ -45,7 +202,7 @@ uav::state::bin uav::serialize(const state& s)
         bin(s.err) + bin(s.status);
 }
 
-uav::param uav::deserialize(const param::bin& b)
+param deserialize(const param::bin& b)
 {
     param p;
     size_t rptr = 0;
@@ -62,7 +219,7 @@ uav::param uav::deserialize(const param::bin& b)
     return p;
 }
 
-uav::state uav::deserialize(const state::bin& b)
+state deserialize(const state::bin& b)
 {
     state s;
     size_t rptr = 0;
@@ -81,13 +238,13 @@ uav::state uav::deserialize(const state::bin& b)
     return s;
 }
 
-std::string uav::param::header()
+std::string param::header()
 {
     return "freq spidg(0..3) zpidg(0..3) hpidg(0..3) ppidg(0..3) rpidg(0..3) "
            "tilt95 maxtilt mg";
 }
 
-std::string uav::state::header(fmt::bitmask_t b)
+std::string state::header(fmt::bitmask_t b)
 {
     using namespace std;
     stringstream line;
@@ -148,7 +305,7 @@ std::string uav::state::header(fmt::bitmask_t b)
     return line.str();
 }
 
-std::string uav::to_string(const param& prm)
+std::string to_string(const param& prm)
 {
     std::stringstream line;
 
@@ -179,7 +336,7 @@ std::string uav::to_string(const param& prm)
     return str;
 }
 
-std::string uav::to_string(const state& it, fmt::bitmask_t b)
+std::string to_string(const state& it, fmt::bitmask_t b)
 {
     using namespace std;
 
@@ -218,7 +375,7 @@ std::string uav::to_string(const state& it, fmt::bitmask_t b)
         imu::Quaternion q;
         imu::Vector<3> euler(it.pos[3], it.pos[4], it.pos[5]);
         euler.toRadians();
-        q.fromMatrix(uav::euler2matrix(euler));
+        q.fromMatrix(euler2matrix(euler));
         line << setw(15) << q.w() << setw(15) << q.x()
              << setw(15) << q.y() << setw(15) << q.z();
     }
@@ -251,7 +408,7 @@ std::string uav::to_string(const state& it, fmt::bitmask_t b)
     return line.str();
 }
 
-std::string uav::timestamp()
+std::string timestamp()
 {
     using namespace std;
     using namespace std::chrono;
@@ -270,45 +427,45 @@ std::string uav::timestamp()
     return s.str();
 }
 
-uav::param paramlog;
-std::deque<uav::state> statelog;
+param paramlog;
+std::deque<state> statelog;
 std::deque<std::string> textlog;
 
-uav::logstream uav::debug("DEBUG"), uav::info("INFO"), uav::error("ERROR");
+logstream debug("DEBUG"), info("INFO"), error("ERROR");
 
-uav::logstream::logstream(const std::string& streamname) :
+logstream::logstream(const std::string& streamname) :
     name(streamname) { }
 
-uav::logstream& uav::logstream::operator << (std::ostream& (*)(std::ostream& os))
+logstream& logstream::operator << (std::ostream& (*)(std::ostream& os))
 {
     textlog.push_back("[" + name + "]\t" + timestamp() + ss.str());
     ss.str(std::string());
     return *this;
 }
 
-void uav::logstream::operator () (const std::string& s)
+void logstream::operator () (const std::string& s)
 {
     textlog.push_back("[" + name + "]\t" + timestamp() + s);
 }
 
-void uav::reset()
+void reset()
 {
     paramlog = {0};
     statelog.clear();
     textlog.clear();
 }
 
-void uav::include(uav::param p)
+void include(param p)
 {
     paramlog = p;
 }
 
-void uav::include(uav::state s)
+void include(state s)
 {
     statelog.push_back(s);
 }
 
-void uav::flush()
+void flush()
 {
     std::ofstream
         text("log/events.txt", std::ios::out),
@@ -330,3 +487,5 @@ void uav::flush()
         textlog.pop_front();
     }
 }
+
+} // namespace uav

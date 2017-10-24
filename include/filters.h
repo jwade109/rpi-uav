@@ -174,6 +174,25 @@ template <> class integral<0>
     void reset() { }
 };
 
+class range_accumulator
+{
+    public:
+
+    double value;
+    const double range;
+
+    range_accumulator(double range);
+    range_accumulator(double min, double max);
+
+    double step(double bounded);
+
+    private:
+
+    bool first;
+    double previous;
+    derivative<1> diff;
+};
+
 } // namespace uav
 
 #endif // FILTERS_H

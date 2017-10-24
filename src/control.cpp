@@ -8,17 +8,14 @@
 uav::controller::controller(state initial, param cfg):
 
     num_steps(0),
-    xpid(cfg.spidg[0], cfg.spidg[1], cfg.spidg[2], cfg.spidg[3]),
-    ypid(cfg.spidg[0], cfg.spidg[1], cfg.spidg[2], cfg.spidg[3]),
-    zpid(cfg.zpidg[0], cfg.zpidg[1], cfg.zpidg[2], cfg.zpidg[3]),
-    hpid(cfg.hpidg[0], cfg.hpidg[1], cfg.hpidg[2], cfg.hpidg[3]),
-    ppid(cfg.ppidg[0], cfg.ppidg[1], cfg.ppidg[2], cfg.ppidg[3]),
-    rpid(cfg.rpidg[0], cfg.rpidg[1], cfg.rpidg[2], cfg.rpidg[3])
-{
-    prm = cfg;
-    curr = initial;
-    prev = {0};
-}
+    curr(initial), prev{0}, prm(cfg),
+    xpid(cfg.freq, cfg.spidg[0], cfg.spidg[1], cfg.spidg[2], cfg.spidg[3]),
+    ypid(cfg.freq, cfg.spidg[0], cfg.spidg[1], cfg.spidg[2], cfg.spidg[3]),
+    zpid(cfg.freq, cfg.zpidg[0], cfg.zpidg[1], cfg.zpidg[2], cfg.zpidg[3]),
+    hpid(cfg.freq, cfg.hpidg[0], cfg.hpidg[1], cfg.hpidg[2], cfg.hpidg[3]),
+    ppid(cfg.freq, cfg.ppidg[0], cfg.ppidg[1], cfg.ppidg[2], cfg.ppidg[3]),
+    rpid(cfg.freq, cfg.rpidg[0], cfg.rpidg[1], cfg.rpidg[2], cfg.rpidg[3])
+{ }
 
 int uav::controller::step(const uav::raw_data& raw)
 {
@@ -27,7 +24,6 @@ int uav::controller::step(const uav::raw_data& raw)
     prev = curr;
 
     auto stopwatch = std::chrono::steady_clock::now();
-    double dt = (curr.t - prev.t)/1000.0;
 
     if ((curr.status != uav::null_status) && (curr.t - prev.t) != 1000/prm.freq)
     {
@@ -37,6 +33,10 @@ int uav::controller::step(const uav::raw_data& raw)
     }
 
     error |= validate(prev, curr);
+
+    curr.pos[3] = raw.ard.euler.x();
+    curr.pos[4] = raw.ard.euler.y();
+    curr.pos[5] = raw.ard.euler.z();
 
     // end here if this is the first iteration
     if (curr.status == uav::null_status)
@@ -52,8 +52,8 @@ int uav::controller::step(const uav::raw_data& raw)
     // assumed that at this point, z, h, r, and p are
     // all trustworthy. process pid controller responses
 
-    curr.pidov[0] = xpid.seek_linear(curr.pos[0], curr.targets[0], dt);
-    curr.pidov[1] = ypid.seek_linear(curr.pos[1], curr.targets[1], dt);
+    curr.pidov[0] = xpid.seek(curr.pos[0], curr.targets[0]);
+    curr.pidov[1] = ypid.seek(curr.pos[1], curr.targets[1]);
 
     imu::Vector<3> euler = traverse({curr.pidov[0], curr.pidov[1]},
             curr.pos[3], prm.tilt95, prm.maxtilt).first;
@@ -61,14 +61,13 @@ int uav::controller::step(const uav::raw_data& raw)
     curr.targets[4] = euler.y();
     curr.targets[5] = euler.z();
 
-    curr.pidov[2] = zpid.seek_linear(curr.pos[2], curr.targets[2], dt);
-    curr.pidov[3] = hpid.seek_degrees(curr.pos[3], curr.targets[3], dt);
-    curr.pidov[4] = ppid.seek_degrees(curr.pos[4], curr.targets[4], dt);
-    curr.pidov[5] = rpid.seek_degrees(curr.pos[5], curr.targets[5], dt);
+    curr.pidov[2] = zpid.seek(curr.pos[2], curr.targets[2]);
+    curr.pidov[3] = hpid.seek(curr.pos[3], curr.targets[3]);
+    curr.pidov[4] = ppid.seek(curr.pos[4], curr.targets[4]);
+    curr.pidov[5] = rpid.seek(curr.pos[5], curr.targets[5]);
 
     // get default hover thrust
-    float hover = prm.mg / (cos(deg2rad(curr.pos[4])) *
-        cos(deg2rad(curr.pos[5])));
+    float hover = prm.mg / (cos(curr.pos[4]) * cos(curr.pos[5]));
     static float maxhover(prm.mg / pow(cos(M_PI/6), 2));
     if (hover > maxhover) hover = maxhover;
     if (hover < 0) hover = 0;
