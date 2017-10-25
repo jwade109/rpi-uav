@@ -84,6 +84,7 @@ int main(int argc, char** argv)
         // add state to log
         uav::include(s);
         now = chrono::steady_clock::now();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1000/prm.freq));
     }
 
     if (cont) uav::info("Program terminated normally.");

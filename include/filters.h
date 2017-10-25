@@ -97,15 +97,23 @@ template <uint8_t N> class derivative
 
     double step(double sample)
     {
+        return step(sample, 1.0/freq);
+    }
+
+    double step(double sample, double dx)
+    {
         if (samples <= N) samples++;
-        double slope = d_dx(sample);
+        double slope = d_dx(sample, dx);
         double last = current;
         current = slope;
         if (samples <= N) return 0;
-        else return (value = (slope - last) * freq);
+        if (dx == 0) return 0;
+        else return (value = (slope - last) / dx);
     }
 
     double operator () (double x) { return step(x); }
+
+    double operator () (double x, double dx) { return step(x, dx); }
 
     void reset()
     {
@@ -129,7 +137,9 @@ template <> class derivative<0>
     derivative(uint8_t) { };
 
     double step(double sample) { return sample; }
+    double step(double sample, double) { return sample; }
     double operator () (double x) { return x; }
+    double operator () (double x, double) { return x; }
     void reset() { }
 };
 

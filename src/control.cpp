@@ -5,115 +5,46 @@
 
 #include <control.h>
 
-uav::controller::controller(state initial, param cfg):
+namespace uav
+{
 
+controller::controller(state initial, param cfg):
     num_steps(0),
-    curr(initial), prev{0}, prm(cfg),
-    xpid(cfg.freq, cfg.spidg[0], cfg.spidg[1], cfg.spidg[2], cfg.spidg[3]),
-    ypid(cfg.freq, cfg.spidg[0], cfg.spidg[1], cfg.spidg[2], cfg.spidg[3]),
-    zpid(cfg.freq, cfg.zpidg[0], cfg.zpidg[1], cfg.zpidg[2], cfg.zpidg[3]),
-    hpid(cfg.freq, cfg.hpidg[0], cfg.hpidg[1], cfg.hpidg[2], cfg.hpidg[3]),
-    ppid(cfg.freq, cfg.ppidg[0], cfg.ppidg[1], cfg.ppidg[2], cfg.ppidg[3]),
-    rpid(cfg.freq, cfg.rpidg[0], cfg.rpidg[1], cfg.rpidg[2], cfg.rpidg[3])
-{ }
+    curr(initial), prev{0}, prm(cfg) { }
 
-int uav::controller::step(const uav::raw_data& raw)
+int controller::step(const raw_data& raw)
 {
     if (num_steps == 0) tstart = std::chrono::steady_clock::now();
-    std::bitset<16> error(0);
     prev = curr;
 
-    auto stopwatch = std::chrono::steady_clock::now();
-
     if ((curr.status != uav::null_status) && (curr.t - prev.t) != 1000/prm.freq)
-    {
-        uav::error << "Timing error ("
-            << prev.t << " -> " << curr.t << ")" << std::endl;
-        error[0] = 1;
-    }
-
-    error |= validate(prev, curr);
+        uav::error << "Timing error (" << prev.t
+            << " -> " << curr.t << ")" << std::endl;
 
     curr.pos[3] = raw.ard.euler.x();
     curr.pos[4] = raw.ard.euler.y();
     curr.pos[5] = raw.ard.euler.z();
 
-    // end here if this is the first iteration
-    if (curr.status == uav::null_status)
-    {
-        curr.status = uav::no_vel;
-        simulator.stepfor(1000000/prm.freq, 1000);
-        curr.err = (uint16_t) error.to_ulong();
-        curr.comptime = std::chrono::duration_cast<std::chrono::nanoseconds>(
-            std::chrono::steady_clock::now() - stopwatch).count();
-        return 2;
-    }
-
-    // assumed that at this point, z, h, r, and p are
-    // all trustworthy. process pid controller responses
-
-    curr.pidov[0] = xpid.seek(curr.pos[0], curr.targets[0]);
-    curr.pidov[1] = ypid.seek(curr.pos[1], curr.targets[1]);
-
-    imu::Vector<3> euler = traverse({curr.pidov[0], curr.pidov[1]},
-            curr.pos[3], prm.tilt95, prm.maxtilt).first;
-
-    curr.targets[4] = euler.y();
-    curr.targets[5] = euler.z();
-
-    curr.pidov[2] = zpid.seek(curr.pos[2], curr.targets[2]);
-    curr.pidov[3] = hpid.seek(curr.pos[3], curr.targets[3]);
-    curr.pidov[4] = ppid.seek(curr.pos[4], curr.targets[4]);
-    curr.pidov[5] = rpid.seek(curr.pos[5], curr.targets[5]);
-
-    // get default hover thrust
-    float hover = prm.mg / (cos(curr.pos[4]) * cos(curr.pos[5]));
-    static float maxhover(prm.mg / pow(cos(M_PI/6), 2));
-    if (hover > maxhover) hover = maxhover;
-    if (hover < 0) hover = 0;
-
-    auto mout = pid2motor(curr.pidov, hover);
-
-    simulator.set(mout[0], mout[1], mout[2], mout[3]);
-    simulator.stepfor(1000000/prm.freq, 1000);
-
-    curr.err = static_cast<uint16_t>(error.to_ulong());
-    curr.comptime = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::steady_clock::now() - stopwatch).count();
-
     return 0;
 }
 
-uav::state uav::controller::getstate()
+state controller::getstate()
 {
     return curr;
 }
 
-void uav::controller::setstate(state s)
+void controller::setstate(state s)
 {
     curr = s;
 }
 
-uav::param uav::controller::getparams()
+param controller::getparams()
 {
     return prm;
 }
 
-std::array<float, 4> uav::controller::pid2motor(
-    std::array<float, 6> pidov, float hover)
-{
-    std::array<float, 4> motor_out;
-    motor_out[0] = -pidov[3] + pidov[4] - pidov[5] + pidov[2] + hover;
-    motor_out[1] =  pidov[3] + pidov[4] + pidov[5] + pidov[2] + hover;
-    motor_out[2] = -pidov[3] - pidov[4] + pidov[5] + pidov[2] + hover;
-    motor_out[3] =  pidov[3] - pidov[4] - pidov[5] + pidov[2] + hover;
-
-    for (auto& e : motor_out) e = e > 5 ? 5 : e < 0 ? 0 : e;
-    return motor_out;
-}
-
-std::bitset<16> uav::controller::validate(
-    const uav::state& prev, uav::state& curr)
+std::bitset<16> controller::validate(
+    const state& prev, state& curr)
 {
     std::bitset<16> error;
     // if a pressure measurement is deemed invalid, use the
@@ -213,10 +144,106 @@ std::bitset<16> uav::controller::validate(
     return error;
 }
 
-std::pair<imu::Vector<3>, imu::Vector<3>> uav::controller::traverse(
+gps_baro_filter::gps_baro_filter(uint8_t f) :
+    gps_baro_filter(f, 30, 30, 30, 0.3, 0.3) { }
+
+gps_baro_filter::gps_baro_filter(uint8_t f, unsigned gst,
+    unsigned ast, unsigned bst, double arc, double brc) :
+    value(0), gps_samples(gst * f), ard_samples(ast * f), bmp_samples(bst * f),
+    ard_rc(arc), bmp_rc(brc), dt(1.0/f), home_alt(NAN),
+    u_g(gps_samples), u_b1(ard_samples),
+    u_b2(bmp_samples), lpf1(ard_rc), lpf2(bmp_rc) { }
+
+double gps_baro_filter::step(double gps, double ard, double bmp)
+{
+    if (isnan(home_alt)) home_alt = gps;
+
+    u_g.step(gps);
+    u_b1.step(ard);
+    u_b2.step(bmp);
+
+    double d1_est = u_b1.value - u_g.value;
+    double d2_est = u_b2.value - u_g.value;
+    double alt1_est = ard - d1_est - home_alt;
+    double alt2_est = bmp - d2_est - home_alt;
+    double alt1_smooth = lpf1.step(alt1_est, dt);
+    double alt2_smooth = lpf2.step(alt2_est, dt);
+
+    return (value = 0.5 * alt1_smooth + 0.5 * alt2_smooth);
+}
+
+mass_estimator::mass_estimator(uint8_t freq) :
+    mass_estimator(freq, 0.2, 1.5, 0.2) { }
+
+mass_estimator::mass_estimator(uint8_t f, double acc_rc,
+    double mavg_st, double eps) :
+    value(0), freq(f), accel_rc(acc_rc), mavg_sample_time(mavg_st),
+    epsilon(eps), accel_lpf(acc_rc),
+    moving(freq * mavg_st), diverged(false), dt(1.0/f) { }
+
+double mass_estimator::step(double Fz, double az)
+{
+    if (az == 9.81) return value;
+    double smooth_accel = accel_lpf.step(az, dt);
+    double m_hat = Fz/(smooth_accel + 9.81);
+
+    double local_m_hat = moving.step(m_hat);
+    double global_m_hat = global.step(m_hat);
+
+    bool large_gap = std::abs(global_m_hat - local_m_hat) > epsilon;
+    if (large_gap && !diverged) global = uav::running_average();
+    diverged = large_gap;
+
+    return value = diverged ? local_m_hat : global_m_hat;
+}
+
+motor_director::motor_director(uint8_t f, double mthrust,
+    double t95, double mtilt, std::array<double, 24> g) :
+
+    command{0}, freq(f), max_thrust(mthrust),
+    tilt_95(t95), max_tilt(mtilt), gains(g),
+    xpid(f, g[0], g[1], g[2], g[3]),
+    ypid(f, g[4], g[5], g[6], g[7]),
+    zpid(f, g[8], g[9], g[10], g[11]),
+    hpid(f, g[12], g[13], g[14], g[15]),
+    ppid(f, g[16], g[17], g[18], g[19]),
+    rpid(f, g[20], g[21], g[22], g[23]) { }
+
+std::array<double, 4> motor_director::step(double mass,
+    std::array<double, 6> position, std::array<double, 4> targets)
+{
+    double xov = xpid.seek(position[0], targets[0]);
+    double yov = ypid.seek(position[1], targets[1]);
+
+    imu::Vector<3> euler = traverse({xov, yov},
+            position[3], tilt_95, max_tilt).first;
+
+    angle pitch_target = euler.y();
+    angle roll_target = euler.z();
+    angle heading_target = target_azimuth(position[3], targets[3]);
+
+    double zov = zpid.seek(position[2], targets[2]);
+    double hov = hpid.seek(position[3], heading_target);
+    double pov = ppid.seek(position[4], pitch_target);
+    double rov = rpid.seek(position[5], roll_target);
+
+    // get default hover thrust
+    double hover = (mass / (cos(position[4]) * cos(position[5])))/4;
+
+    std::array<double, 4> command;
+    command[0] = -hov + pov - rov + zov + hover;
+    command[1] =  hov + pov + rov + zov + hover;
+    command[2] = -hov - pov + rov + zov + hover;
+    command[3] =  hov - pov - rov + zov + hover;
+
+    for (double & e : command) e = e > 5 ? 5 : e < 0 ? 0 : e;
+    return command;
+}
+
+std::pair<imu::Vector<3>, imu::Vector<3>> uav::motor_director::traverse(
     imu::Vector<2> S, double heading, double tilt95, double maxtilt)
 {
-    auto f = [=](double d)
+    static auto f = [=](double d)
     {
         return 2 * maxtilt / (1 + exp((log(2/1.95 - 1) / tilt95 * d))) - maxtilt;
     };
@@ -237,55 +264,4 @@ std::pair<imu::Vector<3>, imu::Vector<3>> uav::controller::traverse(
     return {{heading, pitch, roll}, Zpp};
 }
 
-uav::gps_baro_filter::gps_baro_filter(uint8_t f) :
-    gps_baro_filter(f, 30, 30, 30, 0.3, 0.3) { }
-
-uav::gps_baro_filter::gps_baro_filter(uint8_t f, unsigned gst,
-    unsigned ast, unsigned bst, double arc, double brc) :
-    value(0), gps_samples(gst * f), ard_samples(ast * f), bmp_samples(bst * f),
-    ard_rc(arc), bmp_rc(brc), dt(1.0/f), home_alt(NAN),
-    u_g(gps_samples), u_b1(ard_samples),
-    u_b2(bmp_samples), lpf1(ard_rc), lpf2(bmp_rc) { }
-
-double uav::gps_baro_filter::step(double gps, double ard, double bmp)
-{
-    if (isnan(home_alt)) home_alt = gps;
-
-    u_g.step(gps);
-    u_b1.step(ard);
-    u_b2.step(bmp);
-
-    double d1_est = u_b1.value - u_g.value;
-    double d2_est = u_b2.value - u_g.value;
-    double alt1_est = ard - d1_est - home_alt;
-    double alt2_est = bmp - d2_est - home_alt;
-    double alt1_smooth = lpf1.step(alt1_est, dt);
-    double alt2_smooth = lpf2.step(alt2_est, dt);
-
-    return (value = 0.5 * alt1_smooth + 0.5 * alt2_smooth);
-}
-
-uav::mass_estimator::mass_estimator(uint8_t freq) :
-    mass_estimator(freq, 0.2, 1.5, 0.2) { }
-
-uav::mass_estimator::mass_estimator(uint8_t f, double acc_rc,
-    double mavg_st, double eps) :
-    value(0), freq(f), accel_rc(acc_rc), mavg_sample_time(mavg_st),
-    epsilon(eps), accel_lpf(acc_rc),
-    moving(freq * mavg_st), diverged(false), dt(1.0/f) { }
-
-double uav::mass_estimator::step(double Fz, double az)
-{
-    if (az == 9.81) return value;
-    double smooth_accel = accel_lpf.step(az, dt);
-    double m_hat = Fz/(smooth_accel + 9.81);
-
-    double local_m_hat = moving.step(m_hat);
-    double global_m_hat = global.step(m_hat);
-
-    bool large_gap = std::abs(global_m_hat - local_m_hat) > epsilon;
-    if (large_gap && !diverged) global = uav::running_average();
-    diverged = large_gap;
-
-    return value = diverged ? local_m_hat : global_m_hat;
-}
+} // namespace uav
