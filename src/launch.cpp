@@ -59,6 +59,8 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+
     uav::include(c.getparams());
     auto format = uav::fmt::time | uav::fmt::config;
 

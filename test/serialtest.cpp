@@ -14,12 +14,12 @@ int main()
         return 1;
     }
 
-    std::cout << "  ms\thdg\tpitch\troll\tcal\tpres\t"
-        "ax\tay\taz" << std::endl;
+    std::cout << std::fixed << std::setprecision(2)
+        << "  time\thdg\tpitch\troll\tcal\tpres\tax\tay\taz" << std::endl;
     while (1)
     {
         uav::arduino_data m = imu.get();
-        std::cout << "  " << m.millis << "\t"
+        std::cout << "  " << m.millis/1000.0 << "\t"
                   << m.euler.x() << "\t" << m.euler.y() << "\t"
                   << m.euler.z() << "\t" << std::hex << (int) m.calib
                   << std::dec << "\t" << m.pres << "\t"

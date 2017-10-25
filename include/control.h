@@ -121,6 +121,7 @@ class controller
     param prm;
 
     dronebody simulator;
+    gps_baro_filter alt_filter;
 
     static std::bitset<16> validate(const state& prev, state& curr);
 };

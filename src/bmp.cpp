@@ -202,7 +202,7 @@ void uav::bmp085::work()
     while (cont)
     {
         temp = updateTemperature();
-        press = updatePressure()/1013.25;
+        press = updatePressure()/101325.0;
         alt = 44330 * (1.0 - pow(press, 0.1903));
         data = bmp085_data{temp, press};
     }

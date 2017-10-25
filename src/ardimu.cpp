@@ -84,7 +84,7 @@ void uav::arduino::parse()
             d.euler.y() = strtod(cursor, &cursor);
             d.euler.z() = strtod(cursor, &cursor);
             d.calib = strtol(cursor, &cursor, 10);
-            d.pres = strtod(cursor, &cursor);
+            d.pres = strtod(cursor, &cursor)/101325.0;
             d.acc.x() = strtod(cursor, &cursor);
             d.acc.y() = strtod(cursor, &cursor);
             d.acc.z() = strtod(cursor, &cursor);

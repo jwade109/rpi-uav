@@ -10,7 +10,8 @@ namespace uav
 
 controller::controller(state initial, param cfg):
     num_steps(0),
-    curr(initial), prev{0}, prm(cfg) { }
+    curr(initial), prev{0}, prm(cfg),
+    alt_filter(cfg.freq) { }
 
 int controller::step(const raw_data& raw)
 {
@@ -20,6 +21,12 @@ int controller::step(const raw_data& raw)
     if ((curr.status != uav::null_status) && (curr.t - prev.t) != 1000/prm.freq)
         uav::error << "Timing error (" << prev.t
             << " -> " << curr.t << ")" << std::endl;
+
+    double gps_alt = raw.gps.gga.altitude;
+    double b1_alt = altitude(raw.ard.pres);
+    double b2_alt = altitude(raw.bmp.pressure);
+
+    curr.pos[2] = alt_filter.step(gps_alt, b1_alt, b2_alt);
 
     curr.pos[3] = raw.ard.euler.x();
     curr.pos[4] = raw.ard.euler.y();
@@ -145,7 +152,7 @@ std::bitset<16> controller::validate(
 }
 
 gps_baro_filter::gps_baro_filter(uint8_t f) :
-    gps_baro_filter(f, 30, 30, 30, 0.3, 0.3) { }
+    gps_baro_filter(f, 30, 30, 30, 0.7, 0.7) { }
 
 gps_baro_filter::gps_baro_filter(uint8_t f, unsigned gst,
     unsigned ast, unsigned bst, double arc, double brc) :
