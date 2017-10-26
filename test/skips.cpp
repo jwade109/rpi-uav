@@ -27,7 +27,7 @@ int main(int argc, char** argv)
     char* bytes = new char[fsize];
     bin.read(bytes, fsize);
 
-    uav::freq_t f = *reinterpret_cast<uav::freq_t*>(bytes);
+    auto f = *reinterpret_cast<uint8_t*>(bytes);
     unsigned int dt = 1000/f;
     std::cerr << "Detected frequency of " << (int) f
               << " Hz (dt = " << dt << " ms)" << std::endl;

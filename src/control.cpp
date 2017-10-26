@@ -11,26 +11,42 @@ namespace uav
 controller::controller(state initial, param cfg):
     num_steps(0),
     curr(initial), prev{0}, prm(cfg),
-    alt_filter(cfg.freq) { }
+    hdg_acc(2*M_PI), roll_acc(2*M_PI),
+    alt_filter(cfg.freq),
+    pos_filter(cfg.freq) { }
 
 int controller::step(const raw_data& raw)
 {
-    if (num_steps == 0) tstart = std::chrono::steady_clock::now();
+    using namespace std::chrono;
+
+    if (num_steps++ == 0) tstart = std::chrono::steady_clock::now();
     prev = curr;
 
-    if ((curr.status != uav::null_status) && (curr.t - prev.t) != 1000/prm.freq)
-        uav::error << "Timing error (" << prev.t
-            << " -> " << curr.t << ")" << std::endl;
+    auto now = steady_clock::now();
+    curr.time[0] = duration_cast<milliseconds>(now - tstart).count();
+    curr.time[1] = duration_cast<milliseconds>
+        (now.time_since_epoch()).count();
+
+    if ((curr.status != uav::null_status) &&
+            (curr.time[0] - prev.time[0]) != 1000/prm.freq)
+        uav::error << "Timing error (" << prev.time[0]
+            << " -> " << curr.time[0] << ")" << std::endl;
 
     double gps_alt = raw.gps.gga.altitude;
     double b1_alt = altitude(raw.ard.pres);
     double b2_alt = altitude(raw.bmp.pressure);
 
-    curr.pos[2] = alt_filter.step(gps_alt, b1_alt, b2_alt);
+    auto pos = pos_filter(raw.gps.gga.pos);
+    curr.position[0] = pos.x();
+    curr.position[1] = pos.y();
+    curr.position[2] = alt_filter.step(gps_alt, b1_alt, b2_alt);
 
-    curr.pos[3] = raw.ard.euler.x();
-    curr.pos[4] = raw.ard.euler.y();
-    curr.pos[5] = raw.ard.euler.z();
+    curr.attitude[0] = hdg_acc(angle::from_degrees(raw.ard.euler.x()));
+    curr.attitude[1] = angle::from_degrees(raw.ard.euler.y());
+    curr.attitude[2] = roll_acc(angle::from_degrees(raw.ard.euler.z()));
+
+    auto comptime = steady_clock::now() - now;
+    curr.time[2] = duration_cast<microseconds>(comptime).count();
 
     return 0;
 }
@@ -48,107 +64,6 @@ void controller::setstate(state s)
 param controller::getparams()
 {
     return prm;
-}
-
-std::bitset<16> controller::validate(
-    const state& prev, state& curr)
-{
-    std::bitset<16> error;
-    // if a pressure measurement is deemed invalid, use the
-    // other barometer's measurement, or the most recent valid
-    // measurement
-    //
-    // for invalid attitude readings, use the previous measurement
-
-    // assume during normal operation, pressure will be atmost
-    // 101,325 Pa (0 m MSL), and no less than 80,000 Pa (~2000 m MSL)
-    if (curr.pres[0] < 80000 || curr.pres[0] > 101325)
-    {
-        uav::error << "pres[0] = " << curr.pres[0] << std::endl;
-        error[1] = 1;
-    }
-    if (curr.pres[1] < 80000 || curr.pres[1] > 101325)
-    {
-        uav::error << "pres[1] = " << curr.pres[1] << std::endl;
-        error[2] = 1;
-    }
-    // decision tree for correcting bad alt measurements
-    if (error[1] && error[2]) // uh-oh, both altimeters are bad
-    {
-        uav::info("Using previous pressure measurements");
-        curr.pres[0] = prev.pres[0];
-        curr.pres[1] = prev.pres[1];
-    }
-    else if (error[1]) // p1 is bad, p2 is good
-    {
-        uav::info("using pres[1] for value of pres[0]");
-        curr.pres[0] = curr.pres[1];
-    }
-    else if (error[2]) // p2 is bad, p1 is good
-    {
-        uav::info("using pres[0] for value of pres[1]");
-        curr.pres[1] = curr.pres[0];
-    }
-
-    // verify that all attitudes are normal or zero
-    // expected values for heading are (-180,+180)
-    if (curr.pos[3] <= -180 || curr.pos[3] >= 180 ||
-        !std::isfinite(curr.pos[3]))
-    {
-        uav::error << "pos[3] = " << curr.pos[3] << std::endl;
-        error[3] = 1;
-        uav::info("Using previous value of pos[3]");
-        curr.pos[3] = prev.pos[3];
-    }
-    // roll is expected to be [-90,+90]
-    if (curr.pos[4] < -90 || curr.pos[4] > 90 ||
-        !std::isfinite(curr.pos[4]))
-    {
-        uav::error << "pos[4] = " << curr.pos[4] << std::endl;
-        error[4] = 1;
-        uav::info("Using previous value of pos[4]");
-        curr.pos[4] = prev.pos[4];
-    }
-    // pitch should be (-180,+180)
-    if (curr.pos[5] <= -180 || curr.pos[5] >= 180 ||
-        !std::isfinite(curr.pos[5]))
-    {
-        uav::error << "pos[5] = " << curr.pos[5] << std::endl;
-        error[5] = 1;
-        uav::info("Using previous value of pos[5]");
-        curr.pos[5] = prev.pos[5];
-    }
-
-    // targets should not exceed the normal range for measured values
-    if (curr.targets[2] < -50 || curr.targets[2] > 50)
-    {
-        uav::error << "curr.targets[2] = " << curr.targets[2] << std::endl;
-        error[6] = 1;
-        uav::info("Using previous value of targets[2]");
-        curr.targets[2] = prev.targets[2];
-    }
-    if (curr.targets[3] <= -180 || curr.targets[3] >= 180)
-    {
-        uav::error << "curr.targets[3] = " << curr.targets[3] << std::endl;
-        error[7] = 1;
-        uav::info("Using previous value of targets[3]");
-        curr.targets[3] = prev.targets[3];
-    }
-    if (curr.targets[4] < -90 || curr.targets[4] > 90)
-    {
-        uav::error << "curr.targets[4] = " << curr.targets[4] << std::endl;
-        error[8] = 1;
-        uav::info("Using previous value of targets[4]");
-        curr.targets[4] = prev.targets[4];
-    }
-    if (curr.targets[5] <= -180 || curr.targets[5] >= 180)
-    {
-        uav::error << "curr.targets[5] = " << curr.targets[5] << std::endl;
-        error[9] = 1;
-        uav::info("Using previous value of targets[5]");
-        curr.targets[5] = prev.targets[5];
-    }
-    return error;
 }
 
 gps_baro_filter::gps_baro_filter(uint8_t f) :
@@ -179,6 +94,19 @@ double gps_baro_filter::step(double gps, double ard, double bmp)
     return (value = 0.5 * alt1_smooth + 0.5 * alt2_smooth);
 }
 
+gps_position_filter::gps_position_filter(uint8_t freq) :
+    gps_position_filter(freq, 3) { }
+
+gps_position_filter::gps_position_filter(uint8_t f, double rc) :
+    freq(f), rc(rc), dt(1.0/f), first(true), lpfx(rc), lpfy(rc) { }
+
+imu::Vector<2> gps_position_filter::operator () (coordinate pos)
+{
+    if (first) { first = false; home = pos; }
+    auto d = pos - home;
+    return value = {lpfx.step(d.x(), dt), lpfy.step(d.y(), dt)};
+}
+
 mass_estimator::mass_estimator(uint8_t freq) :
     mass_estimator(freq, 0.2, 1.5, 0.2) { }
 
@@ -205,16 +133,16 @@ double mass_estimator::step(double Fz, double az)
 }
 
 motor_director::motor_director(uint8_t f, double mthrust,
-    double t95, double mtilt, std::array<double, 24> g) :
+    double t95, double mtilt, std::array<double, 20> g) :
 
     command{0}, freq(f), max_thrust(mthrust),
     tilt_95(t95), max_tilt(mtilt), gains(g),
     xpid(f, g[0], g[1], g[2], g[3]),
-    ypid(f, g[4], g[5], g[6], g[7]),
-    zpid(f, g[8], g[9], g[10], g[11]),
-    hpid(f, g[12], g[13], g[14], g[15]),
-    ppid(f, g[16], g[17], g[18], g[19]),
-    rpid(f, g[20], g[21], g[22], g[23]) { }
+    ypid(f, g[0], g[1], g[2], g[3]),
+    zpid(f, g[4], g[5], g[6], g[7]),
+    hpid(f, g[8], g[9], g[10], g[11]),
+    ppid(f, g[12], g[13], g[14], g[15]),
+    rpid(f, g[16], g[17], g[18], g[19]) { }
 
 std::array<double, 4> motor_director::step(double mass,
     std::array<double, 6> position, std::array<double, 4> targets)

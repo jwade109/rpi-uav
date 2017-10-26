@@ -79,27 +79,7 @@ double altitude(double atm);
 
 // data representation typedefs ////////////////////////////////////////////
 
-using timestamp_t   = uint64_t;
-using pres_t        = float;
-using temp_t        = float;
-using pos_t         = float;
-using euler_t       = float;
-using calib_t       = uint8_t;
-using target_t      = float;
-using pid_ov_t      = float;
-using motor_t       = float;
-using error_t       = uint16_t;
-using status_t      = uint8_t;
-
-using freq_t        = uint8_t;
-using home_pres_t   = double;
-using pid_gain_t    = double;
-using lpf_tau_t     = double;
-using wavg_t        = double;
-using mrate_t       = uint16_t;
-using wgt_frac_t    = double;
-
-enum : freq_t
+enum : uint8_t
 {
     f1hz = 1, f10hz = 10, f20hz = 20, f25hz = 25, f40hz = 40, f50hz = 50,
     f100hz = 100, f125hz = 125, f200hz = 200, f250hz = 250,
@@ -107,7 +87,7 @@ enum : freq_t
     fdefault = f100hz
 };
 
-enum : status_t
+enum : uint8_t
 {
     null_status, align, no_vel, pos_seek, pos_hold, high_tilt, upside_down
 };
@@ -122,17 +102,14 @@ namespace fmt
     {
         time            = 1,
         time_full       = (1 << 1) | time,
-        pressure        = 1 << 2,
         position        = 1 << 3,
         attitude        = 1 << 4,
         config          = position | attitude,
-        calib           = 1 << 5,
-        quat            = 1 << 6,
-        targets         = 1 << 7,
-        pid             = 1 << 8,
-        motors          = 1 << 9,
-        error           = 1 << 10,
-        status          = 1 << 11,
+        quat            = 1 << 5,
+        targets         = 1 << 6,
+        motors          = 1 << 7,
+        error           = 1 << 8,
+        status          = 1 << 9,
 
         all = std::numeric_limits<bitmask_t>::max(),
         standard = time | config | motors | status
@@ -143,26 +120,21 @@ namespace fmt
 
 struct state
 {
-    timestamp_t     t, t_abs, comptime; // time in millis, computation time
-    std::array<pres_t, 2> pres;         // pressure from imu/bmp
-
-    std::array<pos_t, 6> pos;
-    calib_t         calib;              // calibration status
-    std::array<target_t, 6> targets;    // targets for 6 degrees of freedom
-    std::array<pid_ov_t, 6> pidov;      // respective pid response
-    std::array<motor_t, 4> motors;
-    error_t         err;                // bitmask for storing error codes
-    uint8_t         status;
+    std::array<uint64_t, 3> time;
+    std::array<double, 3> position;
+    std::array<double, 3> attitude;
+    std::array<double, 4> targets;
+    std::array<double, 4> motors;
+    uint16_t error;
+    uint8_t status;
 
     static std::string header(fmt::bitmask_t);
     bool operator==(const state& other);
     bool operator!=(const state& other);
 
     const static size_t fields = 30;
-    const static size_t size = 3 * sizeof(timestamp_t) + 2 * sizeof(pres_t) +
-        3 * sizeof(pos_t) + 3 * sizeof(euler_t) +
-        sizeof(calib_t) + 6 * sizeof(target_t) + 6 * sizeof(pid_ov_t) +
-        4 * sizeof(motor_t) + sizeof(error_t) + sizeof(uint8_t);
+    const static size_t size = 3*sizeof(uint64_t) +
+        14*sizeof(double) + sizeof(uint16_t) + sizeof(uint8_t);
 
     using bin = std::array<uint8_t, size>;
 };
@@ -171,22 +143,16 @@ struct state
 
 struct param
 {
-    freq_t          freq;               // frequency of updates in hz
-
+    uint8_t freq; // frequency of updates in hz
+    double mass;
     // pid gains for altitude, heading, pitch, roll
-    std::array<pid_gain_t, 4> spidg, zpidg, hpidg, ppidg, rpidg;
-
-    pos_t           tilt95;
-    pos_t           maxtilt;
-    wgt_frac_t      mg;                 // vehicle weight/max thrust * 100
+    std::array<double, 20> pid_gains;
 
     static std::string header();
     bool operator==(const param& other);
     bool operator!=(const param& other);
 
-    const static size_t fields = 24;
-    const static size_t size = sizeof(freq_t) + 20 * sizeof(pid_gain_t) +
-        sizeof(pos_t) * 2 + sizeof(wgt_frac_t);
+    const static size_t size = sizeof(uint8_t) + 21*sizeof(double);
 
     using bin = std::array<uint8_t, size>;
 };

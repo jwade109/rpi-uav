@@ -47,6 +47,27 @@ class gps_baro_filter
     uav::low_pass lpf1, lpf2;
 };
 
+class gps_position_filter
+{
+    public:
+
+    imu::Vector<2> value;
+    const uint8_t freq;
+    const double rc, dt;
+
+    gps_position_filter(uint8_t frequency);
+    gps_position_filter(uint8_t frequency,
+                        double rc);
+
+    imu::Vector<2> operator () (coordinate pos);
+
+    private:
+
+    bool first;
+    coordinate home;
+    low_pass lpfx, lpfy;
+};
+
 class mass_estimator
 {
     public:
@@ -80,13 +101,13 @@ class motor_director
     const double max_thrust;
     const double tilt_95;
     const double max_tilt;
-    const std::array<double, 24> gains;
+    const std::array<double, 20> gains;
 
     motor_director(uint8_t freq,
                    double max_thrust,
                    double tilt_95,
                    double max_tilt,
-                   std::array<double, 24> gains);
+                   std::array<double, 20> gains);
 
     std::array<double, 4> step(double mass,
                                std::array<double, 6> position,
@@ -120,10 +141,11 @@ class controller
     state curr, prev;
     param prm;
 
+    range_accumulator hdg_acc, roll_acc;
+
     dronebody simulator;
     gps_baro_filter alt_filter;
-
-    static std::bitset<16> validate(const state& prev, state& curr);
+    gps_position_filter pos_filter;
 };
 
 } // namespace uav

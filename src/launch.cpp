@@ -23,13 +23,12 @@ int main(int argc, char** argv)
 
     signal(SIGINT, sigint);
 
-    uav::param prm = {uav::f50hz,
-        {1,   0, 3,   0},
-        {10,  0, 20,   3},
-        {2,   0, 0,   -1},
-        {6,   0, 4.5, -1},
-        {6,   0, 4.5, -1},
-        8, 40, 9.81/4};
+    uav::param prm = {uav::f50hz, 1,
+       {1,   0, 3,   INFINITY,
+        10,  0, 20,  INFINITY,
+        2,   0, 0,   INFINITY,
+        6,   0, 4.5, INFINITY,
+        6,   0, 4.5, INFINITY}};
     uav::state init{0};
 
     uav::controller c(init, prm);
@@ -69,8 +68,11 @@ int main(int argc, char** argv)
     std::cout << uav::state::header(format) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
+    auto dt = chrono::milliseconds(1000/prm.freq), runtime = dt * 0;
     while ((now < start + chrono::seconds(5 * 60)) && cont)
     {
+        while (now <= start + runtime)
+            now = chrono::steady_clock::now();
         c.step(sensors.get());
         uav::state s = c.getstate();
 
@@ -79,14 +81,14 @@ int main(int argc, char** argv)
 
         // print the controller state
         std::cout << uav::to_string(s, format);
-        if (s.err)  std::cout << " !";
-        else        std::cout << "  ";
+        if (s.error) std::cout << " !";
+        else         std::cout << "  ";
         std::cout << "\r" << std::flush;
 
         // add state to log
         uav::include(s);
         now = chrono::steady_clock::now();
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000/prm.freq));
+        runtime += dt;
     }
 
     if (cont) uav::info("Program terminated normally.");

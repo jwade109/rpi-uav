@@ -39,10 +39,7 @@ double moving_average::step(double sample)
     samples.push_back(sample);
     if (samples.size() <= num_samples)
     {
-        running_average ravg;
-        for (double e : samples)
-            ravg.step(e);
-        return (value = ravg.value);
+        return value = ravg.step(sample);
     }
     double to_remove = samples.front();
     samples.pop_front();
@@ -74,6 +71,11 @@ double range_accumulator::step(double bounded)
     if (first) { first = false; return value = bounded; }
     double conj = d > 0 ? d - range : d + range;
     return value += std::abs(d) < std::abs(conj) ? d : conj;
+}
+
+double range_accumulator::operator () (double b)
+{
+    return step(b);
 }
 
 } // namespace uav

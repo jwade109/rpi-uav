@@ -63,6 +63,7 @@ class moving_average
 
     private:
 
+    running_average ravg;
     std::deque<double> samples;
 };
 
@@ -195,6 +196,7 @@ class range_accumulator
     range_accumulator(double min, double max);
 
     double step(double bounded);
+    double operator () (double b);
 
     private:
 
