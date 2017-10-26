@@ -61,8 +61,8 @@ int main()
                 << gp.gga.pos.lon << " "
                 << gp.gga.altitude << " "
                 << (int) gp.gga.num_sats << " "
-                << rel << " " << rel_filt
-                << "               \r" << std::flush;
+                // << rel << " " << rel_filt
+                << "      \r" << std::flush;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
