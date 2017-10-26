@@ -57,7 +57,7 @@ const std::string uav::gps::pmtk_awake("$PMTK010,002*2D");
 
 const std::string uav::gps::pmtk_query_release("$PMTK605*31");
 
-uav::gps::gps() : data{0}, newflag(false), cont(true), status(0), fd(-1) { }
+uav::gps::gps() : data{0}, newflag(false), cont(false), status(0), fd(-1) { }
 
 uav::gps::~gps()
 {
@@ -68,6 +68,8 @@ uav::gps::~gps()
 
 int uav::gps::begin()
 {
+    if (cont) return 0;
+
     fd = serialOpen("/dev/ttyS0", 9600);
     if (fd < 0)
     {
@@ -75,12 +77,22 @@ int uav::gps::begin()
         return 1;
     }
 
+    cont = true;
     reader = std::thread(&uav::gps::dowork, this);
 
     while (status == 0);
     if (status == -1)
     {
+        cont = false;
+        if (reader.joinable()) reader.join();
         std::cerr << "gps: connection timed out" << std::endl;
+        return 2;
+    }
+    else if (status == -2)
+    {
+        cont = false;
+        if (reader.joinable()) reader.join();
+        std::cerr << "gps: no fix" << std::endl;
         return 2;
     }
 
@@ -108,14 +120,16 @@ bool uav::gps::update(gps_data& gp)
 
 void uav::gps::dowork()
 {
+    using namespace std::chrono;
+
     std::stringstream message;
     char ch = 0;
-    auto start = std::chrono::steady_clock::now();
-    auto timeout = std::chrono::seconds(1);
+    auto start = steady_clock::now();
+    auto timeout = seconds(1);
 
     while (cont && ch != '$')
     {
-        if (start + timeout < std::chrono::steady_clock::now())
+        if (start + timeout < steady_clock::now())
         {
             status = -1;
             return;
@@ -123,9 +137,14 @@ void uav::gps::dowork()
         if (serialDataAvail(fd) > 0) ch = serialGetchar(fd);
     }
 
-    status = 1;
+    start = steady_clock::now();
     while (cont)
     {
+        if (status == 0 && (start + timeout < steady_clock::now()))
+        {
+            status = -2;
+            return;
+        }
         if (ch == '$')
         {
             update_info(message);
@@ -134,6 +153,8 @@ void uav::gps::dowork()
         }
         message << ch;
         ch = serialGetchar(fd);
+
+        if (status == 0) status = data.gga.num_sats > 0;
     }
 }
 

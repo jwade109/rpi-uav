@@ -6,10 +6,12 @@
 
 #include <bmp.h>
 
+const uint8_t BMP085_CHIPID = 0x55;
+
 using namespace std::chrono;
 
 uav::bmp085::bmp085(): slp(1013.25), temp(0),
-    press(0), alt(0), cont(true) { }
+    press(0), alt(0), data({0}), cont(false) { }
 
 uav::bmp085::~bmp085()
 {
@@ -82,6 +84,8 @@ int32_t uav::bmp085::computeB5(int32_t ut)
 
 int uav::bmp085::begin(uint8_t addr, bmp085_mode_t mode)
 {
+    if (cont) return 0;
+
     int ret = i2c.open(addr);
     if (!ret)
     {
@@ -105,6 +109,7 @@ int uav::bmp085::begin(uint8_t addr, bmp085_mode_t mode)
     bmp085Mode = mode;
     readCoefficients();
 
+    cont = true;
     reader = std::thread(&bmp085::work, this);
 
     return 0;
@@ -187,19 +192,18 @@ float uav::bmp085::getPressure()
     return press;
 }
 
+uav::bmp085_data uav::bmp085::get() const
+{
+    return data.load();
+}
+
 void uav::bmp085::work()
 {
     while (cont)
     {
-        float t = updateTemperature();
-        float p = updatePressure();
-        temp = t;
-        press = p;
-        alt = 44330 * (1.0 - pow(0.01 * press / slp, 0.1903));
+        temp = updateTemperature();
+        press = updatePressure()/101325.0;
+        alt = 44330 * (1.0 - pow(press, 0.1903));
+        data = bmp085_data{temp, press};
     }
-}
-
-double uav::bmp085::altitude(double p, double hp)
-{
-    return 44330 * (1.0 - pow(p / hp, 0.1903));
 }

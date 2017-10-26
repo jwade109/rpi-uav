@@ -1,393 +1,184 @@
 #include <cassert>
 #include <cstring>
 #include <sstream>
-#include <iomanip>
-#include <ctime>
 #include <cmath>
-#include <thread>
-#include <random>
 
 #include <control.h>
-#include <filters.h>
 
-namespace chrono = std::chrono;
-
-unsigned seed = chrono::system_clock::now().time_since_epoch().count();
-std::default_random_engine gen(seed);
-std::normal_distribution<double> gaussian(-1.0, 1.0);
-std::uniform_real_distribution<double> uniform(-1.0, 1.0);
-
-uav::controller::controller(state initial, param cfg, bool debug):
-
-    debug(debug),
-    zpid(cfg.zpidg[0], cfg.zpidg[1],
-        cfg.zpidg[2], (uint16_t) cfg.zpidg[3]),
-    hpid(cfg.hpidg[0], cfg.hpidg[1],
-        cfg.hpidg[2], (uint16_t) cfg.hpidg[3]),
-    ppid(cfg.ppidg[0], cfg.ppidg[1],
-        cfg.ppidg[2], (uint16_t) cfg.ppidg[3]),
-    rpid(cfg.rpidg[0], cfg.rpidg[1],
-        cfg.rpidg[2], (uint16_t) cfg.rpidg[3]),
-    spid(cfg.spidg[0], cfg.spidg[1],
-        cfg.spidg[2], {cfg.spidg[3], cfg.spidg[3], cfg.spidg[3]})
+namespace uav
 {
-    prm = cfg;
-    curr = initial;
-    prev = {0};
-}
 
-uav::controller::~controller() { }
+controller::controller(state initial, param cfg):
+    num_steps(0),
+    curr(initial), prev{0}, prm(cfg),
+    hdg_acc(2*M_PI), roll_acc(2*M_PI),
+    alt_filter(cfg.freq),
+    pos_filter(cfg.freq) { }
 
-int uav::controller::align()
+int controller::step(const raw_data& raw)
 {
-    uav::infostream << "RNG seed: " << seed << std::endl;
-    const int samples = 100; // altitude samples for home point
-    const auto wait = chrono::milliseconds(10);
+    using namespace std::chrono;
 
-    if (!debug)
-    {
-        int ret1 = imu.begin();
-        int ret2 = bmp.begin();
-        if (ret1 | ret2)
-        {
-            std::stringstream ss;
-            ss << "Drone alignment failure (IMU: " << ret1
-                << ", BMP: " << ret2 << ")";
-            std::cerr << ss.str() << "\n";
-            uav::error(ss.str());
-            return 1;
-        }
-        std::this_thread::sleep_for(chrono::seconds(3));
-    }
-
-    auto start = chrono::steady_clock::now();
-    uav::running_average avg1, avg2;
-    for (int i = 0; i < samples; i++)
-    {
-        if (!debug)
-        {
-            avg1.step(imu.get().pres);
-            avg2.step(bmp.getPressure());
-        }
-        else
-        {
-            avg1.step(101200 + gaussian(gen) * 10);
-            avg2.step(101150 + gaussian(gen) * 10);
-        }
-        start+=wait;
-        std::this_thread::sleep_until(start);
-    }
-    prm.p1h = avg1.value;
-    prm.p2h = avg2.value;
-
-    return 0;
-}
-
-int uav::controller::iterate(bool block)
-{
-    std::bitset<16> error(0);
+    if (num_steps++ == 0) tstart = std::chrono::steady_clock::now();
     prev = curr;
 
-    {
-        auto now = chrono::steady_clock::now();
-        if (curr.status == uav::null_status) tstart = now;
-        else if (block)
-        {
-            uint64_t ts = prev.t + 1000/prm.freq;
-            while (now < tstart + chrono::milliseconds(ts))
-                now = chrono::steady_clock::now();
-        }
-        curr.t = chrono::duration_cast<chrono::milliseconds>(
-                now - tstart).count();
-        curr.t_abs = chrono::duration_cast<chrono::milliseconds>(
-                now.time_since_epoch()).count();
-    }
+    auto now = steady_clock::now();
+    curr.time[0] = duration_cast<milliseconds>(now - tstart).count();
+    curr.time[1] = duration_cast<milliseconds>
+        (now.time_since_epoch()).count();
 
-    auto stopwatch = chrono::steady_clock::now();
-    double dt = (curr.t - prev.t)/1000.0;
+    if ((curr.status != uav::null_status) &&
+            (curr.time[0] - prev.time[0]) != 1000/prm.freq)
+        uav::error << "Timing error (" << prev.time[0]
+            << " -> " << curr.time[0] << ")" << std::endl;
 
-    if ((curr.status != uav::null_status) && (curr.t - prev.t) != 1000/prm.freq)
-    {
-        uav::errorstream << "Timing error ("
-            << prev.t << " -> " << curr.t << ")" << std::endl;
-        error[0] = 1;
-    }
+    double gps_alt = raw.gps.gga.altitude;
+    double b1_alt = altitude(raw.ard.pres);
+    double b2_alt = altitude(raw.bmp.pressure);
 
-    if (!debug)
-    {
-        imu_packet m = imu.get();
-        curr.pos[3] = m.heading;
-        curr.pos[4] = m.pitch;
-        curr.pos[5] = m.roll;
+    auto pos = pos_filter(raw.gps.gga.pos);
+    curr.position[0] = pos.x();
+    curr.position[1] = pos.y();
+    curr.position[2] = alt_filter.step(gps_alt, b1_alt, b2_alt);
 
-        curr.temp[0] = m.temp;
-        curr.temp[1] = bmp.getTemperature();
-        curr.pres[0] = m.pres;
-        curr.pres[1] = bmp.getPressure();
-    }
-    else
-    {
-        imu::Vector<3> euler = simulator.euler;
-        curr.pos[3] = euler.x();
-        curr.pos[4] = euler.y();
-        curr.pos[5] = euler.z();
+    curr.attitude[0] = hdg_acc(angle::from_degrees(raw.ard.euler.x()));
+    curr.attitude[1] = angle::from_degrees(raw.ard.euler.y());
+    curr.attitude[2] = roll_acc(angle::from_degrees(raw.ard.euler.z()));
 
-        curr.pres[0] = prm.p1h + gaussian(gen) * 10;
-        curr.pres[1] = prm.p2h + gaussian(gen) * 10;
-        curr.temp[0] = curr.temp[1] = 25.6 + gaussian(gen) * 0.1;
-    }
-
-    error |= validate(prev, curr);
-
-    // get target position and attitude from controller
-    gettargets();
-
-    // once readings are verified, filter altitude
-    {
-        static uav::low_pass lpf(prm.gz_rc);
-        auto alt = [](float p, float hp)
-            { return 44330 * (1.0 - pow(p/hp, 0.1903)); };
-
-        double z1 = alt(curr.pres[0], prm.p1h);
-        double z2 = alt(curr.pres[1], prm.p2h);
-        double zavg = z1 * prm.gz_wam + z2 * (1 - prm.gz_wam);
-        curr.pos[2] = lpf.step(zavg, dt);
-
-        if (debug)
-        {
-            auto pos = simulator.pos;
-            curr.pos[0] = pos.x();
-            curr.pos[1] = pos.y();
-            curr.pos[2] = pos.z();
-        }
-    }
-
-    // end here if this is the first iteration
-    if (curr.status == uav::null_status)
-    {
-        curr.status = uav::no_vel;
-        simulator.stepfor(1000000/prm.freq, 1000);
-        curr.err = (uint16_t) error.to_ulong();
-        curr.comptime = chrono::duration_cast<chrono::nanoseconds>(
-            chrono::steady_clock::now() - stopwatch).count();
-        return 2;
-    }
-    
-    // determine convergence on target position
-    {
-        const double epsilon = 0.1;
-        bool converged = true;
-        for (int i = 0; i < 6 && converged; i++)
-        {
-            converged &= ((std::abs(curr.targets[i] - curr.pos[i]) < epsilon)
-                & (std::abs(curr.pidov[i]) < epsilon));
-        }
-        curr.status = converged ? uav::pos_hold : uav::pos_seek;
-    }
-
-    // assumed that at this point, z, h, r, and p are
-    // all trustworthy. process pid controller responses
-    auto deg2rad = [](double deg) { return deg * M_PI / 180.0; };
-    auto circular_err = [](double h, double t)
-    {
-        double dist = t - h;
-        if (dist > 180) return dist - 360;
-        if (dist < -180) return dist + 360;
-        return dist;
-    };
-
-    imu::Vector<2> P(curr.pos[0], curr.pos[1]),
-        T(curr.targets[0], curr.targets[1]);
-    imu::Vector<2> Sp = spid.seek(P, T, dt);
-    curr.pidov[0] = Sp.x();
-    curr.pidov[1] = Sp.y();
-
-    imu::Vector<3> euler = traverse(Sp, curr.pos[3],
-        prm.tilt95, prm.maxtilt).first;
-    curr.targets[4] = euler.y();
-    curr.targets[5] = euler.z();
-
-    curr.pidov[2] = zpid.seek(deg2rad(curr.pos[2]),
-        deg2rad(curr.targets[2]), dt);
-    curr.pidov[3] = hpid.seek(0, deg2rad(circular_err(
-        curr.pos[3], curr.targets[3])), dt);
-    curr.pidov[4] = ppid.seek(deg2rad(curr.pos[4]),
-        deg2rad(curr.targets[4]), dt);
-    curr.pidov[5] = rpid.seek(0, deg2rad(circular_err(
-        curr.pos[5], curr.targets[5])), dt);
-
-    // get default hover thrust
-    float hover = prm.mg / (cos(deg2rad(curr.pos[4])) *
-        cos(deg2rad(curr.pos[5])));
-    static float maxhover(prm.mg / pow(cos(M_PI/6), 2));
-    if (hover > maxhover) hover = maxhover;
-    if (hover < 0) hover = 0;
-
-    // get raw motor responses by summing pid output variables
-    // (linear combination dependent on motor layout)
-    double raw[4];
-    raw[0] = -curr.pidov[3] + curr.pidov[4] - curr.pidov[5] +
-              curr.pidov[2] + hover;
-    raw[1] =  curr.pidov[3] + curr.pidov[4] + curr.pidov[5] +
-              curr.pidov[2] + hover;
-    raw[2] = -curr.pidov[3] - curr.pidov[4] + curr.pidov[5] +
-              curr.pidov[2] + hover;
-    raw[3] =  curr.pidov[3] - curr.pidov[4] - curr.pidov[5] +
-              curr.pidov[2] + hover;
-
-    for (double& e : raw) e = e > 5 ? 5 : e < 0 ? 0 : e;
-    for (int i = 0; i < 4; i++) curr.motors[i] = raw[i];
-
-    simulator.set(raw);
-    simulator.stepfor(1000000/prm.freq, 1000);
-
-    curr.err = static_cast<uint16_t>(error.to_ulong());
-    curr.comptime = chrono::duration_cast<chrono::nanoseconds>(
-        chrono::steady_clock::now() - stopwatch).count();
+    auto comptime = steady_clock::now() - now;
+    curr.time[2] = duration_cast<microseconds>(comptime).count();
 
     return 0;
 }
-    
-uav::state uav::controller::getstate()
+
+state controller::getstate()
 {
     return curr;
 }
 
-void uav::controller::setstate(state s)
+void controller::setstate(state s)
 {
     curr = s;
 }
 
-uav::param uav::controller::getparams()
+param controller::getparams()
 {
     return prm;
 }
 
-void uav::controller::gettargets()
-{
-    // arbitrary targets until a true controller is implemented
-    static uint64_t last(0);
-    if (debug)
-    {
-        if (curr.status != uav::pos_hold) last = curr.t;
-        if ((curr.t - last >= 5000) || curr.t == 0)
-        {
-            last = curr.t;
+gps_baro_filter::gps_baro_filter(uint8_t f) :
+    gps_baro_filter(f, 30, 30, 30, 0.7, 0.7) { }
 
-            curr.targets[0] = uniform(gen) * 100;
-            curr.targets[1] = uniform(gen) * 100;
-            curr.targets[2] = uniform(gen) * 25 + 25;
-            curr.targets[3] = uniform(gen) * 180;
-        }
-    }
-    else curr.targets.fill(0);
+gps_baro_filter::gps_baro_filter(uint8_t f, unsigned gst,
+    unsigned ast, unsigned bst, double arc, double brc) :
+    value(0), gps_samples(gst * f), ard_samples(ast * f), bmp_samples(bst * f),
+    ard_rc(arc), bmp_rc(brc), dt(1.0/f), home_alt(NAN),
+    u_g(gps_samples), u_b1(ard_samples),
+    u_b2(bmp_samples), lpf1(ard_rc), lpf2(bmp_rc) { }
+
+double gps_baro_filter::step(double gps, double ard, double bmp)
+{
+    if (isnan(home_alt)) home_alt = gps;
+
+    u_g.step(gps);
+    u_b1.step(ard);
+    u_b2.step(bmp);
+
+    double d1_est = u_b1.value - u_g.value;
+    double d2_est = u_b2.value - u_g.value;
+    double alt1_est = ard - d1_est - home_alt;
+    double alt2_est = bmp - d2_est - home_alt;
+    double alt1_smooth = lpf1.step(alt1_est, dt);
+    double alt2_smooth = lpf2.step(alt2_est, dt);
+
+    return (value = 0.5 * alt1_smooth + 0.5 * alt2_smooth);
 }
 
-std::bitset<16> uav::controller::validate(
-    const uav::state& prev, uav::state& curr)
+gps_position_filter::gps_position_filter(uint8_t freq) :
+    gps_position_filter(freq, 3) { }
+
+gps_position_filter::gps_position_filter(uint8_t f, double rc) :
+    freq(f), rc(rc), dt(1.0/f), first(true), lpfx(rc), lpfy(rc) { }
+
+imu::Vector<2> gps_position_filter::operator () (coordinate pos)
 {
-    std::bitset<16> error;
-    // if a pressure measurement is deemed invalid, use the
-    // other barometer's measurement, or the most recent valid
-    // measurement
-    //
-    // for invalid attitude readings, use the previous measurement
-
-    // assume during normal operation, pressure will be atmost
-    // 101,325 Pa (0 m MSL), and no less than 80,000 Pa (~2000 m MSL)
-    if (curr.pres[0] < 80000 || curr.pres[0] > 101325)
-    {
-        uav::errorstream << "pres[0] = " << curr.pres[0] << std::endl;
-        error[1] = 1;
-    }
-    if (curr.pres[1] < 80000 || curr.pres[1] > 101325)
-    {
-        uav::errorstream << "pres[1] = " << curr.pres[1] << std::endl;
-        error[2] = 1;
-    }
-    // decision tree for correcting bad alt measurements
-    if (error[1] && error[2]) // uh-oh, both altimeters are bad
-    {
-        uav::info("Using previous pressure measurements");
-        curr.pres[0] = prev.pres[0];
-        curr.pres[1] = prev.pres[1];
-    }
-    else if (error[1]) // p1 is bad, p2 is good
-    {
-        uav::info("using pres[1] for value of pres[0]");
-        curr.pres[0] = curr.pres[1];
-    }
-    else if (error[2]) // p2 is bad, p1 is good
-    {
-        uav::info("using pres[0] for value of pres[1]");
-        curr.pres[1] = curr.pres[0];
-    }
-
-    // verify that all attitudes are normal or zero
-    // expected values for heading are (-180,+180)
-    if (curr.pos[3] <= -180 || curr.pos[3] >= 180 ||
-        !std::isfinite(curr.pos[3]))
-    {
-        uav::errorstream << "pos[3] = " << curr.pos[3] << std::endl;
-        error[3] = 1;
-        uav::info("Using previous value of pos[3]");
-        curr.pos[3] = prev.pos[3];
-    }
-    // roll is expected to be [-90,+90]
-    if (curr.pos[4] < -90 || curr.pos[4] > 90 ||
-        !std::isfinite(curr.pos[4]))
-    {
-        uav::errorstream << "pos[4] = " << curr.pos[4] << std::endl;
-        error[4] = 1;
-        uav::info("Using previous value of pos[4]");
-        curr.pos[4] = prev.pos[4];
-    }
-    // pitch should be (-180,+180)
-    if (curr.pos[5] <= -180 || curr.pos[5] >= 180 ||
-        !std::isfinite(curr.pos[5]))
-    {
-        uav::errorstream << "pos[5] = " << curr.pos[5] << std::endl;
-        error[5] = 1;
-        uav::info("Using previous value of pos[5]");
-        curr.pos[5] = prev.pos[5];
-    }
-
-    // targets should not exceed the normal range for measured values
-    if (curr.targets[2] < -50 || curr.targets[2] > 50)
-    {
-        uav::errorstream << "curr.targets[2] = " << curr.targets[2] << std::endl;
-        error[6] = 1;
-        uav::info("Using previous value of targets[2]");
-        curr.targets[2] = prev.targets[2];
-    }
-    if (curr.targets[3] <= -180 || curr.targets[3] >= 180)
-    {
-        uav::errorstream << "curr.targets[3] = " << curr.targets[3] << std::endl;
-        error[7] = 1;
-        uav::info("Using previous value of targets[3]");
-        curr.targets[3] = prev.targets[3];
-    }
-    if (curr.targets[4] < -90 || curr.targets[4] > 90)
-    {
-        uav::errorstream << "curr.targets[4] = " << curr.targets[4] << std::endl;
-        error[8] = 1;
-        uav::info("Using previous value of targets[4]");
-        curr.targets[4] = prev.targets[4];
-    }
-    if (curr.targets[5] <= -180 || curr.targets[5] >= 180)
-    {
-        uav::errorstream << "curr.targets[5] = " << curr.targets[5] << std::endl;
-        error[9] = 1;
-        uav::info("Using previous value of targets[5]");
-        curr.targets[5] = prev.targets[5];
-    }
-    return error;
+    if (first) { first = false; home = pos; }
+    auto d = pos - home;
+    return value = {lpfx.step(d.x(), dt), lpfy.step(d.y(), dt)};
 }
 
-std::pair<imu::Vector<3>, imu::Vector<3>> uav::controller::traverse(
+mass_estimator::mass_estimator(uint8_t freq) :
+    mass_estimator(freq, 0.2, 1.5, 0.2) { }
+
+mass_estimator::mass_estimator(uint8_t f, double acc_rc,
+    double mavg_st, double eps) :
+    value(0), freq(f), accel_rc(acc_rc), mavg_sample_time(mavg_st),
+    epsilon(eps), accel_lpf(acc_rc),
+    moving(freq * mavg_st), diverged(false), dt(1.0/f) { }
+
+double mass_estimator::step(double Fz, double az)
+{
+    if (az == 9.81) return value;
+    double smooth_accel = accel_lpf.step(az, dt);
+    double m_hat = Fz/(smooth_accel + 9.81);
+
+    double local_m_hat = moving.step(m_hat);
+    double global_m_hat = global.step(m_hat);
+
+    bool large_gap = std::abs(global_m_hat - local_m_hat) > epsilon;
+    if (large_gap && !diverged) global = uav::running_average();
+    diverged = large_gap;
+
+    return value = diverged ? local_m_hat : global_m_hat;
+}
+
+motor_director::motor_director(uint8_t f, double mthrust,
+    double t95, double mtilt, std::array<double, 20> g) :
+
+    command{0}, freq(f), max_thrust(mthrust),
+    tilt_95(t95), max_tilt(mtilt), gains(g),
+    xpid(f, g[0], g[1], g[2], g[3]),
+    ypid(f, g[0], g[1], g[2], g[3]),
+    zpid(f, g[4], g[5], g[6], g[7]),
+    hpid(f, g[8], g[9], g[10], g[11]),
+    ppid(f, g[12], g[13], g[14], g[15]),
+    rpid(f, g[16], g[17], g[18], g[19]) { }
+
+std::array<double, 4> motor_director::step(double mass,
+    std::array<double, 6> position, std::array<double, 4> targets)
+{
+    double xov = xpid.seek(position[0], targets[0]);
+    double yov = ypid.seek(position[1], targets[1]);
+
+    imu::Vector<3> euler = traverse({xov, yov},
+            position[3], tilt_95, max_tilt).first;
+
+    angle pitch_target = euler.y();
+    angle roll_target = euler.z();
+    angle heading_target = target_azimuth(position[3], targets[3]);
+
+    double zov = zpid.seek(position[2], targets[2]);
+    double hov = hpid.seek(position[3], heading_target);
+    double pov = ppid.seek(position[4], pitch_target);
+    double rov = rpid.seek(position[5], roll_target);
+
+    // get default hover thrust
+    double hover = (mass / (cos(position[4]) * cos(position[5])))/4;
+
+    std::array<double, 4> command;
+    command[0] = -hov + pov - rov + zov + hover;
+    command[1] =  hov + pov + rov + zov + hover;
+    command[2] = -hov - pov + rov + zov + hover;
+    command[3] =  hov - pov - rov + zov + hover;
+
+    for (double & e : command) e = e > 5 ? 5 : e < 0 ? 0 : e;
+    return command;
+}
+
+std::pair<imu::Vector<3>, imu::Vector<3>> uav::motor_director::traverse(
     imu::Vector<2> S, double heading, double tilt95, double maxtilt)
 {
-    auto f = [=](double d)
+    static auto f = [=](double d)
     {
         return 2 * maxtilt / (1 + exp((log(2/1.95 - 1) / tilt95 * d))) - maxtilt;
     };
@@ -407,3 +198,5 @@ std::pair<imu::Vector<3>, imu::Vector<3>> uav::controller::traverse(
     double roll = atan2(Xp.dot(Zpp), Zp.dot(Zpp)) * 180/M_PI;
     return {{heading, pitch, roll}, Zpp};
 }
+
+} // namespace uav

@@ -9,236 +9,254 @@
 
 namespace uav
 {
-    // data representation typedefs ////////////////////////////////////////////
 
-    using timestamp_t   = uint64_t;
-    using pres_t        = float;
-    using temp_t        = float;
-    using pos_t         = float;
-    using euler_t       = float;
-    using calib_t       = uint8_t;
-    using target_t      = float;
-    using pid_ov_t      = float;
-    using motor_t       = float;
-    using error_t       = uint16_t;
-    using status_t      = uint8_t;
+class angle
+{
+    public:
 
-    using freq_t        = uint8_t;
-    using home_pres_t   = double;
-    using pid_gain_t    = double;
-    using lpf_tau_t     = double;
-    using wavg_t        = double;
-    using mrate_t       = uint16_t;
-    using wgt_frac_t    = double;
+    static angle from_degrees(double degs);
+    static angle from_radians(double rads);
+    static angle from_rotations(int rots);
 
-    enum : freq_t
+    angle();
+    angle(double rads, int rots = 0);
+    angle(const angle& a);
+
+    double rad() const;
+    double deg() const;
+    int rot() const;
+
+    angle operator - ();
+    angle& operator = (const angle& a);
+    angle operator + (const angle& a) const;
+    angle operator - (const angle& a) const;
+    angle& operator += (const angle& a);
+    angle& operator -= (const angle& a);
+
+    angle& operator = (double rads);
+
+    angle operator * (double scalar) const;
+    angle operator / (double divisor) const;
+    angle& operator *= (double scalar);
+    angle& operator /= (double divisor);
+
+    double operator / (const angle& divisor) const;
+
+    bool operator == (const angle& a) const;
+    bool operator != (const angle& a) const;
+    bool operator < (const angle& a) const;
+    bool operator > (const angle& a) const;
+    bool operator <= (const angle& a) const;
+    bool operator >= (const angle& a) const;
+
+    operator double () const;
+
+    private:
+
+    int rotations;
+    double radians;
+};
+
+angle target_azimuth(angle current, angle desired);
+
+std::ostream& operator << (std::ostream& os, const angle& a);
+
+namespace angle_literals
+{
+
+angle operator "" _rad(unsigned long long radians);
+
+angle operator "" _deg(unsigned long long degrees);
+
+angle operator "" _rad(long double radians);
+
+angle operator "" _deg(long double degrees);
+
+} // namespace uav::angle_literals
+
+// takes pressure in atm
+double altitude(double atm);
+
+// data representation typedefs ////////////////////////////////////////////
+
+enum : uint8_t
+{
+    f1hz = 1, f10hz = 10, f20hz = 20, f25hz = 25, f40hz = 40, f50hz = 50,
+    f100hz = 100, f125hz = 125, f200hz = 200, f250hz = 250,
+
+    fdefault = f100hz
+};
+
+enum : uint8_t
+{
+    null_status, align, no_vel, pos_seek, pos_hold, high_tilt, upside_down
+};
+
+// formatting bitmasks /////////////////////////////////////////////////////
+
+namespace fmt
+{
+    using bitmask_t = uint16_t;
+
+    enum : bitmask_t
     {
-        f1hz = 1, f10hz = 10, f20hz = 20, f25hz = 25, f40hz = 40, f50hz = 50,
-        f100hz = 100, f125hz = 125, f200hz = 200, f250hz = 250,
+        time            = 1,
+        time_full       = (1 << 1) | time,
+        position        = 1 << 3,
+        attitude        = 1 << 4,
+        config          = position | attitude,
+        quat            = 1 << 5,
+        targets         = 1 << 6,
+        motors          = 1 << 7,
+        error           = 1 << 8,
+        status          = 1 << 9,
 
-        fdefault = f100hz
+        all = std::numeric_limits<bitmask_t>::max(),
+        standard = time | config | motors | status
     };
+}
 
-    enum : status_t
-    {
-        null_status, align, no_vel, pos_seek, pos_hold, high_tilt, upside_down
-    };
+// uav::state //////////////////////////////////////////////////////////////
 
-    // formatting bitmasks /////////////////////////////////////////////////////
+struct state
+{
+    std::array<uint64_t, 3> time;
+    std::array<double, 3> position;
+    std::array<double, 3> attitude;
+    std::array<double, 4> targets;
+    std::array<double, 4> motors;
+    uint16_t error;
+    uint8_t status;
 
-    namespace fmt
-    {
-        using bitmask_t = uint64_t;
+    static std::string header(fmt::bitmask_t);
+    bool operator==(const state& other);
+    bool operator!=(const state& other);
 
-        enum : bitmask_t
-        {
-            time            = 1,
-            time_full       = 7,
-            pressure        = 3 << 3,
-            temperature     = 3 << 5,
-            configuration   = 63 << 7,
-            position        = 7 << 7,
-            altitude        = 1 << 9,
-            attitude        = 7 << 10,
-            attitude_full   = 15 << 10,
-            calib           = 1 << 13,
-            quaternion      = 15 << 14,
-            targets         = 63 << 18,
-            pid             = 63 << 24,
-            motors          = 15ULL << 30,
-            error           = 1ULL << 34,
-            status          = 1ULL << 35,
+    const static size_t fields = 30;
+    const static size_t size = 3*sizeof(uint64_t) +
+        14*sizeof(double) + sizeof(uint16_t) + sizeof(uint8_t);
 
-            all = std::numeric_limits<bitmask_t>::max(),
-            standard = time | configuration | motors | error
-        };
-    }
+    using bin = std::array<uint8_t, size>;
+};
 
-    // uav::state //////////////////////////////////////////////////////////////
+// uav::param //////////////////////////////////////////////////////////////
 
-    struct state
-    {
-        timestamp_t     t, t_abs, comptime; // time in millis, computation time
-        std::array<pres_t, 2> pres;         // pressure from imu/bmp
-        std::array<pres_t, 2> temp;         // temperature from above
+struct param
+{
+    uint8_t freq; // frequency of updates in hz
+    double mass;
+    // pid gains for altitude, heading, pitch, roll
+    std::array<double, 20> pid_gains;
 
-        std::array<pos_t, 6> pos;
-        calib_t         calib;              // calibration status
-        std::array<target_t, 6> targets;    // targets for 6 degrees of freedom
-        std::array<pid_ov_t, 6> pidov;      // respective pid response
-        std::array<motor_t, 4> motors;
-        error_t         err;                // bitmask for storing error codes
-        uint8_t         status;
+    static std::string header();
+    bool operator==(const param& other);
+    bool operator!=(const param& other);
 
-        static std::string header(fmt::bitmask_t);
-        bool operator==(const state& other);
-        bool operator!=(const state& other);
+    const static size_t size = sizeof(uint8_t) + 21*sizeof(double);
 
-        const static size_t fields = 32;
-        const static size_t size = 3 * sizeof(timestamp_t) + 2 * sizeof(pres_t) +
-            2 * sizeof(temp_t) + 3 * sizeof(pos_t) + 3 * sizeof(euler_t) +
-            sizeof(calib_t) + 6 * sizeof(target_t) + 6 * sizeof(pid_ov_t) +
-            4 * sizeof(motor_t) + sizeof(error_t) + sizeof(uint8_t);
+    using bin = std::array<uint8_t, size>;
+};
 
-        using bin = std::array<uint8_t, size>;
-    };
+// conversion functions ////////////////////////////////////////////////////
 
-    // uav::param //////////////////////////////////////////////////////////////
+param::bin serialize(const param& p);
 
-    struct param
-    {
-        freq_t          freq;               // frequency of updates in hz
-        home_pres_t     p1h, p2h;           // home point pres from imu/bmp
+state::bin serialize(const state& s);
 
-        // pid gains for altitude, heading, pitch, roll
-        std::array<pid_gain_t, 4> spidg, zpidg, hpidg, ppidg, rpidg;
+param deserialize(const param::bin& b);
 
-        lpf_tau_t       gz_rc;              // RC time constant for alt lpf
-        wavg_t          gz_wam;             // weighted average gain towards z1
-        pos_t           tilt95;
-        pos_t           maxtilt;
-        wgt_frac_t      mg;                 // vehicle weight/max thrust * 100
+state deserialize(const state::bin& b);
 
-        static std::string header();
-        bool operator==(const param& other);
-        bool operator!=(const param& other);
+template <size_t N, typename T> std::array<uint8_t, N> wrap(T *ptr)
+{
+    std::array<uint8_t, N> bin;
+    uint8_t* src = reinterpret_cast<uint8_t*>(ptr);
+    std::copy(src, src + N, begin(bin));
+    return bin;
+}
 
-        const static size_t fields = 28;
-        const static size_t size = sizeof(freq_t) + 2 * sizeof(home_pres_t) +
-            20 * sizeof(pid_gain_t) + sizeof(lpf_tau_t) + sizeof(wavg_t) +
-            sizeof(pos_t) * 2 + sizeof(wgt_frac_t);
+template <typename T> std::array<uint8_t, sizeof(T)> bin(T var)
+{
+    uint8_t* b = reinterpret_cast<uint8_t*>(&var);
+    std::array<uint8_t, sizeof(T)> array;
+    std::copy(b, b + sizeof(T), begin(array));
+    return array;
+}
 
-        using bin = std::array<uint8_t, size>;
-    };
+template <typename T, size_t N>
+std::array<uint8_t, sizeof(T) * N> bin(const std::array<T, N>& vars)
+{
+    std::array<uint8_t, sizeof(T) * N> array;
+    const uint8_t* src = reinterpret_cast<const uint8_t*>(vars.data());
+    std::copy(src, src + sizeof(T) * N, begin(array));
+    return array;
+}
 
-    // conversion functions ////////////////////////////////////////////////////
+template <typename T>
+void bin(const uint8_t* src, size_t& rptr, T& dest)
+{
+    dest = *reinterpret_cast<const T*>(src + rptr);
+    rptr += sizeof(T);
+}
 
-    param::bin serialize(const param& p);
+template <size_t N, size_t M> std::array<uint8_t, N + M>
+operator + (const std::array<uint8_t, N>& a, const std::array<uint8_t, M>& b)
+{
+    std::array<uint8_t, N + M> c;
+    std::copy(begin(a), end(a), begin(c));
+    std::copy(begin(b), end(b), begin(c) + N);
+    return c;
+}
 
-    state::bin serialize(const state& s);
+template <size_t N> bool
+operator == (const std::array<uint8_t, N>& a, const std::array<uint8_t, N>& b)
+{
+    for (size_t i = 0; i < N; i++)
+        if (a[i] != b[i]) return false;
+    return true;
+}
 
-    param deserialize(const param::bin& b);
+// std::string functions ///////////////////////////////////////////////////
 
-    state deserialize(const state::bin& b);
+std::string to_string(const param& prm);
 
-    template <size_t N, typename T> std::array<uint8_t, N> wrap(T *ptr)
-    {
-        std::array<uint8_t, N> bin;
-        uint8_t* src = reinterpret_cast<uint8_t*>(ptr);
-        std::copy(src, src + N, begin(bin));
-        return bin;
-    }
+std::string to_string(const state& it, fmt::bitmask_t mask);
 
-    template <typename T> std::array<uint8_t, sizeof(T)> bin(T var)
-    {
-        uint8_t* b = reinterpret_cast<uint8_t*>(&var);
-        std::array<uint8_t, sizeof(T)> array;
-        std::copy(b, b + sizeof(T), begin(array));
-        return array;
-    }
+std::string timestamp();
 
-    template <typename T, size_t N>
-    std::array<uint8_t, sizeof(T) * N> bin(const std::array<T, N>& vars)
-    {
-        std::array<uint8_t, sizeof(T) * N> array;
-        const uint8_t* src = reinterpret_cast<const uint8_t*>(vars.data());
-        std::copy(src, src + sizeof(T) * N, begin(array));
-        return array;
-    }
+// logging functions ///////////////////////////////////////////////////////
+
+void reset();
+
+void include(param p);
+
+void include(state s);
+
+void flush();
+
+class logstream
+{
+    std::stringstream ss;
+    const std::string name;
+
+    public:
+
+    logstream(const std::string& name);
 
     template <typename T>
-    void bin(const uint8_t* src, size_t& rptr, T& dest)
+    logstream& operator << (const T& t)
     {
-        dest = *reinterpret_cast<const T*>(src + rptr);
-        rptr += sizeof(T);
+        ss << t;
+        return *this;
     }
 
-    template <size_t N, size_t M> std::array<uint8_t, N + M>
-    operator + (const std::array<uint8_t, N>& a, const std::array<uint8_t, M>& b)
-    {
-        std::array<uint8_t, N + M> c;
-        std::copy(begin(a), end(a), begin(c));
-        std::copy(begin(b), end(b), begin(c) + N);
-        return c;
-    }
+    void operator () (const std::string& s);
 
-    template <size_t N> bool
-    operator == (const std::array<uint8_t, N>& a, const std::array<uint8_t, N>& b)
-    {
-        for (size_t i = 0; i < N; i++)
-            if (a[i] != b[i]) return false;
-        return true;
-    }
+    logstream& operator << (std::ostream& (*)(std::ostream&));
+};
 
-    // std::string functions ///////////////////////////////////////////////////
+extern logstream debug, info, error;
 
-    std::string to_string(const param& prm);
-
-    std::string to_string(const state& it, fmt::bitmask_t mask);
-
-    std::string timestamp();
-
-    // logging functions ///////////////////////////////////////////////////////
-
-    void reset();
-
-    void include(param p);
-
-    void include(state s);
-
-    void debug(std::string s);
-
-    void info(std::string s);
-
-    void error(std::string s);
-
-    void flush();
-
-    class logstream
-    {
-        void (*log)(std::string s);
-        std::stringstream ss;
-
-        public:
-
-        logstream(void (*logfunc)(std::string s));
-
-        template <typename T>
-        logstream& operator << (const T& t)
-        {
-            ss << t;
-            return *this;
-        }
-
-        logstream& operator << (std::ostream& (*)(std::ostream&));
-    };
-
-    extern logstream debugstream, infostream, errorstream;
-
-    namespace tests
-    {
-        int uavcore();
-    }
-}
+} // namespace uav
 
 #endif // UAV_CORE_H
