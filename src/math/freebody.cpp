@@ -2,7 +2,7 @@
 #include <string>
 #include <sstream>
 
-#include <freebody.h>
+#include "freebody.h"
 
 uav::freebody::freebody() : time(0), mass(1), I_moment(1, 1, 1)
 {

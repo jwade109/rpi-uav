@@ -4,7 +4,7 @@
 #include <string>
 #include <assert.h>
 
-#include <uavcore.h>
+#include <uav/logging>
 
 int main(int argc, char** argv)
 {

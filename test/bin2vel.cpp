@@ -6,8 +6,8 @@
 #include <bitset>
 #include <algorithm>
 
-#include <filters.h>
-#include <uavcore.h>
+#include <uav/filter>
+#include <uav/logging>
 
 int main(int argc, char** argv)
 {

@@ -6,7 +6,7 @@
 #include <bitset>
 #include <algorithm>
 
-#include <uavcore.h>
+#include <uav/logging>
 
 int main(int argc, char** argv)
 {

@@ -1,0 +1,4 @@
+#include "../../src/math/vector.h"
+#include "../../src/math/quaternion.h"
+#include "../../src/math/matrix.h"
+#include "../../src/math/freebody.h"

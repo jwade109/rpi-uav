@@ -6,9 +6,9 @@
 #include <chrono>
 #include <thread>
 
-#include <quaternion.h>
-#include <vector.h>
-#include <matrix.h>
+#include "quaternion.h"
+#include "vector.h"
+#include "matrix.h"
 
 namespace uav
 {

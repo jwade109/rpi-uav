@@ -6,8 +6,8 @@
 #include <bitset>
 #include <chrono>
 
-#include <uavcore.h>
-#include <freebody.h>
+#include <uav/math>
+#include "uavcore.h"
 
 namespace uav
 {
