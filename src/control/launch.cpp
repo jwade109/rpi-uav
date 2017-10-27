@@ -31,6 +31,7 @@ int main(int argc, char** argv)
     uav::state init{0};
 
     uav::controller c(init, prm);
+    uav::include(c.getparams());
 
     /*
     pwm_driver pwm;
@@ -59,7 +60,6 @@ int main(int argc, char** argv)
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
 
-    uav::include(c.getparams());
     auto format = uav::fmt::time | uav::fmt::config;
 
     std::cout << uav::param::header() << std::endl;

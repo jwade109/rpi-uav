@@ -28,6 +28,7 @@ int main(int argc, char** argv)
     bin.read(bytes, fsize);
 
     auto f = *reinterpret_cast<uint8_t*>(bytes);
+    std::cout << (int) f << std::endl;
     unsigned int dt = 1000/f;
     std::cerr << "Detected frequency of " << (int) f
               << " Hz (dt = " << dt << " ms)" << std::endl;
@@ -44,6 +45,7 @@ int main(int argc, char** argv)
         std::cout << "File does not contain any iterations." << std::endl;
         return 0;
     }
+    std::cout << n << std::endl;
     for (int i = 0; i < n; i++)
     {
         if (i > 0) prev = ts;

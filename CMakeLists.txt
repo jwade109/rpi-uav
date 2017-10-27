@@ -17,7 +17,9 @@ add_library(lalgorithm
     ${CMAKE_SOURCE_DIR}/src/algorithm/pid.cpp)
 
 add_library(lmath
-    ${CMAKE_SOURCE_DIR}/src/math/freebody.cpp)
+    ${CMAKE_SOURCE_DIR}/src/math/freebody.cpp
+    ${CMAKE_SOURCE_DIR}/src/math/angle.cpp
+    ${CMAKE_SOURCE_DIR}/src/math/angular.cpp)
 
 add_library(lfilter
     ${CMAKE_SOURCE_DIR}/src/filter/filters.cpp)
@@ -34,6 +36,7 @@ target_link_libraries(lhardware -latomic)
 target_link_libraries(lhardware -lwiringPi)
 
 add_library(llogging
+    ${CMAKE_SOURCE_DIR}/src/logging/logstream.cpp
     ${CMAKE_SOURCE_DIR}/src/logging/uavcore.cpp
     ${CMAKE_SOURCE_DIR}/src/math/freebody.cpp)
 
@@ -61,5 +64,6 @@ add_executable(skips
 target_link_libraries(skips lmath)
 target_link_libraries(skips llogging)
 
-
-
+add_executable(mathunit
+    ${CMAKE_SOURCE_DIR}/src/tests/math.cpp)
+target_link_libraries(mathunit lmath)

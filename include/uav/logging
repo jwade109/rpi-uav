@@ -1,1 +1,3 @@
 #include "../../src/logging/uavcore.h"
+#include "../../src/logging/serial.h"
+#include "../../src/logging/logstream.h"
