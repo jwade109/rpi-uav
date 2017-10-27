@@ -27,7 +27,7 @@ All text above must be included in any redistribution
 #include <string>
 #include <vector>
 
-#include <vector.h>
+#include <uav/math>
 
 namespace uav
 {

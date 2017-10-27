@@ -21,7 +21,7 @@
 #define PWM_H
 
 #include <inttypes.h>
-#include <i2c.h>
+#include "i2c.h"
 
 const uint8_t PCA9685_SUBADR1   = 0x2;
 const uint8_t PCA9685_SUBADR2   = 0x3;

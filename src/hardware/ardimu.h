@@ -4,7 +4,8 @@
 #include <cstdlib>
 #include <thread>
 #include <atomic>
-#include <vector.h>
+
+#include <uav/math>
 
 namespace uav
 {

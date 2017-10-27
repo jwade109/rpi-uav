@@ -3,7 +3,7 @@
 #include <sstream>
 #include <cmath>
 
-#include <control.h>
+#include "control.h"
 
 namespace uav
 {

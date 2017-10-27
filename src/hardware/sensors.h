@@ -1,9 +1,9 @@
 #ifndef SENSORS_H
 #define SENSORS_H
 
-#include <ardimu.h>
-#include <gps.h>
-#include <bmp.h>
+#include "ardimu.h"
+#include "gps.h"
+#include "bmp.h"
 
 namespace uav
 {

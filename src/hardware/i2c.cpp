@@ -3,7 +3,7 @@
 #include <errno.h>
 
 #include <wiringPiI2C.h>
-#include <i2c.h>
+#include "i2c.h"
 
 i2cdev::i2cdev() : i2c_addr(0), fd(-1) { }
 

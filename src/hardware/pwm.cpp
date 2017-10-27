@@ -17,7 +17,8 @@
 
 // modified by Wade Foster for Raspberry Pi on 9/14/2017
 
-#include <pwm.h>
+#include "pwm.h"
+
 #include <iostream>
 #include <thread>
 #include <chrono>

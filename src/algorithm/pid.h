@@ -3,7 +3,8 @@
 
 #include <stdint.h>
 #include <cmath>
-#include <filters.h>
+
+#include <uav/filter>
 
 class pid_controller
 {

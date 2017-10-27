@@ -1,3 +1,6 @@
+#ifndef FREEBODY_H
+#define FREEBODY_H
+
 #include <iostream>
 #include <iomanip>
 #include <vector>
@@ -117,3 +120,5 @@ std::ostream& operator << (std::ostream& os, const uav::freebody& fb);
 std::ostream& operator << (std::ostream& os, const uav::dronebody& fb);
 
 std::ostream& operator << (std::ostream& os, const imu::Quaternion& q);
+
+#endif // FREEBODY_H

@@ -3,9 +3,10 @@
 
 #include <thread>
 #include <atomic>
-#include <adasensor.h>
-#include <i2c.h>
 #include <stdlib.h>
+
+#include "adasensor.h"
+#include "i2c.h"
 
 namespace uav
 {

@@ -1,8 +1,8 @@
+#include "ardimu.h"
+
 #include <iostream>
 #include <string>
 #include <sstream>
-
-#include <ardimu.h>
 #include <wiringSerial.h>
 
 uav::arduino::arduino(): data({0}), cont(false), status(0), fd(-1) { }

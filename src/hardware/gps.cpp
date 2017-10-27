@@ -13,12 +13,12 @@ All text above must be included in any redistribution
 // modified from original Adafruit library for Raspberry Pi 3
 // by Wade Foster on 8/29/2017
 
+#include "gps.h"
+
 #include <iostream>
 #include <iomanip>
 #include <sstream>
 #include <vector>
-
-#include <gps.h>
 #include <wiringSerial.h>
 
 const std::string uav::gps::pmtk_echo_100mHz("$PMTK220,10000*2F");

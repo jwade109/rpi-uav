@@ -1,10 +1,10 @@
+#include "bmp.h"
+
 #include <iostream>
 #include <thread>
 #include <chrono>
 #include <math.h>
 #include <stdio.h>
-
-#include <bmp.h>
 
 const uint8_t BMP085_CHIPID = 0x55;
 

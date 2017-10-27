@@ -4,10 +4,9 @@
 #include <cmath>
 #include <signal.h>
 
-#include <uavcore.h>
-#include <sensors.h>
-#include <control.h>
-#include <pwm.h>
+#include <uav/logging>
+#include <uav/hardware>
+#include <uav/control>
 
 bool cont = true;
 

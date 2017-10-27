@@ -9,11 +9,11 @@
 #include <bitset>
 #include <array>
 
-#include <uavcore.h>
-#include <freebody.h>
-#include <filters.h>
-#include <sensors.h>
-#include <pid.h>
+#include <uav/logging>
+#include <uav/math>
+#include <uav/filter>
+#include <uav/hardware>
+#include <uav/algorithm>
 
 namespace uav
 {
