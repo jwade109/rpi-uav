@@ -38,6 +38,7 @@ _a bootleg uav framework for raspberry pi_
 * optional
 
 ## <uav/algorithm>
+* pid controller
 * gps + barometer altitude filter
 * gps position filter
 * motor director

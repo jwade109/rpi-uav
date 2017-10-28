@@ -5,8 +5,8 @@
 #include <string>
 #include <sstream>
 
-#include <gps.h>
-#include <filters.h>
+#include <uav/hardware>
+#include <uav/filter>
 
 char load()
 {
