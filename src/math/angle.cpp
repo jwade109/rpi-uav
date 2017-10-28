@@ -6,70 +6,73 @@
 namespace uav
 {
 
-angle angle::radians(double rads)
+angle::angle(int64_t us, bool) : _micros(us) { }
+
+angle::angle() : _micros(0) { }
+
+angle::angle(const angle& a) : _micros(a.micros()) { }
+
+angle::angle(double rads) : _micros(rads * us_rad) { }
+
+int64_t angle::micros() const
 {
-    return angle(radians, 0);
+    return _micros;
 }
 
-angle angle::rotations(double rots)
+double angle::mil() const
 {
-    return angle(0, rots);
+    return (double) _micros / us_ms;
 }
 
-angle angle::degrees(double degs)
+double angle::sec() const
 {
-    return angle(degs/
+    return (double) _micros / us_sec;
 }
 
-static angle minutes(double mins);
-static angle seconds(double secs);
-static angle milliseconds(double ms);
+double angle::min() const
+{
+    return (double) _micros / us_min;
+}
 
-angle();
-angle(double rads, int rots = 0);
-angle(uint8_t d, uint8_t m, uint8_t s, double ms, bool dir)
-angle(const angle& a);
+double angle::deg() const
+{
+    return (double) _micros / us_deg;
+}
 
-angle angle::from_degrees(double degs) { return angle(degs*(M_PI/180), 0); }
+double angle::rad() const
+{
+    return (double) _micros / us_rad;
+}
 
-angle angle::from_radians(double rads) { return angle(rads, 0); }
-
-angle angle::from_rotations(int rots) { return angle(0, rots); }
-
-angle::angle() : angle(0, 0) { }
-
-angle::angle(double rads, int rots) :
-    rotations(rots + std::lround(rads/(2*M_PI))),
-    radians(rads - (std::lround(rads/(2*M_PI))*2*M_PI)) { }
-
-angle::angle(const angle& a) : rotations(a.rot()), radians(a.rad()) { }
-
-double angle::rad() const { return radians; }
-
-double angle::deg() const { return (180/M_PI) * radians; }
-
-int angle::rot() const { return rotations; }
+double angle::rev() const
+{
+    return (double) _micros / us_rev;
+}
 
 angle angle::operator - ()
 {
-    return angle(-radians, -rotations);
+    return angle(-_micros, true);
+}
+
+angle::operator double () const
+{
+    return (double) _micros / us_rad;
 }
 
 angle& angle::operator = (const angle& a)
 {
-    radians = a.rad();
-    rotations = a.rot();
+    _micros = a.micros();
     return *this;
 }
 
 angle angle::operator + (const angle& a) const
 {
-    return angle(radians + a.rad(), rotations + a.rot());
+    return angle(_micros + a.micros(), true);
 }
 
 angle angle::operator - (const angle& a) const
 {
-    return angle(radians - a.rad(), rotations - a.rot());
+    return angle(_micros - a.micros(), true);
 }
 
 angle& angle::operator += (const angle& a)
@@ -82,24 +85,9 @@ angle& angle::operator -= (const angle& a)
     return (*this = *this - a);
 }
 
-angle& angle::operator = (double rads)
-{
-    return *this = angle(rads);
-}
-
-angle angle::operator * (double scalar) const
-{
-    return angle((radians + 2*M_PI * rotations) * scalar);
-}
-
 angle angle::operator / (double divisor) const
 {
     return *this * (1/divisor);
-}
-
-angle& angle::operator *= (double scalar)
-{
-    return (*this = *this * scalar);
 }
 
 angle& angle::operator /= (double divisor)
@@ -109,12 +97,12 @@ angle& angle::operator /= (double divisor)
 
 double angle::operator / (const angle& a) const
 {
-    return (radians + 2*M_PI*rotations) / (a.rad() + 2*M_PI*a.rot());
+    return (double) _micros / a.micros();
 }
 
 bool angle::operator == (const angle& a) const
 {
-    return radians == a.rad() && rotations == a.rot();
+    return _micros == a.micros();
 }
 
 bool angle::operator != (const angle& a) const
@@ -124,39 +112,28 @@ bool angle::operator != (const angle& a) const
 
 bool angle::operator > (const angle& a) const
 {
-    return rotations*2*M_PI + radians - a.rot()*2*M_PI - a.rad() > 0;
+    return _micros > a.micros();
 }
 
 bool angle::operator < (const angle& a) const
 {
-    return rotations*2*M_PI + radians - a.rot()*2*M_PI - a.rad() < 0;
+    return _micros < a.micros();
 }
 
 bool angle::operator >= (const angle& a) const
 {
-    return (*this == a) || (*this > a);
+    return !(*this < a);
 }
 
 bool angle::operator <= (const angle& a) const
 {
-    return (*this == a) || (*this < a);
-}
-
-angle::operator double () const
-{
-    return radians + rotations*2*M_PI;;
-}
-
-angle target_azimuth(angle current, angle desired)
-{
-    angle diff((desired - current).rad());
-    return current + diff;
+    return !(*this > a);
 }
 
 std::ostream& operator << (std::ostream& os, const angle& a)
 {
     std::stringstream ss;
-    ss << std::fixed << std::setprecision(3) << a.rot() << "*" << a.deg();
+    ss << std::fixed << std::setprecision(3) << a.micros();
     return os << ss.str();
 }
 
@@ -165,22 +142,72 @@ namespace angle_literals
 
 angle operator "" _rad(unsigned long long radians)
 {
-    return angle(radians);
-}
-
-angle operator "" _deg(unsigned long long degrees)
-{
-    return angle(degrees * (M_PI/180));
+    return angle::radians(radians);
 }
 
 angle operator "" _rad(long double radians)
 {
-    return angle(radians);
+    return angle::radians(radians);
+}
+
+angle operator "" _deg(unsigned long long degrees)
+{
+    return angle::degrees(degrees);
 }
 
 angle operator "" _deg(long double degrees)
 {
-    return angle(degrees * (M_PI/180));
+    return angle::degrees(degrees);
+}
+
+angle operator "" _rev(unsigned long long revolutions)
+{
+    return angle::revolutions(revolutions);
+}
+
+angle operator "" _rev(long double revolutions)
+{
+    return angle::revolutions(revolutions);
+}
+
+angle operator "" _min(unsigned long long minutes)
+{
+    return angle::minutes(minutes);
+}
+
+angle operator "" _min(long double minutes)
+{
+    return angle::minutes(minutes);
+}
+
+angle operator "" _sec(unsigned long long seconds)
+{
+    return angle::seconds(seconds);
+}
+
+angle operator "" _sec(long double seconds)
+{
+    return angle::seconds(seconds);
+}
+
+angle operator "" _ms(unsigned long long ms)
+{
+    return angle::milliseconds(ms);
+}
+
+angle operator "" _ms(long double ms)
+{
+    return angle::milliseconds(ms);
+}
+
+angle operator "" _us(unsigned long long us)
+{
+    return angle::microseconds(us);
+}
+
+angle operator "" _us(long double us)
+{
+    return angle::microseconds(us);
 }
 
 } // namespace uav::angle_literals;

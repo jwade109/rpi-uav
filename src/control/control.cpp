@@ -41,9 +41,9 @@ int controller::step(const raw_data& raw)
     curr.position[1] = pos.y();
     curr.position[2] = alt_filter.step(gps_alt, b1_alt, b2_alt);
 
-    curr.attitude[0] = hdg_acc(angle::from_degrees(raw.ard.euler.x()));
-    curr.attitude[1] = angle::from_degrees(raw.ard.euler.y());
-    curr.attitude[2] = roll_acc(angle::from_degrees(raw.ard.euler.z()));
+    curr.attitude[0] = hdg_acc(angle::degrees(raw.ard.euler.x()));
+    curr.attitude[1] = angle::degrees(raw.ard.euler.y());
+    curr.attitude[2] = roll_acc(angle::degrees(raw.ard.euler.z()));
 
     auto comptime = steady_clock::now() - now;
     curr.time[2] = duration_cast<microseconds>(comptime).count();

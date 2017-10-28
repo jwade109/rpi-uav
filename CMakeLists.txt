@@ -19,7 +19,7 @@ add_library(lalgorithm
 add_library(lmath
     ${CMAKE_SOURCE_DIR}/src/math/freebody.cpp
     ${CMAKE_SOURCE_DIR}/src/math/angle.cpp
-    ${CMAKE_SOURCE_DIR}/src/math/angular.cpp)
+    ${CMAKE_SOURCE_DIR}/src/math/functions.cpp)
 
 add_library(lfilter
     ${CMAKE_SOURCE_DIR}/src/filter/filters.cpp)
@@ -48,6 +48,12 @@ target_link_libraries(launch lmath)
 target_link_libraries(launch lhardware)
 target_link_libraries(launch llogging)
 target_link_libraries(launch lfilter)
+
+add_executable(gpstest
+    ${CMAKE_SOURCE_DIR}/test/gpstest.cpp)
+target_link_libraries(gpstest lmath)
+target_link_libraries(gpstest lhardware)
+target_link_libraries(gpstest lfilter)
 
 add_executable(bin2txt
     ${CMAKE_SOURCE_DIR}/test/bin2txt.cpp)
