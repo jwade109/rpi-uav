@@ -3,4 +3,5 @@
 #include "../../src/math/matrix.h"
 #include "../../src/math/freebody.h"
 #include "../../src/math/angle.h"
+#include "../../src/math/coordinate.h"
 #include "../../src/math/functions.h"

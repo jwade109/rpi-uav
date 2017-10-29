@@ -163,8 +163,9 @@ std::string to_string(const state& it, fmt::bitmask_t b)
     }
     if (b & fmt::position)
     {
-        for (auto e : it.position)
-            line << setw(15) << e;
+        line << setw(15) << it.position.longitude()
+             << setw(15) << it.position.latitude()
+             << setw(15) << it.position.altitude();
     }
     if (b & fmt::attitude)
     {

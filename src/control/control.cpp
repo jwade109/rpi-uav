@@ -36,10 +36,8 @@ int controller::step(const raw_data& raw)
     double b1_alt = altitude(raw.ard.pres);
     double b2_alt = altitude(raw.bmp.pressure);
 
-    auto pos = pos_filter(raw.gps.gga.pos);
-    curr.position[0] = pos.x();
-    curr.position[1] = pos.y();
-    curr.position[2] = alt_filter.step(gps_alt, b1_alt, b2_alt);
+    curr.position = pos_filter(raw.gps.gga.pos);
+    curr.position.altitude() = alt_filter.step(gps_alt, b1_alt, b2_alt);
 
     curr.attitude[0] = hdg_acc(angle::degrees(raw.ard.euler.x()));
     curr.attitude[1] = angle::degrees(raw.ard.euler.y());
@@ -100,11 +98,12 @@ gps_position_filter::gps_position_filter(uint8_t freq) :
 gps_position_filter::gps_position_filter(uint8_t f, double rc) :
     freq(f), rc(rc), dt(1.0/f), first(true), lpfx(rc), lpfy(rc) { }
 
-imu::Vector<2> gps_position_filter::operator () (coordinate pos)
+coordinate gps_position_filter::operator () (coordinate pos)
 {
     if (first) { first = false; home = pos; }
     auto d = pos - home;
-    return value = {lpfx.step(d.x(), dt), lpfy.step(d.y(), dt)};
+    return coordinate(lpfx.step(d.latitude(), dt),
+                      lpfy.step(d.longitude(), dt), pos.altitude());
 }
 
 mass_estimator::mass_estimator(uint8_t freq) :

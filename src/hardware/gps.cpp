@@ -21,52 +21,55 @@ All text above must be included in any redistribution
 #include <vector>
 #include <wiringSerial.h>
 
-const std::string uav::gps::pmtk_echo_100mHz("$PMTK220,10000*2F");
-const std::string uav::gps::pmtk_echo_200mHz("$PMTK220,5000*1B");
-const std::string uav::gps::pmtk_echo_1Hz("$PMTK220,1000*1F");
-const std::string uav::gps::pmtk_echo_5Hz("$PMTK220,200*2C");
-const std::string uav::gps::pmtk_echo_10Hz("$PMTK220,100*2F");
+namespace uav
+{
 
-const std::string uav::gps::pmtk_fix_100mHz("$PMTK300,10000,0,0,0,0*2C");
-const std::string uav::gps::pmtk_fix_200mHz("$PMTK300,5000,0,0,0,0*18");
-const std::string uav::gps::pmtk_fix_1Hz("$PMTK300,1000,0,0,0,0*1C");
-const std::string uav::gps::pmtk_fix_5Hz("$PMTK300,200,0,0,0,0*2F");
+const std::string gps::pmtk_echo_100mHz("$PMTK220,10000*2F");
+const std::string gps::pmtk_echo_200mHz("$PMTK220,5000*1B");
+const std::string gps::pmtk_echo_1Hz("$PMTK220,1000*1F");
+const std::string gps::pmtk_echo_5Hz("$PMTK220,200*2C");
+const std::string gps::pmtk_echo_10Hz("$PMTK220,100*2F");
 
-const std::string uav::gps::pmtk_B57600("$PMTK251,57600*2C");
-const std::string uav::gps::pmtk_B9600("$PMTK251,9600*17");
+const std::string gps::pmtk_fix_100mHz("$PMTK300,10000,0,0,0,0*2C");
+const std::string gps::pmtk_fix_200mHz("$PMTK300,5000,0,0,0,0*18");
+const std::string gps::pmtk_fix_1Hz("$PMTK300,1000,0,0,0,0*1C");
+const std::string gps::pmtk_fix_5Hz("$PMTK300,200,0,0,0,0*2F");
 
-const std::string uav::gps::pmtk_nmea_gprmc
+const std::string gps::pmtk_B57600("$PMTK251,57600*2C");
+const std::string gps::pmtk_B9600("$PMTK251,9600*17");
+
+const std::string gps::pmtk_nmea_gprmc
     ("$PMTK314,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29");
-const std::string uav::gps::pmtk_nmea_gprmc_gga
+const std::string gps::pmtk_nmea_gprmc_gga
     ("$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28");
-const std::string uav::gps::pmtk_nmea_all
+const std::string gps::pmtk_nmea_all
     ("$PMTK314,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0*28");
 
-const std::string uav::gps::pmtk_locus_startlog("$PMTK185,0*22");
-const std::string uav::gps::pmtk_locus_stoplog("$PMTK185,1*23");
-const std::string uav::gps::pmtk_locus_startstopack("$PMTK001,185,3*3C");
-const std::string uav::gps::pmtk_locus_query_status("$PMTK183*38");
-const std::string uav::gps::pmtk_locus_erase_flash("$PMTK184,1*22");
+const std::string gps::pmtk_locus_startlog("$PMTK185,0*22");
+const std::string gps::pmtk_locus_stoplog("$PMTK185,1*23");
+const std::string gps::pmtk_locus_startstopack("$PMTK001,185,3*3C");
+const std::string gps::pmtk_locus_query_status("$PMTK183*38");
+const std::string gps::pmtk_locus_erase_flash("$PMTK184,1*22");
 
-const std::string uav::gps::pmtk_enable_sbas("$PMTK313,1*2E");
-const std::string uav::gps::pmtk_enable_waas("$PMTK301,2*2E");
+const std::string gps::pmtk_enable_sbas("$PMTK313,1*2E");
+const std::string gps::pmtk_enable_waas("$PMTK301,2*2E");
 
-const std::string uav::gps::pmtk_standby("$PMTK161,0*28");
-const std::string uav::gps::pmtk_standby_success("$PMTK001,161,3*36");
-const std::string uav::gps::pmtk_awake("$PMTK010,002*2D");
+const std::string gps::pmtk_standby("$PMTK161,0*28");
+const std::string gps::pmtk_standby_success("$PMTK001,161,3*36");
+const std::string gps::pmtk_awake("$PMTK010,002*2D");
 
-const std::string uav::gps::pmtk_query_release("$PMTK605*31");
+const std::string gps::pmtk_query_release("$PMTK605*31");
 
-uav::gps::gps() : data{0}, newflag(false), cont(false), status(0), fd(-1) { }
+gps::gps() : data{0}, newflag(false), cont(false), status(0), fd(-1) { }
 
-uav::gps::~gps()
+gps::~gps()
 {
     cont = false;
     if (reader.joinable()) reader.join();
     serialClose(fd);
 }
 
-int uav::gps::begin()
+int gps::begin()
 {
     if (cont) return 0;
 
@@ -78,7 +81,7 @@ int uav::gps::begin()
     }
 
     cont = true;
-    reader = std::thread(&uav::gps::dowork, this);
+    reader = std::thread(&gps::dowork, this);
 
     while (status == 0);
     if (status == -1)
@@ -99,18 +102,18 @@ int uav::gps::begin()
     return 0;
 }
 
-bool uav::gps::isnew() const
+bool gps::isnew() const
 {
     return newflag;
 }
 
-uav::gps_data uav::gps::get()
+gps_data gps::get()
 {
     newflag = false;
     return data;
 }
 
-bool uav::gps::update(gps_data& gp)
+bool gps::update(gps_data& gp)
 {
     if (newflag) gp = data;
     bool changed = newflag;
@@ -118,7 +121,7 @@ bool uav::gps::update(gps_data& gp)
     return changed;
 }
 
-void uav::gps::dowork()
+void gps::dowork()
 {
     using namespace std::chrono;
 
@@ -158,7 +161,7 @@ void uav::gps::dowork()
     }
 }
 
-void uav::gps::update_info(std::stringstream& nmea)
+void gps::update_info(std::stringstream& nmea)
 {
     const char* head[] =
         {"$GPGGA", "$GPGSA", "$GPVTG", "$GPRMC", "$GPGSV"};
@@ -182,41 +185,29 @@ void uav::gps::update_info(std::stringstream& nmea)
     newflag |= (id > -1);
 }
 
-std::ostream& uav::operator << (std::ostream& os, const uav::utc_time& u)
+std::ostream& operator << (std::ostream& os, const utc_time& u)
 {
-    os << (int) (u.hour > 3 ? u.hour - 4 : 23 - u.hour)
+    os << (int) u.hour
        << ":" << std::setw(2) << std::setfill('0') << (int) u.minute
        << ":" << std::setw(2) << std::setfill('0') << (int) u.second
-       << "." << std::setw(3) << std::setfill('0') << u.ms << " EST";
+       << "." << std::setw(3) << std::setfill('0') << u.ms << " GMT";
     return os;
 }
 
-std::ostream& uav::operator << (std::ostream& os, const uav::angular& a)
-{
-    os << (a.sign ? "" : "-")
-       << std::setw(2) << std::setfill('0') << (int) a.degrees << "°"
-       << std::setw(2) << std::setfill('0') << (int) a.minutes << "'"
-       << std::setw(2) << std::setfill('0') << (int) a.seconds << "."
-       << std::setw(3) << std::setfill('0') << a.milliseconds << "\"";
-    return os;
-}
-
-std::ostream& uav::operator << (std::ostream& os, const uav::gpgga& g)
+std::ostream& operator << (std::ostream& os, const gpgga& g)
 {
     os << "[GPGGA] ";
     os << g.utc << std::endl
-       << "lat: " << g.pos.lat << " "
-       << " lon: " << g.pos.lon << " "
+       << "pos: " << g.pos
        << " fix: " << (int) g.fix_quality << std::endl
        << "sats: " << (int) g.num_sats << " hdop: " << g.hdop
-       << " alt: " << g.altitude << " " << g.alt_unit
        << " und: " << g.undulation << " " << g.und_unit
        << " dgps: " << g.has_dgps
        << " " << (int) g.corr_age << " s " << g.base_ID;
     return os;
 }
 
-std::ostream& uav::operator << (std::ostream& os, const uav::gpgsa& g)
+std::ostream& operator << (std::ostream& os, const gpgsa& g)
 {
     os << "[GPGSA] ";
     os << "mode: " << g.mode_char << " " << (int) g.mode_num
@@ -231,12 +222,12 @@ std::ostream& uav::operator << (std::ostream& os, const uav::gpgsa& g)
     return os;
 }
 
-std::ostream& uav::operator << (std::ostream& os, const uav::gprmc& g)
+std::ostream& operator << (std::ostream& os, const gprmc& g)
 {
     os << "[GPRMC] ";
     os << g.utc << std::endl
        << "stat: " << g.pos_status
-       << " pos: " << g.pos.lat << " " << g.pos.lon
+       << " pos: " << g.pos
        << " spd/angl: " << g.ground_speed << " "
        << g.track_angle << std::endl
        << "d/m/y: " << (int) g.day << " " << (int) g.month << " "
@@ -246,14 +237,14 @@ std::ostream& uav::operator << (std::ostream& os, const uav::gprmc& g)
     return os;
 }
 
-std::ostream& uav::operator << (std::ostream& os, const uav::gpgsv::sat_info& s)
+std::ostream& operator << (std::ostream& os, const gpgsv::sat_info& s)
 {
     os << "prn: " << (int) s.PRN << " elev: " << (int) s.elevation
        << " az: " << s.azimuth << " snr: " << (int) s.SNR;
     return os;
 }
 
-std::ostream& uav::operator << (std::ostream& os, const uav::gpgsv& g)
+std::ostream& operator << (std::ostream& os, const gpgsv& g)
 {
     os << "[GPGSV] ";
     os << "msg " << (int) g.msg_num << "/" << (int) g.num_msgs
@@ -266,7 +257,7 @@ std::ostream& uav::operator << (std::ostream& os, const uav::gpgsv& g)
     return os;
 }
 
-std::ostream& uav::operator << (std::ostream& os, const uav::gpvtg& g)
+std::ostream& operator << (std::ostream& os, const gpvtg& g)
 {
     os << "[GPVTG] ";
     os << "track: " << g.track_true << " " << g.track_indicator
@@ -277,23 +268,7 @@ std::ostream& uav::operator << (std::ostream& os, const uav::gpvtg& g)
     return os;
 }
 
-int32_t uav::angular::fixed() const
-{
-    int32_t ms = milliseconds + seconds*1000 + minutes*60*1000 +
-        degrees*60*60*1000;
-    return sign ? ms : -ms;
-}
-
-imu::Vector<2> uav::operator - (const uav::coordinate& l,
-    const uav::coordinate& r)
-{
-    // 30.92 millimeters in a milliarcsecond
-    double dx = (l.lon.fixed() - r.lon.fixed()) * 0.03092;
-    double dy = (l.lat.fixed() - r.lat.fixed()) * 0.03092;
-    return {dx, dy};
-}
-
-uav::utc_time uav::parse_utc(const std::string& data)
+utc_time parse_utc(const std::string& data)
 {
     if (data.empty()) return utc_time{0};
     std::stringstream ss(data);
@@ -310,33 +285,35 @@ uav::utc_time uav::parse_utc(const std::string& data)
     return u;
 }
 
-uav::angular uav::parse_lat(const std::string& data)
+angle parse_lat(const std::string& data)
 {
-    angular a{0};
-    if (data.empty()) return a;
-    a.degrees = std::stoi(data.substr(0,2));
-    a.minutes = std::stoi(data.substr(2,2));
+    if (data.empty()) return angle();
+    int deg = std::stoi(data.substr(0,2));
+    int min = std::stoi(data.substr(2,2));
     int decimal_minutes = std::stoi(data.substr(5,4));
     int total_millis = decimal_minutes * 6;
-    a.seconds = total_millis / 1000;
-    a.milliseconds = total_millis % 1000;
-    return a;
+    int sec = total_millis / 1000;
+    int mil = total_millis % 1000;
+
+    return angle::degrees(deg) + angle::minutes(min) +
+           angle::seconds(sec) + angle::milliseconds(mil);
 }
 
-uav::angular uav::parse_lon(const std::string& data)
+angle parse_lon(const std::string& data)
 {
-    angular a{0};
-    if (data.empty()) return a;
-    a.degrees = std::stoi(data.substr(0,3));
-    a.minutes = std::stoi(data.substr(3,2));
+    if (data.empty()) return angle();
+    int deg = std::stoi(data.substr(0,3));
+    int min = std::stoi(data.substr(3,2));
     int decimal_minutes = std::stoi(data.substr(6,4));
     int total_millis = decimal_minutes * 6;
-    a.seconds = total_millis / 1000;
-    a.milliseconds = total_millis % 1000;
-    return a;
+    int sec = total_millis / 1000;
+    int mil = total_millis % 1000;
+
+    return angle::degrees(deg) + angle::minutes(min) +
+           angle::seconds(sec) + angle::milliseconds(mil);
 }
 
-uav::gpgga uav::parse_gpgga(const std::string& data)
+gpgga parse_gpgga(const std::string& data)
 {
     std::stringstream ss(data);
     std::string token;
@@ -345,13 +322,13 @@ uav::gpgga uav::parse_gpgga(const std::string& data)
     std::getline(ss, token, ',');
     ret.utc = parse_utc(token);
     std::getline(ss, token, ',');
-    ret.pos.lat = parse_lat(token);
+    ret.pos.latitude() = parse_lat(token);
     std::getline(ss, token, ',');
-    ret.pos.lat.sign = token == "N";
+    ret.pos.latitude() *= token == "N" ? 1 : -1;
     std::getline(ss, token, ',');
-    ret.pos.lon = parse_lon(token);
+    ret.pos.longitude() = parse_lon(token);
     std::getline(ss, token, ',');
-    ret.pos.lon.sign = token == "E";
+    ret.pos.longitude() *= token == "E" ? 1 : -1;
     std::getline(ss, token, ',');
     ret.fix_quality = token.empty() ? 0 : std::stoi(token);
     std::getline(ss, token, ',');
@@ -359,7 +336,7 @@ uav::gpgga uav::parse_gpgga(const std::string& data)
     std::getline(ss, token, ',');
     ret.hdop = token.empty() ? 0 : std::stof(token);
     std::getline(ss, token, ',');
-    ret.altitude = token.empty() ? 0 : std::stof(token);
+    ret.pos.altitude() = token.empty() ? 0 : std::stof(token);
     std::getline(ss, token, ',');
     ret.alt_unit = token.empty() ? '?' : token[0];
     std::getline(ss, token, ',');
@@ -383,7 +360,7 @@ uav::gpgga uav::parse_gpgga(const std::string& data)
     return ret;
 }
 
-uav::gpgsa uav::parse_gpgsa(const std::string& nmea)
+gpgsa parse_gpgsa(const std::string& nmea)
 {
     gpgsa ret;
     char ch;
@@ -407,7 +384,7 @@ uav::gpgsa uav::parse_gpgsa(const std::string& nmea)
     return ret;
 }
 
-uav::gprmc uav::parse_gprmc(const std::string& nmea)
+gprmc parse_gprmc(const std::string& nmea)
 {
     gprmc ret;
     std::string token;
@@ -419,13 +396,13 @@ uav::gprmc uav::parse_gprmc(const std::string& nmea)
     ss >> ret.pos_status;
     ss >> ch;
     std::getline(ss, token, ',');
-    ret.pos.lat = parse_lat(token);
+    ret.pos.latitude() = parse_lat(token);
     std::getline(ss, token, ',');
-    ret.pos.lat.sign = token == "N";
+    ret.pos.latitude() *= token == "N" ? 1 : -1;
     std::getline(ss, token, ',');
-    ret.pos.lon = parse_lon(token);
+    ret.pos.longitude() = parse_lon(token);
     std::getline(ss, token, ',');
-    ret.pos.lon.sign = token == "E";
+    ret.pos.longitude() *= token == "E" ? 1 : -1;
 
     ss >> ret.ground_speed;
     ss >> ch;
@@ -445,7 +422,7 @@ uav::gprmc uav::parse_gprmc(const std::string& nmea)
     return ret;
 }
 
-uav::gpgsv uav::parse_gpgsv(const std::string& nmea)
+gpgsv parse_gpgsv(const std::string& nmea)
 {
     gpgsv ret;
     std::stringstream ss(nmea);
@@ -472,7 +449,7 @@ uav::gpgsv uav::parse_gpgsv(const std::string& nmea)
     return ret;
 }
 
-uav::gpvtg uav::parse_gpvtg(const std::string& nmea)
+gpvtg parse_gpvtg(const std::string& nmea)
 {
     std::stringstream ss(nmea);
     std::string token;
@@ -499,4 +476,6 @@ uav::gpvtg uav::parse_gpvtg(const std::string& nmea)
     ret.mode_ind = token.empty() ? '!' : token[0];
 
     return ret;
+}
+
 }

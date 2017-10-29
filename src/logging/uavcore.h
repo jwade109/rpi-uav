@@ -7,6 +7,8 @@
 #include <array>
 #include <limits>
 
+#include <uav/math>
+
 namespace uav
 {
 
@@ -57,7 +59,7 @@ namespace fmt
 struct state
 {
     std::array<uint64_t, 3> time;
-    std::array<double, 3> position;
+    coordinate position;
     std::array<double, 3> attitude;
     std::array<double, 4> targets;
     std::array<double, 4> motors;

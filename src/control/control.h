@@ -51,7 +51,7 @@ class gps_position_filter
 {
     public:
 
-    imu::Vector<2> value;
+    coordinate value;
     const uint8_t freq;
     const double rc, dt;
 
@@ -59,7 +59,7 @@ class gps_position_filter
     gps_position_filter(uint8_t frequency,
                         double rc);
 
-    imu::Vector<2> operator () (coordinate pos);
+    coordinate operator () (coordinate pos);
 
     private:
 

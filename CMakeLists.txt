@@ -19,6 +19,7 @@ add_library(lalgorithm
 add_library(lmath
     ${CMAKE_SOURCE_DIR}/src/math/freebody.cpp
     ${CMAKE_SOURCE_DIR}/src/math/angle.cpp
+    ${CMAKE_SOURCE_DIR}/src/math/coordinate.cpp
     ${CMAKE_SOURCE_DIR}/src/math/functions.cpp)
 
 add_library(lfilter
@@ -36,18 +37,7 @@ target_link_libraries(lhardware -latomic)
 target_link_libraries(lhardware -lwiringPi)
 
 add_library(llogging
-    ${CMAKE_SOURCE_DIR}/src/logging/logstream.cpp
-    ${CMAKE_SOURCE_DIR}/src/logging/uavcore.cpp
-    ${CMAKE_SOURCE_DIR}/src/math/freebody.cpp)
-
-add_executable(launch
-    ${CMAKE_SOURCE_DIR}/src/control/launch.cpp)
-target_link_libraries(launch lcontrol)
-target_link_libraries(launch lalgorithm)
-target_link_libraries(launch lmath)
-target_link_libraries(launch lhardware)
-target_link_libraries(launch llogging)
-target_link_libraries(launch lfilter)
+    ${CMAKE_SOURCE_DIR}/src/logging/logstream.cpp)
 
 add_executable(gpstest
     ${CMAKE_SOURCE_DIR}/test/gpstest.cpp)
@@ -55,21 +45,7 @@ target_link_libraries(gpstest lmath)
 target_link_libraries(gpstest lhardware)
 target_link_libraries(gpstest lfilter)
 
-add_executable(bin2txt
-    ${CMAKE_SOURCE_DIR}/test/bin2txt.cpp)
-target_link_libraries(bin2txt lmath)
-target_link_libraries(bin2txt llogging)
-
-add_executable(bin2vel
-    ${CMAKE_SOURCE_DIR}/test/bin2vel.cpp)
-target_link_libraries(bin2vel lmath)
-target_link_libraries(bin2vel llogging)
-
-add_executable(skips
-    ${CMAKE_SOURCE_DIR}/test/skips.cpp)
-target_link_libraries(skips lmath)
-target_link_libraries(skips llogging)
-
-add_executable(mathunit
+add_executable(unit
+    ${CMAKE_SOURCE_DIR}/src/tests/test_main.cpp
     ${CMAKE_SOURCE_DIR}/src/tests/math.cpp)
-target_link_libraries(mathunit lmath)
+target_link_libraries(unit lmath)

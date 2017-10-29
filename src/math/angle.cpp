@@ -133,7 +133,7 @@ bool angle::operator <= (const angle& a) const
 std::ostream& operator << (std::ostream& os, const angle& a)
 {
     std::stringstream ss;
-    ss << std::fixed << std::setprecision(3) << a.micros();
+    ss << std::fixed << std::setprecision(6) << a.deg() << std::endl;
     return os << ss.str();
 }
 

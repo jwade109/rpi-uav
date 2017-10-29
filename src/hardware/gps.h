@@ -38,20 +38,6 @@ struct utc_time
     uint16_t ms;
 };
 
-struct angular
-{
-    bool sign;
-    uint8_t degrees, minutes, seconds;
-    uint16_t milliseconds;
-
-    int32_t fixed() const;
-};
-
-struct coordinate
-{
-    angular lat, lon;
-};
-
 // contains time, position and fix related data of the GNSS receiver
 struct gpgga
 {
@@ -205,10 +191,6 @@ class gps
 
 std::ostream& operator << (std::ostream& os, const utc_time& u);
 
-std::ostream& operator << (std::ostream& os, const angular& a);
-
-std::ostream& operator << (std::ostream& os, const coordinate& c);
-
 std::ostream& operator << (std::ostream& os, const gpgga& g);
 
 std::ostream& operator << (std::ostream& os, const gpgsa& g);
@@ -221,13 +203,11 @@ std::ostream& operator << (std::ostream& os, const gpgsv& g);
 
 std::ostream& operator << (std::ostream& os, const gpvtg& g);
 
-imu::Vector<2> operator - (const coordinate& l, const coordinate& r);
-
 utc_time parse_utc(const std::string& data);
 
-angular parse_lat(const std::string& data);
+angle parse_lat(const std::string& data);
 
-angular parse_lon(const std::string& data);
+angle parse_lon(const std::string& data);
 
 gpgga parse_gpgga(const std::string& data);
 

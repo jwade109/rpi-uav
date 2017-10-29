@@ -17,7 +17,7 @@ class angle
     template <typename T> static angle minutes(T mins);
     template <typename T> static angle seconds(T secs);
     template <typename T> static angle milliseconds(T ms);
-    template <typename T> static angle microseconds(T us); 
+    template <typename T> static angle microseconds(T us);
 
     angle();
     angle(const angle& a);
@@ -54,17 +54,17 @@ class angle
     bool operator <= (const angle& a) const;
     bool operator >= (const angle& a) const;
 
-    private:
-
-    angle(int64_t us, bool);
-    int64_t _micros;
-
     static const uint64_t us_ms = 1000;
     static const uint64_t us_sec = us_ms * 1000;
     static const uint64_t us_min = us_sec * 60;
     static const uint64_t us_deg = us_min * 60;
     static const uint64_t us_rad = us_deg * 180/M_PI;
     static const uint64_t us_rev = us_deg * 360;
+
+    private:
+
+    angle(int64_t us, bool);
+    int64_t _micros;
 };
 
 template <typename T> angle angle::operator * (T scalar) const
