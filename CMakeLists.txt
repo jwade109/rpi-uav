@@ -11,7 +11,8 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 include_directories("${PROJECT_SOURCE_DIR}/include/")
 
 add_library(control
-    ${CMAKE_SOURCE_DIR}/src/control/control.cpp)
+    ${CMAKE_SOURCE_DIR}/src/control/controller.cpp
+    ${CMAKE_SOURCE_DIR}/src/control/sub_ctrl.cpp)
 
 add_library(algorithm
     ${CMAKE_SOURCE_DIR}/src/algorithm/pid.cpp)
@@ -37,6 +38,7 @@ target_link_libraries(hardware -latomic)
 target_link_libraries(hardware -lwiringPi)
 
 add_library(logging
+    ${CMAKE_SOURCE_DIR}/src/logging/data_frame.cpp
     ${CMAKE_SOURCE_DIR}/src/logging/logstream.cpp)
 
 add_executable(gpstest
@@ -57,5 +59,7 @@ target_link_libraries(serialtest math)
 
 add_executable(unit
     ${CMAKE_SOURCE_DIR}/src/tests/test_main.cpp
-    ${CMAKE_SOURCE_DIR}/src/tests/math.cpp)
+    ${CMAKE_SOURCE_DIR}/src/tests/math.cpp
+    ${CMAKE_SOURCE_DIR}/src/tests/logging.cpp)
 target_link_libraries(unit math)
+target_link_libraries(unit logging)

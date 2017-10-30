@@ -7,10 +7,6 @@
 #include <sstream>
 #include <chrono>
 
-#include <uav/math>
-#include "uavcore.h"
-#include "serial.h"
-
 namespace uav
 {
 
@@ -33,65 +29,36 @@ std::string timestamp()
     return s.str();
 }
 
-param paramlog;
-std::deque<state> statelog;
-std::deque<std::string> textlog;
+std::string outfile = "log/data.bin";
+std::deque<data_frame> frames;
 
 logstream debug("DEBUG"), info("INFO"), error("ERROR");
 
 logstream::logstream(const std::string& streamname) :
     name(streamname) { }
 
-logstream& logstream::operator << (std::ostream& (*)(std::ostream& os))
+void logstream::add(std::vector<uint8_t> data)
 {
-    textlog.push_back("[" + name + "]\t" + timestamp() + ss.str());
-    ss.str(std::string());
-    return *this;
-}
-
-void logstream::operator () (const std::string& s)
-{
-    textlog.push_back("[" + name + "]\t" + timestamp() + s);
+    frames.push_back(data_frame(name, data));
 }
 
 void reset()
 {
-    paramlog = {0};
-    statelog.clear();
-    textlog.clear();
-}
-
-void include(param p)
-{
-    paramlog = p;
-}
-
-void include(state s)
-{
-    statelog.push_back(s);
+    frames.clear();
 }
 
 void flush()
 {
-    std::ofstream
-        text("log/events.txt", std::ios::out),
-        data("log/data.bin", std::ios::out | std::ios::binary);
-
+    std::ofstream data(outfile, std::ios::out | std::ios::binary);
+    while (!frames.empty())
     {
-        param::bin b = serialize(paramlog);
-        data.write(reinterpret_cast<const char*>(b.data()), param::size);
+        std::vector<uint8_t> raw = frames.front().raw();
+        char* wptr = reinterpret_cast<char*>(&raw[0]);
+        data.write(wptr, raw.size());
+        frames.pop_front();
     }
-    while (!statelog.empty())
-    {
-        state::bin b = serialize(statelog.front());
-        statelog.pop_front();
-        data.write(reinterpret_cast<const char*>(b.data()), state::size);
-    }
-    while (!textlog.empty())
-    {
-        text << textlog.front() << "\n";
-        textlog.pop_front();
-    }
+    data.flush();
+    data.close();
 }
 
 } // namespace uav

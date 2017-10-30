@@ -5,16 +5,12 @@
 #include <sstream>
 #include <deque>
 
-#include "uavcore.h"
+#include "data_frame.h"
 
 namespace uav
 {
 
 void reset();
-
-void include(param p);
-
-void include(state s);
 
 void flush();
 
@@ -27,16 +23,13 @@ class logstream
 
     logstream(const std::string& name);
 
-    template <typename T>
-    logstream& operator << (const T& t)
+    void add(std::vector<uint8_t> data);
+
+    template <typename T> logstream& operator << (T object)
     {
-        ss << t;
+        add(object.bytes);
         return *this;
     }
-
-    void operator () (const std::string& s);
-
-    logstream& operator << (std::ostream& (*)(std::ostream&));
 };
 
 extern logstream debug, info, error;
