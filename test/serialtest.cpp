@@ -2,7 +2,7 @@
 #include <chrono>
 #include <thread>
 
-#include <ardimu.h>
+#include <uav/hardware>
 
 int main()
 {

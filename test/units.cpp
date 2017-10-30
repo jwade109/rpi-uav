@@ -1,8 +1,6 @@
 #include <iostream>
 
-#include <ardimu.h>
-#include <bmp.h>
-#include <gps.h>
+#include <uav/hardware>
 
 int main()
 {
