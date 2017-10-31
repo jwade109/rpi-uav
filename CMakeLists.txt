@@ -11,11 +11,14 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 include_directories("${PROJECT_SOURCE_DIR}/include/")
 
 add_library(control
-    ${CMAKE_SOURCE_DIR}/src/control/controller.cpp
-    ${CMAKE_SOURCE_DIR}/src/control/sub_ctrl.cpp)
+    ${CMAKE_SOURCE_DIR}/src/control/controller.cpp)
 
 add_library(algorithm
-    ${CMAKE_SOURCE_DIR}/src/algorithm/pid.cpp)
+    ${CMAKE_SOURCE_DIR}/src/algorithm/pid.cpp
+    ${CMAKE_SOURCE_DIR}/src/algorithm/gps_baro_filter.cpp
+    ${CMAKE_SOURCE_DIR}/src/algorithm/gps_position_filter.cpp
+    ${CMAKE_SOURCE_DIR}/src/algorithm/mass_estimator.cpp
+    ${CMAKE_SOURCE_DIR}/src/algorithm/motor_director.cpp)
 
 add_library(math
     ${CMAKE_SOURCE_DIR}/src/math/freebody.cpp
