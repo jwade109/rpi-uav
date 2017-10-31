@@ -7,9 +7,6 @@
 #include <sstream>
 #include <chrono>
 
-namespace uav
-{
-
 std::string timestamp()
 {
     using namespace std;
@@ -29,36 +26,93 @@ std::string timestamp()
     return s.str();
 }
 
+bool overwrite = true;
 std::string outfile = "log/data.bin";
-std::deque<archive> frames;
+std::deque<uav::archive> archives;
 
-logstream debug("DEBUG"), info("INFO"), error("ERROR");
+namespace uav
+{
+
+logstream debug("Debug"), info("Info"), error("Error");
 
 logstream::logstream(const std::string& streamname) :
-    name(streamname) { }
+    _name(streamname) { }
 
-void logstream::add(std::vector<uint8_t> data)
+const std::string& logstream::name() const
 {
-    frames.push_back(archive(name, data));
+    return _name;
+}
+
+logstream& logstream::operator << (const char* c)
+{
+    return *this << std::string(c);
+}
+
+logstream& logstream::operator << (const std::string& s)
+{
+    auto pos = s.find('\n');
+    if (pos == std::string::npos)
+    {
+        _buffer << s;
+        return *this;
+    }
+    _buffer << s.substr(0,pos);
+    archive out;
+    out << _buffer.str();
+    _buffer.str("");
+    *this << out;
+    return *this << s.substr(pos+1);
+}
+
+logstream& logstream::operator << (archive& a)
+{
+    a.name() = _name;
+    archives.push_back(a);
 }
 
 void reset()
 {
-    frames.clear();
+    archives.clear();
 }
 
-void flush()
+void flush(const std::string& filename)
 {
-    std::ofstream data(outfile, std::ios::out | std::ios::binary);
-    while (!frames.empty())
+    auto flags = std::ios::out | std::ios::binary | std::ios::app;
+    if (overwrite) { overwrite = false; flags &= ~std::ios::app; }
+    std::ofstream data(filename, flags);
+    while (!archives.empty())
     {
-        std::vector<uint8_t> raw = frames.front().raw();
+        std::vector<uint8_t> raw = archives.front().raw();
         char* wptr = reinterpret_cast<char*>(&raw[0]);
         data.write(wptr, raw.size());
-        frames.pop_front();
+        archives.pop_front();
     }
     data.flush();
     data.close();
+}
+
+std::vector<archive> restore(const std::string& filename)
+{
+    std::ifstream infile(filename, std::ios::in | std::ios::binary);
+    if (!infile) return std::vector<archive>();
+
+    auto fsize = infile.tellg();
+    infile.seekg(0, std::ios::end);
+    fsize = infile.tellg() - fsize;
+    infile.seekg(0, std::ios::beg);
+
+    std::vector<archive> archives;
+    std::vector<uint8_t> bytes(fsize, 0);
+    infile.read(reinterpret_cast<char*>(bytes.data()), fsize);
+
+    size_t n = 0;
+    while (n < fsize)
+    {
+        auto a = archive::package(bytes.data() + n);
+        n += a.size();
+        archives.push_back(a);
+    }
+    return archives;
 }
 
 } // namespace uav

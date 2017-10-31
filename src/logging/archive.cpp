@@ -17,6 +17,12 @@ archive archive::package(std::vector<uint8_t> raw)
     return archive(name, data);
 }
 
+archive archive::package(uint8_t* raw)
+{
+    uint16_t size = *reinterpret_cast<uint16_t*>(raw);
+    return package(std::vector<uint8_t>(raw, raw + size));
+}
+
 archive::archive(const std::string& name) :
     _name(name), _fail_flag(false), _read_pointer(0) { }
 
@@ -69,6 +75,24 @@ std::vector<uint8_t> archive::raw() const
     return raw;
 }
 
+void archive::seekp(signed pos)
+{
+    _read_pointer = pos > _bytes.size() ? _bytes.size() :
+                    pos < 0 ? 0 : pos;
+}
+
+size_t archive::tellp()
+{
+    return _read_pointer;
+}
+
+void archive::empty()
+{
+    _bytes.clear();
+    _read_pointer = 0;
+    _fail_flag = false;
+}
+
 bool archive::fail() const
 {
     return _fail_flag;
@@ -77,6 +101,21 @@ bool archive::fail() const
 void archive::clear()
 {
     _fail_flag = false;
+}
+
+archive& archive::operator << (const std::string& s)
+{
+    _bytes.insert(_bytes.end(), begin(s), end(s));
+    _bytes.push_back(0);
+    return *this;
+}
+
+archive& archive::operator >> (std::string& s)
+{
+    s = std::string(reinterpret_cast<char*>
+        (_bytes.data() + _read_pointer));
+    _read_pointer += s.length() + 1;
+    return *this;
 }
 
 } // namespace uav

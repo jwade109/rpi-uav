@@ -12,24 +12,34 @@ namespace uav
 
 void reset();
 
-void flush();
+void flush(const std::string& fn = "log/data.bin");
+
+std::vector<archive> restore(const std::string& fn = "log/data.bin");
 
 class logstream
 {
-    std::stringstream ss;
-    const std::string name;
-
     public:
 
     logstream(const std::string& name);
 
-    void add(std::vector<uint8_t> data);
+    const std::string& name() const;
 
-    template <typename T> logstream& operator << (T object)
+    void operator () (const std::string& a);
+
+    template <typename T>
+    logstream& operator << (T x)
     {
-        add(object.bytes);
-        return *this;
+        return *this << std::to_string(x);
     }
+
+    logstream& operator << (const char* c);
+    logstream& operator << (const std::string& a);
+    logstream& operator << (archive& a);
+
+    private:
+
+    const std::string _name;
+    std::stringstream _buffer;
 };
 
 extern logstream debug, info, error;
