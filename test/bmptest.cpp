@@ -1,33 +1,28 @@
-#include <stdio.h>
-#include <bmp.h>
+#include <iostream>
 #include <chrono>
 #include <thread>
 
+#include <bmp.h>
+
 int main()
 {
-    using namespace std::chrono;
-
     uav::bmp085 bmp;
-    int status = bmp.begin(0x77);
+    int status = bmp.begin();
     if (status)
     {
         printf("BMP init error: %d\n", status);
         return 1;
     }
 
-    auto start = steady_clock::now();
-    auto wait = milliseconds(10);
-    auto dur = milliseconds(0);
-    while (dur < minutes(2))
+    std::cout << "  temp\tpres\talt" << std::endl;
+
+    while (1)
     {
-        printf("[%llu]\t", dur.count());
-        printf("%.02lf *C\t", bmp.getTemperature());
-        printf("%.02lf Pa\t", bmp.getPressure());
-        printf("%.02lf m\n", bmp.getAltitude());
-        dur += wait;
-        std::this_thread::sleep_until(start + dur);
+        std::cout << "  " << bmp.getTemperature() << "\t"
+            << bmp.getPressure() << "\t"
+            << bmp.getAltitude() << "\r" << std::flush;
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
     }
-    if (status) printf("No BMP085 found. (%d)\n", status);
 
     return 0;
 }

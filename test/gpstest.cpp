@@ -5,66 +5,53 @@
 #include <string>
 #include <sstream>
 
-#include <gps.h>
+#include <uav/hardware>
+#include <uav/filter>
 
-double degf(uint32_t f) { return f/10000000.0; }
-
-uint32_t deg(uint32_t f) { return f/10000000; }
-
-uint32_t dec(uint32_t f) { return f%10000000; }
-
-std::string to_string(const gps_data& data)
+char load()
 {
-    using namespace std;
-
-    stringstream ss;
-    ss << (int) data.hour
-        << ":" << setw(2) << setfill('0') << (int) data.minute
-        << ":" << setw(2) << setfill('0') << (int) data.seconds
-        << " " << deg(data.latitude_fixed)
-        << "." << dec(data.latitude_fixed)
-        << " " << data.lat
-        << " " << deg(data.longitude_fixed)
-        << "." << dec(data.longitude_fixed)
-        << " " << data.lon
-        << " " << data.altitude
-        << " " << (int) data.fixquality
-        << " " << data.HDOP;
-    return ss.str();
+    static int count = 0;
+    count = ++count > 3 ? 0 : count;
+    switch (count)
+    {
+        case 0: return '-';
+        case 1: return '\\';
+        case 2: return '|';
+        case 3: return '/';
+    }
+    return '?';
 }
 
 int main()
 {
-    bool first = true;
-    gps_data ref;
-
-    gps r;
+    uav::gps r;
     int ret = r.begin();
     if (ret)
     {
         std::cerr << "Error: " << ret << std::endl;
         return 1;
     }
-    while(1)
+    uav::gps_data gp{0};
+
+    while (gp.gga.num_sats == 0)
     {
-        if (r.isnew())
-        {
-            auto data = r.get();
-            if (first && data.fixquality)
-            {
-                first = false;
-                ref = data;
-            }
-
-            // earth circumference/360 degrees
-            int scale = 111320;
-
-            std::cout << to_string(data) << " | "
-                << (degf(data.latitude_fixed) -
-                    degf(ref.latitude_fixed)) * scale
-                << " " << (degf(data.longitude_fixed) -
-                    degf(ref.longitude_fixed)) * scale
-                << std::endl;
-        }
+        std::cout << load() << "\r" << std::flush;
+        r.update(gp);
     }
+
+    while (1)
+    {
+        if (r.update(gp));
+        {
+            std::cout << (int) gp.rmc.month << "/"
+                << (int) gp.rmc.day << "/"
+                << (int) gp.rmc.year << " "
+                << gp.gga.utc << " "
+                << gp.gga.pos << " "
+                << (int) gp.gga.num_sats << " "
+                << "      \r" << std::flush;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+    return 0;
 }

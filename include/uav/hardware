@@ -1,0 +1,7 @@
+#include "../../src/hardware/adasensor.h"
+#include "../../src/hardware/ardimu.h"
+#include "../../src/hardware/bmp.h"
+#include "../../src/hardware/gps.h"
+#include "../../src/hardware/i2c.h"
+#include "../../src/hardware/pwm.h"
+#include "../../src/hardware/sensors.h"
