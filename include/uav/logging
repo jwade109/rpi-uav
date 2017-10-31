@@ -1,2 +1,2 @@
-#include "../../src/logging/serial.h"
+#include "../../src/logging/archive.h"
 #include "../../src/logging/logstream.h"

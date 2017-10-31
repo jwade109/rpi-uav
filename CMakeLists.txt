@@ -38,7 +38,7 @@ target_link_libraries(hardware -latomic)
 target_link_libraries(hardware -lwiringPi)
 
 add_library(logging
-    ${CMAKE_SOURCE_DIR}/src/logging/data_frame.cpp
+    ${CMAKE_SOURCE_DIR}/src/logging/archive.cpp
     ${CMAKE_SOURCE_DIR}/src/logging/logstream.cpp)
 
 add_executable(gpstest

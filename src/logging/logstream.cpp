@@ -30,7 +30,7 @@ std::string timestamp()
 }
 
 std::string outfile = "log/data.bin";
-std::deque<data_frame> frames;
+std::deque<archive> frames;
 
 logstream debug("DEBUG"), info("INFO"), error("ERROR");
 
@@ -39,7 +39,7 @@ logstream::logstream(const std::string& streamname) :
 
 void logstream::add(std::vector<uint8_t> data)
 {
-    frames.push_back(data_frame(name, data));
+    frames.push_back(archive(name, data));
 }
 
 void reset()
