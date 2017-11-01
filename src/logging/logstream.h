@@ -24,8 +24,6 @@ class logstream
 
     const std::string& name() const;
 
-    void operator () (const std::string& a);
-
     template <typename T>
     logstream& operator << (T x)
     {

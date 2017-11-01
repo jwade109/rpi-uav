@@ -1,11 +1,14 @@
 #include "controller.h"
 
+#include <uav/math>
+#include <uav/logging>
+
 namespace uav
 {
 
-controller::controller(state initial, param cfg):
+controller::controller(param cfg):
     num_steps(0),
-    curr(initial), prev{0}, prm(cfg),
+    curr{0}, prev{0}, prm(cfg),
     hdg_acc(2*M_PI), roll_acc(2*M_PI),
     alt_filter(cfg.freq),
     pos_filter(cfg.freq) { }
@@ -22,14 +25,14 @@ int controller::step(const raw_data& raw)
     curr.time[1] = duration_cast<milliseconds>
         (now.time_since_epoch()).count();
 
-    if ((curr.status != uav::null_status) &&
+    if ((curr.status != uav::state::null_status) &&
             (curr.time[0] - prev.time[0]) != 1000/prm.freq)
         uav::error << "Timing error (" << prev.time[0]
-            << " -> " << curr.time[0] << ")" << std::endl;
+            << " -> " << curr.time[0] << ")\n";
 
     double gps_alt = raw.gps.gga.altitude;
-    double b1_alt = altitude(raw.ard.pres);
-    double b2_alt = altitude(raw.bmp.pressure);
+    double b1_alt = uav::altitude(raw.ard.pres);
+    double b2_alt = uav::altitude(raw.bmp.pressure);
 
     curr.position = pos_filter(raw.gps.gga.pos);
     curr.position.altitude() = alt_filter.step(gps_alt, b1_alt, b2_alt);

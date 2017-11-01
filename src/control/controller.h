@@ -1,12 +1,13 @@
 #ifndef CONTROLLER_H
 #define CONTROLLER_H
 
+#include <uav/hardware>
 #include <uav/algorithm>
 
 namespace uav
 {
 
-struct drone_config
+struct param
 {
     enum : uint8_t
     {
@@ -17,10 +18,26 @@ struct drone_config
         fdefault = f100hz
     };
 
-    uint8_t freq; // frequency of updates in hz
+    uint8_t freq;
     double mass;
-    // pid gains for altitude, heading, pitch, roll
     std::array<double, 20> pid_gains;
+};
+
+struct state
+{
+    enum : uint8_t
+    {
+        null_status, align, no_vel, pos_seek,
+        pos_hold, high_tilt, upside_down
+    };
+
+    std::array<uint64_t, 3> time;
+    coordinate position;
+    std::array<angle, 3> attitude;
+    std::array<angle, 4> targets;
+    std::array<double, 4> motors;
+    uint16_t error;
+    uint8_t status;
 };
 
 class controller

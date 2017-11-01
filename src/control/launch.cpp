@@ -13,7 +13,7 @@ bool cont = true;
 void sigint(int signal)
 {
     cont = false;
-    uav::info("Program interrupted.");
+    uav::info << "Program interrupted.\n";
 }
 
 int main(int argc, char** argv)
@@ -22,7 +22,7 @@ int main(int argc, char** argv)
 
     signal(SIGINT, sigint);
 
-    uav::param prm = {uav::f50hz, 1,
+    uav::param prm = {uav::param::f50hz, 1,
        {1,   0, 3,   INFINITY,
         10,  0, 20,  INFINITY,
         2,   0, 0,   INFINITY,
@@ -30,8 +30,7 @@ int main(int argc, char** argv)
         6,   0, 4.5, INFINITY}};
     uav::state init{0};
 
-    uav::controller c(init, prm);
-    uav::include(c.getparams());
+    uav::controller c(prm);
 
     /*
     pwm_driver pwm;
@@ -48,23 +47,17 @@ int main(int argc, char** argv)
 
     uav::sensor_hub sensors;
 
-    uav::info("Initializing...");
+    uav::info << "Initializing...\n";
     std::cout << "Initializing..." << std::endl;
     if (sensors.begin() > 0)
     {
         std::cerr << "Sensor init failed." << std::endl;
-        uav::error("Sensor init failed.");
+        uav::error << "Sensor init failed.\n";
         uav::flush();
         return 1;
     }
 
     std::this_thread::sleep_for(std::chrono::seconds(2));
-
-    auto format = uav::fmt::time | uav::fmt::config;
-
-    std::cout << uav::param::header() << std::endl;
-    std::cout << uav::to_string(c.getparams()) << std::endl;
-    std::cout << uav::state::header(format) << std::endl;
 
     auto start = chrono::steady_clock::now(), now = start;
     auto dt = chrono::milliseconds(1000/prm.freq), runtime = dt * 0;
@@ -74,24 +67,12 @@ int main(int argc, char** argv)
             now = chrono::steady_clock::now();
         c.step(sensors.get());
         uav::state s = c.getstate();
-
-        // for (int i = 0; i < 4; i++)
-        //    pwm.setPin(i * 4, s.motors[i] * 40, false);
-
-        // print the controller state
-        std::cout << uav::to_string(s, format);
-        if (s.error) std::cout << " !";
-        else         std::cout << "  ";
-        std::cout << "\r" << std::flush;
-
-        // add state to log
-        uav::include(s);
         now = chrono::steady_clock::now();
         runtime += dt;
     }
 
-    if (cont) uav::info("Program terminated normally.");
-    uav::info("Writing to file...");
+    if (cont) uav::info << "Program terminated normally.\n";
+    uav::info << "Writing to file...\n";
     std::cout << std::endl << "Writing to file..." << std::endl;
 
     uav::flush();

@@ -66,3 +66,12 @@ add_executable(unit
     ${CMAKE_SOURCE_DIR}/src/tests/logging.cpp)
 target_link_libraries(unit math)
 target_link_libraries(unit logging)
+
+add_executable(launch
+    ${CMAKE_SOURCE_DIR}/src/control/launch.cpp)
+target_link_libraries(launch control)
+target_link_libraries(launch math)
+target_link_libraries(launch logging)
+target_link_libraries(launch hardware)
+target_link_libraries(launch algorithm)
+target_link_libraries(launch filter)
