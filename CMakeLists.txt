@@ -11,7 +11,8 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 include_directories("${PROJECT_SOURCE_DIR}/include/")
 
 add_library(control
-    ${CMAKE_SOURCE_DIR}/src/control/controller.cpp)
+    ${CMAKE_SOURCE_DIR}/src/control/controller.cpp
+    ${CMAKE_SOURCE_DIR}/src/control/state.cpp)
 
 add_library(algorithm
     ${CMAKE_SOURCE_DIR}/src/algorithm/pid.cpp
@@ -75,3 +76,7 @@ target_link_libraries(launch logging)
 target_link_libraries(launch hardware)
 target_link_libraries(launch algorithm)
 target_link_libraries(launch filter)
+
+add_executable(print_events
+    ${CMAKE_SOURCE_DIR}/test/events.cpp)
+target_link_libraries(print_events logging)

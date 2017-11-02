@@ -24,6 +24,7 @@ class angle
     angle(double rads);
 
     int64_t micros() const;
+    int64_t& micros();
     double mil() const;
     double sec() const;
     double min() const;

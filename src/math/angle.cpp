@@ -19,6 +19,11 @@ int64_t angle::micros() const
     return _micros;
 }
 
+int64_t& angle::micros()
+{
+    return _micros;
+}
+
 double angle::mil() const
 {
     return (double) _micros / us_ms;

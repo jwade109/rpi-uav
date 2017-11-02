@@ -3,6 +3,7 @@
 
 #include <uav/hardware>
 #include <uav/algorithm>
+#include "state.h"
 
 namespace uav
 {
@@ -21,23 +22,6 @@ struct param
     uint8_t freq;
     double mass;
     std::array<double, 20> pid_gains;
-};
-
-struct state
-{
-    enum : uint8_t
-    {
-        null_status, align, no_vel, pos_seek,
-        pos_hold, high_tilt, upside_down
-    };
-
-    std::array<uint64_t, 3> time;
-    coordinate position;
-    std::array<angle, 3> attitude;
-    std::array<angle, 4> targets;
-    std::array<double, 4> motors;
-    uint16_t error;
-    uint8_t status;
 };
 
 class controller

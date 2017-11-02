@@ -32,6 +32,13 @@ int main(int argc, char** argv)
 
     uav::controller c(prm);
 
+    uav::logstream statelog("State");
+    {
+        uav::archive a;
+        a << c.getstate();
+        statelog << a;
+    }
+
     /*
     pwm_driver pwm;
     if (pwm.begin(0x40) > 0)
@@ -67,6 +74,11 @@ int main(int argc, char** argv)
             now = chrono::steady_clock::now();
         c.step(sensors.get());
         uav::state s = c.getstate();
+
+        uav::archive a;
+        a << s;
+        statelog << a;
+
         now = chrono::steady_clock::now();
         runtime += dt;
     }
