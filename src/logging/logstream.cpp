@@ -115,4 +115,16 @@ std::vector<archive> restore(const std::string& filename)
     return archives;
 }
 
+std::map<std::string, std::vector<archive>>
+    restore_sorted(const std::string& filename)
+{
+    std::map<std::string, std::vector<archive>> map;
+    auto unsorted = restore(filename);
+    for (const auto& e : unsorted)
+    {
+        map[e.name()].push_back(e);
+    }
+    return map;
+}
+
 } // namespace uav

@@ -30,7 +30,7 @@ int controller::step(const raw_data& raw)
         uav::error << "Timing error (" << prev.time[0]
             << " -> " << curr.time[0] << ")\n";
 
-    double gps_alt = raw.gps.gga.altitude;
+    double gps_alt = raw.gps.gga.pos.altitude();
     double b1_alt = uav::altitude(raw.ard.pres);
     double b2_alt = uav::altitude(raw.bmp.pressure);
 

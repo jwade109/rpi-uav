@@ -44,13 +44,17 @@ class archive
         std::enable_if_t<std::is_fundamental<T>::value, T>>
         archive& operator >> (T& x);
 
-    template <typename T, size_t N, typename U =
-        std::enable_if_t<std::is_fundamental<T>::value, T>>
+    template <typename T, size_t N>
         archive& operator << (const std::array<T, N>& a);
 
-    template <typename T, size_t N, typename U =
-        std::enable_if_t<std::is_fundamental<T>::value, T>>
+    template <typename T, size_t N>
         archive& operator >> (std::array<T, N>& a);
+
+    template <typename T>
+        archive& operator << (const std::vector<T>& v);
+
+    template <typename T>
+        archive& operator >> (std::vector<T>& v);
 
     private:
 
@@ -80,18 +84,31 @@ template <typename T, typename U> archive& archive::operator >> (T& x)
     return *this;
 }
 
-template <typename T, size_t N, typename U>
+template <typename T, size_t N>
 archive& archive::operator << (const std::array<T, N>& a)
 {
-    auto src = reinterpret_cast<const uint8_t*>(a.data());
-    _bytes.insert(_bytes.end(), src, src + sizeof(T) * N);
+    for (auto& e : a) *this << e;
     return *this;
 }
 
-template <typename T, size_t N, typename U>
+template <typename T, size_t N>
 archive& archive::operator >> (std::array<T, N>& a)
 {
     for (auto& e : a) *this >> e;
+    return *this;
+}
+
+template <typename T>
+archive& archive::operator << (const std::vector<T>& v)
+{
+    for (auto& e : v) *this << e;
+    return *this;
+}
+
+template <typename T>
+archive& archive::operator >> (std::vector<T>& v)
+{
+    for (auto& e : v) *this >> e;
     return *this;
 }
 

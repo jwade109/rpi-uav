@@ -47,7 +47,6 @@ struct gpgga
     uint8_t fix_quality;
     uint8_t num_sats;
     float hdop;
-    double altitude;
     char alt_unit;
     double undulation;
     char und_unit;

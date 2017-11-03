@@ -4,6 +4,7 @@
 #include <fstream>
 #include <sstream>
 #include <deque>
+#include <map>
 
 #include "archive.h"
 
@@ -15,6 +16,9 @@ void reset();
 void flush(const std::string& fn = "log/data.bin");
 
 std::vector<archive> restore(const std::string& fn = "log/data.bin");
+
+std::map<std::string, std::vector<archive>>
+    restore_sorted(const std::string& fn = "log/data.bin");
 
 class logstream
 {

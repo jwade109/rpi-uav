@@ -12,7 +12,10 @@ include_directories("${PROJECT_SOURCE_DIR}/include/")
 
 add_library(control
     ${CMAKE_SOURCE_DIR}/src/control/controller.cpp
-    ${CMAKE_SOURCE_DIR}/src/control/state.cpp)
+    ${CMAKE_SOURCE_DIR}/src/control/state.cpp
+    ${CMAKE_SOURCE_DIR}/src/control/param.cpp
+    ${CMAKE_SOURCE_DIR}/src/control/raw_data.cpp)
+target_link_libraries(control algorithm hardware logging)
 
 add_library(algorithm
     ${CMAKE_SOURCE_DIR}/src/algorithm/pid.cpp
@@ -20,6 +23,7 @@ add_library(algorithm
     ${CMAKE_SOURCE_DIR}/src/algorithm/gps_position_filter.cpp
     ${CMAKE_SOURCE_DIR}/src/algorithm/mass_estimator.cpp
     ${CMAKE_SOURCE_DIR}/src/algorithm/motor_director.cpp)
+target_link_libraries(algorithm filter)
 
 add_library(math
     ${CMAKE_SOURCE_DIR}/src/math/freebody.cpp
@@ -29,6 +33,7 @@ add_library(math
 
 add_library(filter
     ${CMAKE_SOURCE_DIR}/src/filter/filters.cpp)
+target_link_libraries(filter math)
 
 add_library(hardware
     ${CMAKE_SOURCE_DIR}/src/hardware/i2c.cpp
@@ -47,7 +52,6 @@ add_library(logging
 
 add_executable(gpstest
     ${CMAKE_SOURCE_DIR}/test/gpstest.cpp)
-target_link_libraries(gpstest math)
 target_link_libraries(gpstest hardware)
 target_link_libraries(gpstest filter)
 
@@ -68,14 +72,17 @@ add_executable(unit
 target_link_libraries(unit math)
 target_link_libraries(unit logging)
 
+add_executable(skips
+    ${CMAKE_SOURCE_DIR}/test/skips.cpp)
+target_link_libraries(skips control)
+
+add_executable(bin2txt
+    ${CMAKE_SOURCE_DIR}/test/bin2txt.cpp)
+target_link_libraries(bin2txt control)
+
 add_executable(launch
     ${CMAKE_SOURCE_DIR}/src/control/launch.cpp)
 target_link_libraries(launch control)
-target_link_libraries(launch math)
-target_link_libraries(launch logging)
-target_link_libraries(launch hardware)
-target_link_libraries(launch algorithm)
-target_link_libraries(launch filter)
 
 add_executable(print_events
     ${CMAKE_SOURCE_DIR}/test/events.cpp)

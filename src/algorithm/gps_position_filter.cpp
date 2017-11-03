@@ -13,8 +13,9 @@ coordinate gps_position_filter::operator () (coordinate pos)
 {
     if (first) { first = false; home = pos; }
     auto d = pos - home;
-    return coordinate(lpfx.step(d.latitude(), dt),
-                      lpfy.step(d.longitude(), dt), pos.altitude());
+    return home + coordinate(lpfx.step(d.latitude(), dt),
+                             lpfy.step(d.longitude(), dt),
+                             pos.altitude());
 }
 
 } // namespace uav

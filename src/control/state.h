@@ -24,15 +24,11 @@ class state
     std::array<double, 4> motors;
     uint16_t error;
     uint8_t status;
+
+    static std::string header();
 };
 
-archive& operator << (archive& a, const angle& b);
-
-archive& operator >> (archive& a, angle& b);
-
-archive& operator << (archive& a, const coordinate& c);
-
-archive& operator >> (archive& a, coordinate& c);
+std::ostream& operator << (std::ostream& os, const state& s);
 
 archive& operator << (archive& a, const state& s);
 

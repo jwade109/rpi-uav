@@ -23,8 +23,8 @@ double gps_baro_filter::step(double gps, double ard, double bmp)
 
     double d1_est = u_b1.value - u_g.value;
     double d2_est = u_b2.value - u_g.value;
-    double alt1_est = ard - d1_est - home_alt;
-    double alt2_est = bmp - d2_est - home_alt;
+    double alt1_est = ard - d1_est;
+    double alt2_est = bmp - d2_est;
     double alt1_smooth = lpf1.step(alt1_est, dt);
     double alt2_smooth = lpf2.step(alt2_est, dt);
 

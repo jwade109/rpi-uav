@@ -107,11 +107,11 @@ std::ostream& operator << (std::ostream& os, const coordinate& c)
     char cE = c.longitude() >= angle(0) ? 'E' : 'W';
 
     std::stringstream ss;
-    ss << std::setw(2) << std::setfill('0') << dN << "°"
+    ss << std::setw(2) << std::setfill('0') << dN << "*"
        << std::setw(2) << std::setfill('0') << mN << "'"
        << std::setw(2) << std::setfill('0') << sN << "."
        << std::setw(6) << std::setfill('0') << uN << " " << cN << " "
-       << std::setw(2) << std::setfill('0') << dE << "°"
+       << std::setw(2) << std::setfill('0') << dE << "*"
        << std::setw(2) << std::setfill('0') << mE << "'"
        << std::setw(2) << std::setfill('0') << sE << "."
        << std::setw(6) << std::setfill('0') << uE << " " << cE << " "

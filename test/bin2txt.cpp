@@ -1,62 +1,53 @@
 #include <iostream>
 #include <iomanip>
-#include <fstream>
 #include <string>
-#include <assert.h>
-#include <bitset>
-#include <algorithm>
 
 #include <uav/logging>
+#include <uav/control>
 
 int main(int argc, char** argv)
 {
-    using namespace uav;
+    auto archives = argc > 1 ? uav::restore_sorted(argv[1]) :
+                               uav::restore_sorted();
 
-    uint64_t mask = -1;
-    std::string outfile("log/out.txt"), infile("log/data.bin");
-    if (argc > 3)
-    {
-        std::string m(argv[3]);
-        std::reverse(m.begin(), m.end());
-        std::bitset<state::size> b(m);
-        mask = b.to_ullong();
-    }
-    if (argc > 2) outfile = argv[2];
-    if (argc > 1) infile = argv[1];
-
-    std::ifstream bin;
-    std::ofstream txt;
-    bin.open(infile, std::ios::in | std::ios::binary);
-    if (!bin)
+    if (archives.size() == 0)
     {
         std::cerr << "Invalid filename." << std::endl;
+        return 1;
+    }
+    if (archives["Param"].size() == 0)
+    {
+        std::cerr << "No parameter info." << std::endl;
         return 2;
     }
-    txt.open(outfile, std::ios::out | std::ios::binary);
+    if (archives["Param"].size() > 1)
+    {
+        std::cerr << "Ambiguous: multiple parameter packets." << std::endl;
+        return 3;
+    }
+    if (archives["State"].size() == 0)
+    {
+        std::cerr << "No state info." << std::endl;
+        return 4;
+    }
+
+
+    std::string outfile = argc > 2 ? argv[2] : "log/out.txt";
+
+    std::ofstream txt(outfile, std::ios::out | std::ios::binary);
     if (!txt)
     {
         std::cerr << "Could not create text file." << std::endl;
         return 3;
     }
 
-    std::streampos fsize = bin.tellg();
-    bin.seekg(0, std::ios::end);
-    fsize = bin.tellg() - fsize;
-    bin.seekg(0, std::ios::beg);
-
-    char* bytes = new char[fsize];
-    bin.read(bytes, fsize);
-    param p = deserialize(wrap<param::size>(bytes));
-    txt << param::header() << std::endl;
-    txt << to_string(p) << std::endl << std::endl;
-    txt << state::header(mask) << std::endl;
-    int n = param::size;
-    while (n < fsize)
+    txt << uav::state::header() << std::endl;
+    for (auto e : archives["State"])
     {
-        state s = deserialize(wrap<state::size>(bytes + n));
-        txt << to_string(s, mask) << std::endl;
-        n += state::size;
+        uav::state s;
+        e >> s;
+        txt << s << std::endl;
     }
-    delete[] bytes;
+    return 0;
 }
 

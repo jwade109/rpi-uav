@@ -1,1 +1,4 @@
 #include "../../src/control/controller.h"
+#include "../../src/control/state.h"
+#include "../../src/control/param.h"
+#include "../../src/control/raw_data.h"

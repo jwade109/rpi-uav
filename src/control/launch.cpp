@@ -31,13 +31,13 @@ int main(int argc, char** argv)
     uav::state init{0};
 
     uav::controller c(prm);
-
-    uav::logstream statelog("State");
     {
+        uav::logstream paramlog("Param");
         uav::archive a;
-        a << c.getstate();
-        statelog << a;
+        paramlog << (a << prm);
     }
+    uav::logstream statelog("State");
+    uav::logstream rawlog("Raw");
 
     /*
     pwm_driver pwm;
@@ -72,12 +72,19 @@ int main(int argc, char** argv)
     {
         while (now <= start + runtime)
             now = chrono::steady_clock::now();
-        c.step(sensors.get());
+        auto raw = sensors.get();
+        c.step(raw);
         uav::state s = c.getstate();
 
-        uav::archive a;
-        a << s;
-        statelog << a;
+        uav::archive sl, rl;
+        rawlog << (rl << raw);
+        statelog << (sl << s);
+
+        std::cout << s.time[0]/1000.0 << " "
+                  << s.position << " : "
+                  << s.attitude[0] << " "
+                  << s.attitude[1] << " "
+                  << s.attitude[2] << "\r" << std::flush;
 
         now = chrono::steady_clock::now();
         runtime += dt;
