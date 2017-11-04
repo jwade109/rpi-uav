@@ -10,20 +10,12 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 include_directories("${PROJECT_SOURCE_DIR}/include/")
 
-include_directories("${PROJECT_SOURCE_DIR}/hardware/")
 add_subdirectory(hardware)
-
-include_directories("${PROJECT_SOURCE_DIR}/logging/")
 add_subdirectory(logging)
-
-include_directories("${PROJECT_SOURCE_DIR}/math/")
 add_subdirectory(math)
-
-include_directories("${PROJECT_SOURCE_DIR}/algorithm/")
 add_subdirectory(algorithm)
-
-include_directories("${PROJECT_SOURCE_DIR}/control/")
 add_subdirectory(control)
+add_subdirectory(spike)
 
 add_library(uav
     $<TARGET_OBJECTS:hardware>

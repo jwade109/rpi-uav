@@ -49,6 +49,8 @@ int main()
                 << gp.gga.utc << " "
                 << gp.gga.pos << " "
                 << (int) gp.gga.num_sats << " "
+                << gp.rmc.ground_speed << " "
+                << gp.rmc.track_angle << " "
                 << "      \r" << std::flush;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
