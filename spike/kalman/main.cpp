@@ -39,7 +39,7 @@ std::ostream& operator << (std::ostream& os, const kalman<M, N, U, rep>& k)
 int main()
 {
     uav::sensor_hub sensors;
-    if (!sensors.begin()) return 1;
+    if (sensors.begin()) return 1;
 
     // M: measurements. position and velocity.
     // N: states. position and velocity.
@@ -56,16 +56,27 @@ int main()
     kf.A << 1, dt, 0, 1; // state transitions w/ kinematics
     kf.B << 0.5*dt*dt, dt; // acceleration to pos, vel
 
-    std::cout << kf;
+    std::cout << kf << std::left << std::fixed << std::setprecision(3);
 
     auto home_point = sensors.get().gps.gga.pos;
 
+    uint64_t counter = 0;
     while (1)
     {
+        std::cout << counter++ << " : ";
         auto raw = sensors.get();
-        auto acc = raw.ard.acc;
-        auto p_rel = displacement(home_point, raw.gps.gga.pos);
-        std::cout << p_rel << " " << acc << std::endl;
+        imu::Vector<3> acc = raw.ard.acc,
+            p_rel = displacement(home_point, raw.gps.gga.pos);
+        
+        std::cout << std::setw(10) << p_rel.x()
+                  // << std::setw(10) << p_rel.y()
+                  // << std::setw(10) << p_rel.z()
+                  << std::setw(10) << acc.x()
+                  // << std::setw(10) << acc.y()
+                  // << std::setw(10) << acc.z()
+                  << "   \r" << std::flush;
+
+        std::this_thread::sleep_for(milliseconds(1000/freq));
     }
 
     return 0;

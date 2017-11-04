@@ -1,7 +1,7 @@
 #ifndef MASS_ESTIMATOR_H
 #define MASS_ESTIMATOR_H
 
-#include <uav/filter>
+#include "filters.h"
 
 namespace uav
 {
