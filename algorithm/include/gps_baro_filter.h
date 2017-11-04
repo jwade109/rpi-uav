@@ -1,7 +1,7 @@
 #ifndef GPS_BARO_FILTER_H
 #define GPS_BARO_FILTER_H
 
-#include <uav/filter>
+#include "filters.h"
 
 namespace uav
 {

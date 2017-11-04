@@ -6,7 +6,7 @@
 #include <sstream>
 
 #include <uav/hardware>
-#include <uav/filter>
+#include <uav/algorithm>
 
 char load()
 {

@@ -4,86 +4,61 @@ project(rpi-uav)
 
 set(CMAKE_CXX_STANDARD 14)
 
-set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/bin)
-set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
+set(CMAKE_BINARY_DIR ${CMAKE_SOURCE_DIR}/build)
+set(EXECUTABLE_OUTPUT_PATH ${CMAKE_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 include_directories("${PROJECT_SOURCE_DIR}/include/")
 
-add_library(control
-    ${CMAKE_SOURCE_DIR}/src/control/controller.cpp
-    ${CMAKE_SOURCE_DIR}/src/control/state.cpp
-    ${CMAKE_SOURCE_DIR}/src/control/param.cpp
-    ${CMAKE_SOURCE_DIR}/src/control/raw_data.cpp)
-target_link_libraries(control algorithm hardware logging)
+include_directories("${PROJECT_SOURCE_DIR}/hardware/")
+add_subdirectory(hardware)
 
-add_library(algorithm
-    ${CMAKE_SOURCE_DIR}/src/algorithm/pid.cpp
-    ${CMAKE_SOURCE_DIR}/src/algorithm/gps_baro_filter.cpp
-    ${CMAKE_SOURCE_DIR}/src/algorithm/gps_position_filter.cpp
-    ${CMAKE_SOURCE_DIR}/src/algorithm/mass_estimator.cpp
-    ${CMAKE_SOURCE_DIR}/src/algorithm/motor_director.cpp)
-target_link_libraries(algorithm filter)
+include_directories("${PROJECT_SOURCE_DIR}/logging/")
+add_subdirectory(logging)
 
-add_library(math
-    ${CMAKE_SOURCE_DIR}/src/math/freebody.cpp
-    ${CMAKE_SOURCE_DIR}/src/math/angle.cpp
-    ${CMAKE_SOURCE_DIR}/src/math/coordinate.cpp
-    ${CMAKE_SOURCE_DIR}/src/math/functions.cpp)
+include_directories("${PROJECT_SOURCE_DIR}/math/")
+add_subdirectory(math)
 
-add_library(filter
-    ${CMAKE_SOURCE_DIR}/src/filter/filters.cpp)
-target_link_libraries(filter math)
+include_directories("${PROJECT_SOURCE_DIR}/algorithm/")
+add_subdirectory(algorithm)
 
-add_library(hardware
-    ${CMAKE_SOURCE_DIR}/src/hardware/i2c.cpp
-    ${CMAKE_SOURCE_DIR}/src/hardware/pwm.cpp
-    ${CMAKE_SOURCE_DIR}/src/hardware/ardimu.cpp
-    ${CMAKE_SOURCE_DIR}/src/hardware/bmp.cpp
-    ${CMAKE_SOURCE_DIR}/src/hardware/gps.cpp
-    ${CMAKE_SOURCE_DIR}/src/hardware/sensors.cpp)
-target_link_libraries(hardware -pthread)
-target_link_libraries(hardware -latomic)
-target_link_libraries(hardware -lwiringPi)
+include_directories("${PROJECT_SOURCE_DIR}/control/")
+add_subdirectory(control)
 
-add_library(logging
-    ${CMAKE_SOURCE_DIR}/src/logging/archive.cpp
-    ${CMAKE_SOURCE_DIR}/src/logging/logstream.cpp)
+add_library(uav
+    $<TARGET_OBJECTS:hardware>
+    $<TARGET_OBJECTS:logging>
+    $<TARGET_OBJECTS:math>
+    $<TARGET_OBJECTS:algorithm>
+    $<TARGET_OBJECTS:control>)
+target_link_libraries(uav -lwiringPi -lpthread -latomic)
 
 add_executable(gpstest
     ${CMAKE_SOURCE_DIR}/test/gpstest.cpp)
-target_link_libraries(gpstest hardware)
-target_link_libraries(gpstest filter)
+target_link_libraries(gpstest uav)
 
 add_executable(sensortest
     ${CMAKE_SOURCE_DIR}/test/units.cpp)
-target_link_libraries(sensortest hardware)
-target_link_libraries(sensortest math)
+target_link_libraries(sensortest uav)
 
 add_executable(serialtest
     ${CMAKE_SOURCE_DIR}/test/serialtest.cpp)
-target_link_libraries(serialtest hardware)
-target_link_libraries(serialtest math)
+target_link_libraries(serialtest uav)
 
 add_executable(unit
     ${CMAKE_SOURCE_DIR}/src/tests/test_main.cpp
     ${CMAKE_SOURCE_DIR}/src/tests/math.cpp
     ${CMAKE_SOURCE_DIR}/src/tests/logging.cpp)
-target_link_libraries(unit math)
-target_link_libraries(unit logging)
+target_link_libraries(unit uav)
 
 add_executable(skips
     ${CMAKE_SOURCE_DIR}/test/skips.cpp)
-target_link_libraries(skips control)
+target_link_libraries(skips uav)
 
 add_executable(bin2txt
     ${CMAKE_SOURCE_DIR}/test/bin2txt.cpp)
-target_link_libraries(bin2txt control)
-
-add_executable(launch
-    ${CMAKE_SOURCE_DIR}/src/control/launch.cpp)
-target_link_libraries(launch control)
+target_link_libraries(bin2txt uav)
 
 add_executable(print_events
     ${CMAKE_SOURCE_DIR}/test/events.cpp)
-target_link_libraries(print_events logging)
+target_link_libraries(print_events uav)

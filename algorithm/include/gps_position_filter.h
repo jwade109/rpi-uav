@@ -2,7 +2,7 @@
 #define GPS_POS_FILTER_H
 
 #include <uav/math>
-#include <uav/filter>
+#include "filters.h"
 
 namespace uav
 {
