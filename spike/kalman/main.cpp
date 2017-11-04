@@ -5,56 +5,68 @@
 #include <string>
 #include <sstream>
 #include <vector>
-#include <time.h>
-#include <signal.h>
-#include <math.h>
+
+#include <uav/math>
+#include <uav/hardware>
 
 #include "kalman.h"
-#include "kalman_tester.h"
 
-using namespace std;
 using namespace std::chrono;
 using namespace Eigen;
 
-bool cont = true;
-
-void sigint(int signal)
+template <int M, int N, typename rep>
+std::ostream& operator << (std::ostream& os, const Eigen::Matrix<rep, M, N>& m)
 {
-    cont = false;
+    std::stringstream ss;
+    ss << std::fixed << std::left << std::setprecision(4);
+    for (int i = 0; i < m.rows(); i++)
+        for (int j = 0; j < m.cols(); j++)
+            ss << std::setw(9) << m(i,j);
+    return os << ss.str() << std::endl;
 }
 
-int main(int argc, char* argv[])
+template <size_t M, size_t N, size_t U, typename rep>
+std::ostream& operator << (std::ostream& os, const kalman<M, N, U, rep>& k)
 {
-    signal(SIGINT, sigint);
+    std::stringstream s;
+    s << "x: " << k.x << "z: " << k.z << "u: " << k.u
+      << "P: " << k.P << "K: " << k.K << "A: " << k.A
+      << "B: " << k.B << "H: " << k.H << "R: " << k.R
+      << "Q: " << k.Q;
+    return os << s.str();
+}
 
-    srand(time(0));
-    const size_t M = 2, N = 2;
-    kalman<M, N, double> kf;
+int main()
+{
+    uav::sensor_hub sensors;
+    if (!sensors.begin()) return 1;
 
-    kf.R *= 3;
-    kf.Q *= 0.2;
-    kf.P *= 100;
-    kf.H(0,1) = kf.H(1,0) = 0;
+    // M: measurements. position and velocity.
+    // N: states. position and velocity.
+    // U: control vector. only acceleration.
+    const size_t M = 2, N = 2, U = 1, freq = 50;
+    const double dt = 1.0/freq;
+    kalman<M, N, U, double> kf;
 
-    kalman_tester<M, N, double> kt(&kf);
+    kf.R *= 10; // high gps measurement error
+    kf.Q *= 1;  // relatively lower process noise
+    kf.P *= 1;  // high initial certainty
+    kf.H << 1, 0, 0, 1; // observations map directly to state
 
-    int max = 1000;
-    for (int i = 0; i < max & cont; i++)
+    kf.A << 1, dt, 0, 1; // state transitions w/ kinematics
+    kf.B << 0.5*dt*dt, dt; // acceleration to pos, vel
+
+    std::cout << kf;
+
+    auto home_point = sensors.get().gps.gga.pos;
+
+    while (1)
     {
-        system("clear");
-        std::cout << i << "/" << max << std::endl;
-        std::cout << "Converged: " << kf.converged(0.0001) << std::endl;
-        std::cout << printfilter(kf) << std::endl;
-
-        auto real = Matrix<double, N, 1>::Constant(10);
-        auto measure = Matrix<double, M, 1>::Constant(10) +
-            Matrix<double, M, 1>::Random();
-        kt.step(measure, real);
-
-        std::this_thread::sleep_for(milliseconds(50));
+        auto raw = sensors.get();
+        auto acc = raw.ard.acc;
+        auto p_rel = displacement(home_point, raw.gps.gga.pos);
+        std::cout << p_rel << " " << acc << std::endl;
     }
-
-    std::cout << "Done.\nRMS: " << printmat(kt.rms()) << std::endl;
 
     return 0;
 }

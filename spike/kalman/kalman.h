@@ -3,68 +3,64 @@
 
 #include <Eigen/Dense>
 
-template <size_t M, size_t N, typename rep = double>
+template <size_t M, size_t N, size_t U, typename rep = double>
 class kalman
 {
     public:
 
-    Eigen::Matrix<rep, N, 1> X;
-    Eigen::Matrix<rep, M, 1> Z;
-    Eigen::Matrix<rep, N, N> P;
-    Eigen::Matrix<rep, N, M> G;
-    Eigen::Matrix<rep, N, N> F;
-    Eigen::Matrix<rep, M, N> H;
-    Eigen::Matrix<rep, M, M> R;
-    Eigen::Matrix<rep, N, N> Q;
+    Eigen::Matrix<rep, N, 1> x; // state estimate
+    Eigen::Matrix<rep, M, 1> z; // last measurement
+    Eigen::Matrix<rep, U, 1> u; // last control vector
+
+    Eigen::Matrix<rep, N, N> P; // error covariance
+    Eigen::Matrix<rep, N, M> K; // kalman gain
+    Eigen::Matrix<rep, N, N> A; // state transition
+    Eigen::Matrix<rep, N, U> B; // control-input model
+    Eigen::Matrix<rep, M, N> H; // observation model
+    Eigen::Matrix<rep, M, M> R; // measurement noise
+    Eigen::Matrix<rep, N, N> Q; // process noise
 
     kalman();
     kalman(const Eigen::Matrix<rep, N, 1>& initial);
-    const Eigen::Matrix<rep, N, 1>& step(const Eigen::Matrix<rep, M, 1>& Z);
-    const bool converged(double epsilon);
-
-    private:
-
-    Eigen::Matrix<rep, N, M> G_last;
+    const Eigen::Matrix<rep, N, 1>&
+        step(const Eigen::Matrix<rep, M, 1>& z,
+             const Eigen::Matrix<rep, U, 1>& u =
+             Eigen::Matrix<rep, U, 1>::Zero());
 };
 
 // default constructor
-template <size_t M, size_t N, typename rep>
-kalman<M, N, rep>::kalman() :
+template <size_t M, size_t N, size_t U, typename rep>
+kalman<M, N, U, rep>::kalman() :
     kalman(Eigen::Matrix<rep, N, 1>::Zero())
 { }
 
 // constructor with initial state
-template <size_t M, size_t N, typename rep>
-kalman<M, N, rep>::kalman(const Eigen::Matrix<rep, N, 1>& initial) :
-    X(initial),
-    Z(Eigen::Matrix<rep, M, 1>::Zero()),
+template <size_t M, size_t N, size_t U, typename rep>
+kalman<M, N, U, rep>::kalman(const Eigen::Matrix<rep, N, 1>& initial) :
+    x(initial),
+    z(Eigen::Matrix<rep, M, 1>::Zero()),
+    u(Eigen::Matrix<rep, U, 1>::Zero()),
     P(Eigen::Matrix<rep, N, N>::Identity()),
-    G(Eigen::Matrix<rep, N, M>::Zero()),
-    G_last(G),
-    F(Eigen::Matrix<rep, N, N>::Identity()),
+    K(Eigen::Matrix<rep, N, M>::Zero()),
+    A(Eigen::Matrix<rep, N, N>::Identity()),
+    B(Eigen::Matrix<rep, N, U>::Zero()),
     H(Eigen::Matrix<rep, M, N>::Constant(1)),
     R(Eigen::Matrix<rep, M, M>::Identity()),
     Q(Eigen::Matrix<rep, N, N>::Identity())
 { }
 
-template <size_t M, size_t N, typename rep>
-const Eigen::Matrix<rep, N, 1>& kalman<M, N, rep>::
-    step(const Eigen::Matrix<rep, M, 1>& meas)
+template <size_t M, size_t N, size_t U, typename rep>
+const Eigen::Matrix<rep, N, 1>& kalman<M, N, U, rep>::
+    step(const Eigen::Matrix<rep, M, 1>& z,
+         const Eigen::Matrix<rep, U, 1>& u)
 {
-    G_last = G;
-    Z = meas;
-    X = F * X;
-    P = F * P * F.transpose() + Q;
-    G = (P * H.transpose()) * (H * P * H.transpose() + R).inverse();
-    X = X + G * (Z - H * X);
-    P = (Eigen::Matrix<rep, N, N>::Identity() - G * H) * P;
-    return X;
-}
-
-template <size_t M, size_t N, typename rep>
-const bool kalman<M, N, rep>::converged(double epsilon)
-{
-    return std::abs(G_last.norm() - G.norm()) < epsilon;
+    this->z = z;
+    x = A*x + B*u;
+    P = A * P * A.transpose() + Q;
+    K = (P * H.transpose()) * (H * P * H.transpose() + R).inverse();
+    x = x + K * (z - H * x);
+    P = (Eigen::Matrix<rep, N, N>::Identity() - K * H) * P;
+    return x;
 }
 
 #endif // KALMAN_H
