@@ -1,8 +1,17 @@
 #ifndef FREEBODY_H
 #define FREEBODY_H
 
-#include <Eigen/Core>
-#include <Eigen/Geometry>
+#include <iostream>
+#include <iomanip>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <chrono>
+#include <thread>
+
+#include "quaternion.h"
+#include "vector.h"
+#include "matrix.h"
 
 namespace uav
 {
@@ -29,35 +38,44 @@ namespace uav
     {
         public:
 
+        uint64_t time;
+        double mass;
+        imu::Vector<3> I_moment;
+
+        // pos: position in inertial reference frame, in m
+        // vel: velocity in inertial reference frame, in m/s
+        // omega: angular velocity, in rad/s
+        // euler: angular position in euler angles
+        // ...with rotation order Z-X'-Y''
+        imu::Vector<3> pos, vel, accel;
+        imu::Quaternion quat;
+        imu::Vector<3> euler, omega, alpha;
+        // euler: z is heading, x is pitch, y is roll
+
+        imu::Vector<3> X, Y, Z;
+
+        // rotation: transformation from inertial to body frame
+        imu::Matrix<3> rotation;
+
+        std::vector<force> forces;
+        std::vector<moment> moments;
+
         freebody();
+        
+        void step(uint64_t micros);
+        void stepfor(uint64_t micros, uint64_t dt);
+        void reset();
 
+        void apply(const force& f);
+        void apply(const moment& m);
+        void apply(const force& f, const imu::Vector<3>& lever);
 
-        // intrinsic properties
-        double m() const;
-        double& m();
-        Eigen::Vector3d I() const;
-        Eigen::Vector3d& I();
-        Eigen::Vector3d s() const;
-        Eigen::Vector3d& s();
-        Eigen::Vector3d v() const;
-        Eigen::Vector3d& v();
-        Eigen::Vector3d a() const;
-        Eigen::Vector3d& a();
-        Eigen::Quaterniond q() const;
-        Eigen::Quaterniond& q();
-        Eigen::Vector3d a() const;
-        Eigen::Vector3d a() const;
-        Eigen::Vector3d& a();
-        Eigen::Vector3d& a();
+        imu::Vector<3> bodyvel();
+        imu::Vector<3> bodyomega();
+        void setbodyvel(const imu::Vector<3>& bvel);
+        void setbodyomega(const imu::Vector<3>& bomega);
 
-        private:
-
-        double _m;
-        Eigen::Vector3d _I;
-
-        Eigen::Vector3d _s, _v, _a;
-        Eigen::Quaterniond _q;
-        Eigen::Vector3d _omega, _alpha;
+        std::string str() const;
     };
 
     struct motor
