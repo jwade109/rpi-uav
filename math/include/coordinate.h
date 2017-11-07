@@ -2,6 +2,7 @@
 #define COORDINATE_H
 
 #include <iostream>
+#include <Eigen/Core>
 
 #include "angle.h"
 
@@ -16,6 +17,7 @@ class coordinate
     coordinate(const coordinate& c);
     coordinate(const angle& N, const angle& E, double alt = 0);
     coordinate(double dN, double dE, double alt = 0);
+    coordinate(const Eigen::Vector3d& meters);
 
     template <typename S, typename T, typename U, typename V,
               typename W, typename X, typename Y, typename Z>
@@ -29,7 +31,6 @@ class coordinate
     double altitude() const;
     double& altitude();
 
-
     coordinate& operator = (const coordinate& c);
     coordinate operator + (const coordinate& c) const;
     coordinate operator - (const coordinate& c) const;
@@ -37,6 +38,8 @@ class coordinate
     coordinate& operator -= (const coordinate& c);
 
     bool operator == (const coordinate& c) const;
+
+    operator Eigen::Vector3d();
 
     private:
 

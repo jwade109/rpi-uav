@@ -17,6 +17,15 @@ coordinate::coordinate(const angle& N, const angle& E, double alt) :
 coordinate::coordinate(double dN, double dE, double alt) :
     coordinate(dN, 0, 0, 0, dE, 0, 0, 0, alt) { }
 
+coordinate::coordinate(const Eigen::Vector3d& meters)
+{
+    const static unsigned r_e = 6371000;
+    _latitude = uav::angle::radians(std::asin(meters(1)/r_e));
+    _longitude = uav::angle::radians
+        (std::asin(meters(0)/(r_e * std::cos(_latitude))));
+    _altitude = meters(2);
+}
+
 const angle& coordinate::latitude() const
 {
     return _latitude;
@@ -84,6 +93,16 @@ bool coordinate::operator == (const coordinate& c) const
     return _latitude == c.latitude() &&
            _longitude == c.longitude() &&
            _altitude == c.altitude();
+}
+
+coordinate::operator Eigen::Vector3d ()
+{
+    const static unsigned r_e = 6371000;
+    Eigen::Vector3d ret;
+    ret(0) = r_e * std::sin(_longitude) * std::cos(_latitude);
+    ret(1) = r_e * std::sin(_latitude);
+    ret(2) = _altitude;
+    return ret;
 }
 
 std::ostream& operator << (std::ostream& os, const coordinate& c)

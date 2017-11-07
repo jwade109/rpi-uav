@@ -9,11 +9,11 @@ class kalman
     public:
 
     using state = Eigen::Matrix<rep, M, 1>;
-    using meas = Eigen::Matrix<rep, N, 1>;
+    using measure = Eigen::Matrix<rep, N, 1>;
     using control = Eigen::Matrix<rep, U, 1>;
 
     state x; // state estimate
-    meas z; // last measurement
+    measure z; // last measurement
     control u; // last control vector
 
     Eigen::Matrix<rep, N, N> P; // error covariance
