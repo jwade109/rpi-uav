@@ -6,6 +6,8 @@
 #include <sstream>
 #include <vector>
 
+#include <Eigen/Core>
+
 #include <uav/math>
 #include <uav/algorithm>
 #include <uav/hardware>
@@ -74,16 +76,16 @@ int main()
     while (1)
     {
         auto raw = sensors.get();
-        imu::Vector<3> acc = raw.ard.acc,
-            p_rel = displacement(home_point, raw.gps.gga.pos);
+        imu::Vector<3> acc = raw.ard.acc;
+        Eigen::Vector3d p_rel = raw.gps.gga.pos - home_point;
 
         auto hdg = uav::angle::degrees(90 - raw.gps.rmc.track_angle);
         double mps = raw.gps.rmc.ground_speed/2;
         double vx = mps*std::cos(hdg), vy = mps*std::sin(hdg);
 
-        double xfilt = xlpf.step(p_rel.x(), dt);
+        double xfilt = xlpf.step(p_rel(0), dt);
 
-        decltype(kf)::meas z; z << p_rel.x(), vx;
+        decltype(kf)::measure z; z << p_rel(0), vx;
         decltype(kf)::control u; u << acc.x();
 
         if (sec != raw.gps.gga.utc.second)
