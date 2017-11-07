@@ -4,6 +4,152 @@
 
 #include "freebody.h"
 
+namespace uav
+{
+
+freebody::freebody() : 
+    _m(1), _I(1, 1, 1), _s(0, 0, 0), _v(0, 0, 0),
+    _a(0, 0, 0), _q(1, 0, 0, 0), _omega(0, 0, 0),
+    _alpha(0, 0, 0) { }
+
+double freebody::m() const { return _m; }
+double& freebody::m() { return _m; }
+
+Eigen::Vector3d freebody::I() const { return _I; }
+Eigen::Vector3d& freebody::I() { return _I; }
+
+Eigen::Vector3d freebody::s() const { return _s; }
+Eigen::Vector3d& freebody::s() { return _s; };
+
+Eigen::Vector3d freebody::v() const { return _v; }
+Eigen::Vector3d& freebody::v() { return _v; }
+
+Eigen::Vector3d freebody::a() const { return _a; }
+Eigen::Vector3d& freebody::a() { return _a; }
+
+Eigen::Quaterniond freebody::q() const { return _q; }
+Eigen::Quaterniond& freebody::q() { return _q; }
+
+Eigen::Vector3d freebody::omega() const { return _omega; }
+Eigen::Vector3d& freebody::omega() { return _omega; }
+
+Eigen::Vector3d freebody::alpha() const { return _alpha; }
+Eigen::Vector3d& freebody::alpha() { return _alpha; }
+
+Eigen::Vector3d freebody::bv() const
+    { return _q.inverse() * _v; }
+void freebody::bv(const Eigen::Vector3d& v)
+    { _v = _q * v; }
+
+Eigen::Vector3d freebody::ba() const
+    { return _q.inverse() * _a; }
+void freebody::ba(const Eigen::Vector3d& a)
+    { _a = _q * a; }
+
+Eigen::Vector3d freebody::balpha() const
+    { return _q.inverse() * _alpha; }
+void freebody::balpha(const Eigen::Vector3d& alpha)
+    { _alpha = _q * alpha; }
+
+Eigen::Vector3d freebody::bomega() const
+    { return _q.inverse() * _omega; }
+void freebody::bomega(const Eigen::Vector3d& omega)
+    { _omega = _q * omega; }
+
+Eigen::Vector3d freebody::euler() const
+{
+    Eigen::Matrix3d rot = _q.normalized().toRotationMatrix();
+    Eigen::Vector3d
+        Xpp = rot.col(0),
+        Ypp = rot.col(1),
+        Zpp = rot.col(2),
+        Yp = Eigen::Vector3d(Ypp.x(), Ypp.y(), 0).normalized(),
+        Xp = Yp.cross(Eigen::Vector3d::UnitZ()),
+        Zp = Xp.cross(Ypp);
+
+    Eigen::Vector3d euler;
+    euler(0) = atan2(Xp(1), Xp(0));
+    euler(1) = asin(Ypp(2));
+    euler(2) = atan2(Xp.dot(Zpp), Zp.dot(Zpp));
+    return euler;
+}
+
+void freebody::euler(const Eigen::Vector3d& e)
+{
+    const auto X = Eigen::Vector3d::UnitX(),
+               Y = Eigen::Vector3d::UnitY(),
+               Z = Eigen::Vector3d::UnitZ();
+
+    Eigen::Vector3d
+        Xp = Eigen::AngleAxisd(e(0), Z) * X,
+        Yp = Eigen::AngleAxisd(e(0), Z) * Y,
+        Ypp = Eigen::AngleAxisd(e(1), Xp) * Yp,
+        Zp = Eigen::AngleAxisd(e(1), Xp) * Z,
+        Xpp = Eigen::AngleAxisd(e(2), Ypp) * Xp,
+        Zpp = Eigen::AngleAxisd(e(2), Ypp) * Zp;
+
+    Eigen::Matrix3d rot;
+    rot.col(0) = Xpp;
+    rot.col(1) = Ypp;
+    rot.col(2) = Zpp;
+
+    _q = Eigen::Quaterniond(rot).normalized();
+}
+
+void freebody::step(uint64_t micros)
+{
+    double dt = micros/1000000.0;
+
+    double theta = _omega.norm() * dt;
+    auto axis = _omega.normalized();
+    _q = _q * Eigen::AngleAxisd(theta, axis);
+
+    _omega += _alpha * dt;
+    _v += _a * dt;
+    _s += _v * dt;
+}
+
+void freebody::stepfor(uint64_t time, uint64_t micros)
+{
+    uint64_t elapsed = 0;
+    while (elapsed < time)
+    {
+        step(micros);
+        elapsed += micros;
+    }
+}
+
+void freebody::apply_force(const Eigen::Vector3d& force, bool frame)
+{
+    _a += (frame == inertial ? force : _q * force) / _m;
+}
+
+void freebody::apply_moment(const Eigen::Vector3d& moment, bool frame)
+{
+    _alpha += (frame == inertial ? moment : _q * moment).cwiseQuotient(_I);
+}
+
+void freebody::apply_wrench(const Eigen::Vector3d& force,
+    const Eigen::Vector3d& lever, bool frame)
+{
+    apply_force(force, frame);
+    apply_moment(lever.cross(force), frame);
+}
+
+} // namespace uav
+
+/*
+
+// euler angles must be in radians, rotation order Z-X'-Y''
+imu::Matrix<3> uav::euler2matrix(const imu::Vector<3>& euler)
+{
+}
+
+// returned euler angles are Z-X'-Y'' rotations in radians
+imu::Vector<3> uav::matrix2euler(const imu::Matrix<3>& m)
+{
+}
+
 uav::freebody::freebody() : time(0), mass(1), I_moment(1, 1, 1)
 {
     rotation = quat.toMatrix();
@@ -97,45 +243,6 @@ void uav::freebody::apply(const force& f, const imu::Vector<3>& lever)
     moments.push_back(m);
 }
 
-void uav::freebody::setbodyvel(const imu::Vector<3>& bvel)
-{
-    vel = rotation * bvel;
-}
-
-void uav::freebody::setbodyomega(const imu::Vector<3>& bomega)
-{
-    omega = rotation * bomega;
-}
-
-imu::Vector<3> uav::freebody::bodyvel()
-{
-    return rotation.invert() * vel;
-}
-
-imu::Vector<3> uav::freebody::bodyomega()
-{
-    return rotation.invert() * omega;
-}
-
-std::string uav::freebody::str() const
-{
-    std::stringstream ss;
-    ss << "time: " << time/1000000.0 << " mass: " << mass
-       << " I:    " << I_moment << std::endl
-       << "s:     " << pos << std::endl
-       << "v:     " << vel << std::endl
-       << "a:     " << accel << std::endl
-       << "α-β-γ: " << euler << std::endl
-       << "ω:     " << omega << std::endl
-       << "α:     " << alpha << std::endl
-       << "quat:  " << quat;
-    return ss.str();
-}
-
-uav::dronebody::dronebody() :
-    M0{1, 0, motor::CW, { 1,  1, 0}}, M1{1, 0, motor::CCW, {-1,  1, 0}},
-    M2{1, 0, motor::CW, {-1, -1, 0}}, M3{1, 0, motor::CCW, { 1, -1, 0}} { }
-
 void uav::dronebody::step(uint64_t micros)
 {
     apply(force{gravity.force * mass, rframe::inertial});
@@ -215,68 +322,4 @@ std::string uav::dronebody::str() const
        << M2 << std::endl << M3;
     return ss.str();
 }
-
-// euler angles must be in radians, rotation order Z-X'-Y''
-imu::Matrix<3> uav::euler2matrix(const imu::Vector<3>& euler)
-{
-    const imu::Vector<3> X(1, 0, 0), Y(0, 1, 0), Z(0, 0, 1);
-
-    imu::Vector<3> Xp(X.rotate(Z, euler.x())),
-        Yp(Y.rotate(Z, euler.x())),
-        Ypp(Yp.rotate(Xp, euler.y())),
-        Zp(Z.rotate(Xp, euler.y())),
-        Xpp(Xp.rotate(Ypp, euler.z())),
-        Zpp(Zp.rotate(Ypp, euler.z()));
-
-    imu::Matrix<3> m;
-    m.vector_to_col(Xpp, 0);
-    m.vector_to_col(Ypp, 1);
-    m.vector_to_col(Zpp, 2);
-    return m;
-}
-
-// returned euler angles are Z-X'-Y'' rotations in radians
-imu::Vector<3> uav::matrix2euler(const imu::Matrix<3>& m)
-{
-    imu::Vector<3> Xpp(m.col_to_vector(0)),
-        Ypp(m.col_to_vector(1)),
-        Zpp(m.col_to_vector(2)),
-        Yp(Ypp.x(), Ypp.y(), 0);
-    Yp.normalize();
-    imu::Vector<3> Xp(Yp.cross({0, 0, 1})),
-        Zp(Xp.cross(Ypp));
-
-    imu::Vector<3> euler;
-    euler.x() = atan2(Xp.y(), Xp.x());
-    euler.y() = asin(Ypp.z());
-    euler.z() = atan2(Xp.dot(Zpp), Zp.dot(Zpp));
-    return euler;
-}
-
-std::ostream& operator << (std::ostream& os, const uav::motor& m)
-{
-    os << "[ omega: " << m.omega << " Izz: " << m.Izz << " "
-       << (m.dir == uav::motor::CW ? "CW " : "CCW ")
-       << m.lever << "]";
-    return os;
-}
-
-std::ostream& operator << (std::ostream& os, const uav::freebody& fb)
-{
-    os << fb.str();
-    return os;
-}
-
-std::ostream& operator << (std::ostream& os, const uav::dronebody& db)
-{
-    os << db.str();
-    return os;
-}
-
-std::ostream& operator << (std::ostream& os, const imu::Quaternion& q)
-{
-    os << "{" << q.w() << ", " << q.x() << ", " << q.y()
-       << ", " << q.z() << "}";
-    return os;
-}
-
+*/

@@ -6,101 +6,61 @@
 
 namespace uav
 {
-    enum class rframe
-    {
-        inertial, body
-    };
 
-    struct force
-    {
-        imu::Vector<3> force;
-        rframe frame;
-    };
+enum frame : bool { inertial = false, body = true };
 
-    struct moment
-    {
-        imu::Vector<3> moment;
-        rframe frame;
-    };
+class freebody
+{
+    public:
 
-    const force gravity = {{0, 0, -9.81}, rframe::inertial};
+    freebody();
 
-    class freebody
-    {
-        public:
+    double m() const;
+    double& m();
+    Eigen::Vector3d I() const;
+    Eigen::Vector3d& I();
+    Eigen::Vector3d s() const;
+    Eigen::Vector3d& s();
+    Eigen::Vector3d v() const;
+    Eigen::Vector3d& v();
+    Eigen::Vector3d a() const;
+    Eigen::Vector3d& a();
+    Eigen::Quaterniond q() const;
+    Eigen::Quaterniond& q();
+    Eigen::Vector3d omega() const;
+    Eigen::Vector3d& omega();
+    Eigen::Vector3d alpha() const;
+    Eigen::Vector3d& alpha();
 
-        freebody();
+    Eigen::Vector3d bv() const;
+    void bv(const Eigen::Vector3d& body_vel);
+    Eigen::Vector3d ba() const;
+    void ba(const Eigen::Vector3d& body_accel);
+    Eigen::Vector3d balpha() const;
+    void balpha(const Eigen::Vector3d& body_alpha);
+    Eigen::Vector3d bomega() const;
+    void bomega(const Eigen::Vector3d& body_omega);
+    Eigen::Vector3d euler() const;
+    void euler(const Eigen::Vector3d& new_euler);
 
+    void step(uint64_t micros);
+    void stepfor(uint64_t time, uint64_t micros);
 
-        // intrinsic properties
-        double m() const;
-        double& m();
-        Eigen::Vector3d I() const;
-        Eigen::Vector3d& I();
-        Eigen::Vector3d s() const;
-        Eigen::Vector3d& s();
-        Eigen::Vector3d v() const;
-        Eigen::Vector3d& v();
-        Eigen::Vector3d a() const;
-        Eigen::Vector3d& a();
-        Eigen::Quaterniond q() const;
-        Eigen::Quaterniond& q();
-        Eigen::Vector3d a() const;
-        Eigen::Vector3d a() const;
-        Eigen::Vector3d& a();
-        Eigen::Vector3d& a();
+    void apply_force(const Eigen::Vector3d& force, bool frame);
+    void apply_moment(const Eigen::Vector3d& moment, bool frame);
+    void apply_wrench(const Eigen::Vector3d& force,
+                      const Eigen::Vector3d& lever, bool frame);
 
-        private:
+    private:
 
-        double _m;
-        Eigen::Vector3d _I;
+    double _m;
+    Eigen::Vector3d _I;
 
-        Eigen::Vector3d _s, _v, _a;
-        Eigen::Quaterniond _q;
-        Eigen::Vector3d _omega, _alpha;
-    };
+    Eigen::Vector3d _s, _v, _a;
+    Eigen::Quaterniond _q;
+    Eigen::Vector3d _omega, _alpha;
+};
 
-    struct motor
-    {
-        enum rdir : bool { CW = true, CCW = false };
-
-        double Izz;
-        double omega;
-        bool dir;
-        imu::Vector<3> lever;
-    };
-
-    class dronebody : public freebody
-    {
-        public:
-
-        motor M0, M1, M2, M3;
-
-        dronebody();
-        void step(uint64_t micros);
-        void stepfor(uint64_t micros, uint64_t dt);
-        void reset();
-
-        double tilt();
-
-        void set(uint8_t n, double omega);
-        void set(double o1, double o2, double o3, double o4);
-        void set(double omega[4]);
-
-        std::string str() const;
-    };
-
-    imu::Matrix<3> euler2matrix(const imu::Vector<3>& euler);
-
-    imu::Vector<3> matrix2euler(const imu::Matrix<3>& m);
-}
-
-std::ostream& operator << (std::ostream& os, const uav::motor& m);
-
-std::ostream& operator << (std::ostream& os, const uav::freebody& fb);
-
-std::ostream& operator << (std::ostream& os, const uav::dronebody& fb);
-
-std::ostream& operator << (std::ostream& os, const imu::Quaternion& q);
+} // namespace uav
 
 #endif // FREEBODY_H

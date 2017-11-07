@@ -31,7 +31,7 @@ class controller
 
     range_accumulator hdg_acc, roll_acc;
 
-    dronebody simulator;
+    freebody simulator;
     gps_baro_filter alt_filter;
     gps_position_filter pos_filter;
 };

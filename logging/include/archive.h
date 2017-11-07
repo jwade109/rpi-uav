@@ -5,6 +5,7 @@
 #include <vector>
 #include <array>
 #include <iostream>
+#include <type_traits>
 
 namespace uav
 {
@@ -33,15 +34,12 @@ class archive
     bool fail() const;
     void clear();
 
-    archive& operator << (const std::string& s);
-    archive& operator >> (std::string& s);
-
-    template <typename T, typename U =
-        std::enable_if_t<std::is_fundamental<T>::value, T>>
+    template <typename T, typename = typename
+        std::enable_if<std::is_fundamental<T>::value, T>::type>
         archive& operator << (T x);
     
-    template <typename T, typename U =
-        std::enable_if_t<std::is_fundamental<T>::value, T>>
+    template <typename T, typename = typename
+        std::enable_if<std::is_fundamental<T>::value, T>::type>
         archive& operator >> (T& x);
 
     template <typename T, size_t N>
@@ -55,6 +53,9 @@ class archive
 
     template <typename T>
         archive& operator >> (std::vector<T>& v);
+    
+    archive& operator << (const std::string& s);
+    archive& operator >> (std::string& s);
 
     private:
 

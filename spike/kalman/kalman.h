@@ -8,9 +8,13 @@ class kalman
 {
     public:
 
-    Eigen::Matrix<rep, N, 1> x; // state estimate
-    Eigen::Matrix<rep, M, 1> z; // last measurement
-    Eigen::Matrix<rep, U, 1> u; // last control vector
+    using state = Eigen::Matrix<rep, M, 1>;
+    using meas = Eigen::Matrix<rep, N, 1>;
+    using control = Eigen::Matrix<rep, U, 1>;
+
+    state x; // state estimate
+    meas z; // last measurement
+    control u; // last control vector
 
     Eigen::Matrix<rep, N, N> P; // error covariance
     Eigen::Matrix<rep, N, M> K; // kalman gain
