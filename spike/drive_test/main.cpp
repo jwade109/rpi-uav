@@ -74,15 +74,6 @@ int main(int argc, char** argv)
 
         auto p_rel = raw.gps.rmc.pos - home;
 
-        if (sec != raw.gps.rmc.utc.second)
-        {
-            kfx.H = kfy.H = H;
-            sec = raw.gps.rmc.utc.second;
-        }
-        else
-        {
-            kfx.H = kfy.H = decltype(H)::Zero();
-        }
         body.euler(Eigen::Vector3d(
             raw.ard.euler.x(), raw.ard.euler.y(), raw.ard.euler.z())*(M_PI/180));
         body.ba(Eigen::Vector3d(
@@ -93,8 +84,13 @@ int main(int argc, char** argv)
         decltype(kfy)::measure zy; zy << p_rel(1), vy;
         decltype(kfy)::control uy; uy << body.a()(1);
 
-        auto x_hat = kfx.step(zx, ux),
-             y_hat = kfy.step(zy, uy);
+        auto x_hat = kfx.predict(ux), y_hat = kfy.predict(uy);
+        if (sec != raw.gps.rmc.utc.second)
+        {
+            sec = raw.gps.rmc.utc.second;
+            x_hat = kfx.update(zx);
+            y_hat = kfy.update(zy);
+        }
 
         uav::coordinate filtered = home +
             Eigen::Vector3d(x_hat(0), y_hat(0), p_rel(2));

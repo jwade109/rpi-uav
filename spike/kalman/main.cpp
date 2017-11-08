@@ -97,7 +97,8 @@ int main()
         {
             kf.H = decltype(kf.H)::Zero();
         }
-        auto x_hat = kf.step(z, u);
+        kf.predict(u);
+        auto x_hat = kf.update(z);
 
         std::cout << std::setw(10) << p_rel.x()
                   << std::setw(10) << xfilt

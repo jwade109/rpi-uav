@@ -24,47 +24,36 @@ class kalman
     Eigen::Matrix<rep, M, M> R; // measurement noise
     Eigen::Matrix<rep, N, N> Q; // process noise
 
-    kalman();
-    kalman(const Eigen::Matrix<rep, N, 1>& initial);
-    const Eigen::Matrix<rep, N, 1>&
-        step(const Eigen::Matrix<rep, M, 1>& z,
-             const Eigen::Matrix<rep, U, 1>& u =
-             Eigen::Matrix<rep, U, 1>::Zero());
+    kalman(const state& initial) :
+        x(initial),
+        z(decltype(z)::Zero()),
+        u(decltype(u)::Zero()),
+        P(decltype(P)::Identity()),
+        K(decltype(K)::Zero()),
+        A(decltype(A)::Identity()),
+        B(decltype(B)::Zero()),
+        H(decltype(H)::Constant(1)),
+        R(decltype(R)::Identity()),
+        Q(decltype(Q)::Identity()) { }
+
+    kalman() : kalman(state::Zero()) { }
+
+    const state& predict(const control& u = control::Zero())
+    {
+        this->u = u;
+        x = A*x + B*u;
+        P = A * P * A.transpose() + Q;
+        return x;
+    }
+
+    const state& update(const measure& z)
+    {
+        this->z = z;
+        K = (P * H.transpose()) * (H * P * H.transpose() + R).inverse();
+        x = x + K * (z - H * x);
+        P = (Eigen::Matrix<rep, N, N>::Identity() - K * H) * P;
+        return x;
+    }
 };
-
-// default constructor
-template <size_t M, size_t N, size_t U, typename rep>
-kalman<M, N, U, rep>::kalman() :
-    kalman(Eigen::Matrix<rep, N, 1>::Zero())
-{ }
-
-// constructor with initial state
-template <size_t M, size_t N, size_t U, typename rep>
-kalman<M, N, U, rep>::kalman(const Eigen::Matrix<rep, N, 1>& initial) :
-    x(initial),
-    z(Eigen::Matrix<rep, M, 1>::Zero()),
-    u(Eigen::Matrix<rep, U, 1>::Zero()),
-    P(Eigen::Matrix<rep, N, N>::Identity()),
-    K(Eigen::Matrix<rep, N, M>::Zero()),
-    A(Eigen::Matrix<rep, N, N>::Identity()),
-    B(Eigen::Matrix<rep, N, U>::Zero()),
-    H(Eigen::Matrix<rep, M, N>::Constant(1)),
-    R(Eigen::Matrix<rep, M, M>::Identity()),
-    Q(Eigen::Matrix<rep, N, N>::Identity())
-{ }
-
-template <size_t M, size_t N, size_t U, typename rep>
-const Eigen::Matrix<rep, N, 1>& kalman<M, N, U, rep>::
-    step(const Eigen::Matrix<rep, M, 1>& z,
-         const Eigen::Matrix<rep, U, 1>& u)
-{
-    this->z = z;
-    x = A*x + B*u;
-    P = A * P * A.transpose() + Q;
-    K = (P * H.transpose()) * (H * P * H.transpose() + R).inverse();
-    x = x + K * (z - H * x);
-    P = (Eigen::Matrix<rep, N, N>::Identity() - K * H) * P;
-    return x;
-}
 
 #endif // KALMAN_H
