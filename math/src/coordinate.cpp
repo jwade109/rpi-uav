@@ -3,6 +3,8 @@
 #include <iomanip>
 #include <sstream>
 
+const int r_e = 6371000;
+
 namespace uav
 {
 
@@ -16,15 +18,6 @@ coordinate::coordinate(const angle& N, const angle& E, double alt) :
 
 coordinate::coordinate(double dN, double dE, double alt) :
     coordinate(dN, 0, 0, 0, dE, 0, 0, 0, alt) { }
-
-coordinate::coordinate(const Eigen::Vector3d& meters)
-{
-    const static unsigned r_e = 6371000;
-    _latitude = uav::angle::radians(std::asin(meters(1)/r_e));
-    _longitude = uav::angle::radians
-        (std::asin(meters(0)/(r_e * std::cos(_latitude))));
-    _altitude = meters(2);
-}
 
 const angle& coordinate::latitude() const
 {
@@ -64,28 +57,34 @@ coordinate& coordinate::operator = (const coordinate& c)
     return *this;
 }
 
-coordinate coordinate::operator + (const coordinate& c) const
+coordinate coordinate::operator + (const Eigen::Vector3d& v) const
 {
-    return coordinate(_latitude + c.latitude(),
-                      _longitude + c.longitude(),
-                      _altitude + c.altitude());
+    uav::coordinate c = *this;
+    c.longitude() += angle::radians(v(0)/r_e);
+    c.latitude() += angle::radians(v(1)/r_e);
+    c.altitude() += v(2);
+    return c;
 }
 
-coordinate coordinate::operator - (const coordinate& c) const
+coordinate coordinate::operator - (const Eigen::Vector3d& c) const
 {
-    return coordinate(_latitude - c.latitude(),
-                      _longitude - c.longitude(),
-                      _altitude - c.altitude());
+    return *this + (-c);
 }
 
-coordinate& coordinate::operator += (const coordinate& c)
+Eigen::Vector3d coordinate::operator - (const coordinate& c) const
 {
-    return *this = *this + c;
+    return Eigen::Vector3d((_longitude - c.longitude()) * r_e,
+        (_latitude - c.latitude()) * r_e, _altitude - c.altitude());
 }
 
-coordinate& coordinate::operator -= (const coordinate& c)
+coordinate& coordinate::operator += (const Eigen::Vector3d& v)
 {
-    return *this = *this - c;
+    return *this = *this + v;
+}
+
+coordinate& coordinate::operator -= (const Eigen::Vector3d& v)
+{
+    return *this = *this - v;
 }
 
 bool coordinate::operator == (const coordinate& c) const
@@ -93,16 +92,6 @@ bool coordinate::operator == (const coordinate& c) const
     return _latitude == c.latitude() &&
            _longitude == c.longitude() &&
            _altitude == c.altitude();
-}
-
-coordinate::operator Eigen::Vector3d ()
-{
-    const static unsigned r_e = 6371000;
-    Eigen::Vector3d ret;
-    ret(0) = r_e * std::sin(_longitude) * std::cos(_latitude);
-    ret(1) = r_e * std::sin(_latitude);
-    ret(2) = _altitude;
-    return ret;
 }
 
 std::ostream& operator << (std::ostream& os, const coordinate& c)

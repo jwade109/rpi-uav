@@ -76,10 +76,8 @@ TEST_CASE( "Testing coordinate functionality.", "[coordinate]" )
     coordinate d(45, 32, 19,     123, -34, -21, -9.1, 0,    43.2);
 
     REQUIRE( c == d );
-    REQUIRE( c - d == coordinate() );
-    REQUIRE( c + d == coordinate(90, 64, 38, 246, -68, -42, -18.2, 0, 86.4) );
+    REQUIRE( c - d == Eigen::Vector3d::Zero() );
 
-    coordinate e(12_deg + 3_min, 5_sec - 3_ms, 0);
-
-    REQUIRE( c + e == coordinate(57, 35, 19, 123, -34, -21, -4, -103, 43.2) );
+    Eigen::Vector3d disp(-81, 134, 67);
+    REQUIRE( ((c + disp - c) - disp).norm() < 0.01 );
 }

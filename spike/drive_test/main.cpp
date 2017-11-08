@@ -12,25 +12,35 @@
 
 #include "kalman.h"
 
-int main()
+int main(int argc, char** argv)
 {
     uav::sensor_hub sensors;
     if (sensors.begin()) return 1;
+
+    std::this_thread::sleep_for(std::chrono::seconds(2));
 
     // M: measurements. position and velocity.
     // N: states. position and velocity.
     // U: control vector. only acceleration.
     const size_t M = 2, N = 2, U = 1, freq = 50;
     const double dt = 1.0/freq;
-    kalman<M, N, U, double> kfx;
+    kalman<M, N, U, double> kfx, kfy;
 
     kfx.R *= 15; // high gps measurement error
-    kfx.Q *= 1;  // relatively lower process noise
+    kfx.Q *= 0.2;  // relatively lower process noise
     kfx.P *= 1;  // high initial certainty
     kfx.H << 1, 0, 0, 1; // observations map directly to state
 
     kfx.A << 1, dt, 0, 1; // state transitions w/ kinematics
     kfx.B << 0.5*dt*dt, dt; // acceleration to pos, vel
+
+    kfy.R *= 15; // high gps measurement error
+    kfy.Q *= 0.2;  // relatively lower process noise
+    kfy.P *= 1;  // high initial certainty
+    kfy.H << 1, 0, 0, 1; // observations map directly to state
+
+    kfy.A << 1, dt, 0, 1; // state transitions w/ kinematics
+    kfy.B << 0.5*dt*dt, dt; // acceleration to pos, vel
 
     std::cout << std::left << std::fixed << std::setprecision(3);
 
@@ -62,26 +72,32 @@ int main()
         double mps = raw.gps.rmc.ground_speed/2;
         double vx = mps*std::cos(hdg), vy = mps*std::sin(hdg);
 
-        Eigen::Vector3d p_rel = raw.gps.rmc.pos - home;
+        auto p_rel = raw.gps.rmc.pos - home;
 
-        decltype(kfx)::measure z; z << p_rel(0), vx;
-        decltype(kfx)::control u; u << raw.ard.acc.x();
-
-        if (sec != raw.gps.gga.utc.second)
+        if (sec != raw.gps.rmc.utc.second)
         {
-            kfx.H = H;
+            kfx.H = kfy.H = H;
             sec = raw.gps.rmc.utc.second;
         }
         else
         {
-            kfx.H = decltype(kfx.H)::Zero();
+            kfx.H = kfy.H = decltype(H)::Zero();
         }
-        auto x_hat = kfx.step(z, u);
-
         body.euler(Eigen::Vector3d(
             raw.ard.euler.x(), raw.ard.euler.y(), raw.ard.euler.z())*(M_PI/180));
         body.ba(Eigen::Vector3d(
             raw.ard.acc.x(), raw.ard.acc.y(), raw.ard.acc.z()));
+
+        decltype(kfx)::measure zx; zx << p_rel(0), vx;
+        decltype(kfx)::control ux; ux << body.a()(0);
+        decltype(kfy)::measure zy; zy << p_rel(1), vy;
+        decltype(kfy)::control uy; uy << body.a()(1);
+
+        auto x_hat = kfx.step(zx, ux),
+             y_hat = kfy.step(zy, uy);
+
+        uav::coordinate filtered = home +
+            Eigen::Vector3d(x_hat(0), y_hat(0), p_rel(2));
 
         using fsec = std::chrono::duration<double, std::ratio<1>>;
         auto now = std::chrono::steady_clock::now();
@@ -99,10 +115,15 @@ int main()
                   << std::setw(15) << raw.ard.euler.x() // "heading"
                   << std::setw(15) << raw.ard.euler.y() // "pitch"
                   << std::setw(15) << raw.ard.euler.z() // "roll"
-                  << std::setw(50) << 0 // "pos_kalman"
-                  << std::setw(15) << 0 // "vE_kalman"
-                  << std::setw(15) << 0 // "vN_kalman"
-                  << std::endl;
+                  << std::setw(50) << filtered // "pos_kalman"
+                  << std::setw(15) << x_hat(1) // "vE_kalman"
+                  << std::setw(15) << y_hat(1); // "vN_kalman"
+
+        if (argc > 1) std::cout << "    \r" << std::flush;
+        else std::cout << std::endl;
+
+        if (argc == 1) std::cerr << dec_seconds.count()
+            << "      \r" << std::flush;
 
         std::this_thread::sleep_for(std::chrono::milliseconds(1000/freq));
     }
