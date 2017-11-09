@@ -102,7 +102,7 @@ void freebody::step(uint64_t micros)
 
     double theta = _omega.norm() * dt;
     auto axis = _omega.normalized();
-    _q = _q * Eigen::AngleAxisd(theta, axis);
+    _q = (_q * Eigen::AngleAxisd(theta, axis)).normalized();
 
     _omega += _alpha * dt;
     _v += _a * dt;
