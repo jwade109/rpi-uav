@@ -4,10 +4,8 @@
 #include <Adafruit_BMP085_U.h>
 #include <utility/imumaths.h>
 
-Adafruit_BNO055 bno = Adafruit_BNO055();
-Adafruit_BMP280 bmp = Adafruit_BMP280();
-
-long int last_millis = 0;
+Adafruit_BNO055 bno;
+Adafruit_BMP280 bmp;
 
 void setup(void)
 {
@@ -45,7 +43,8 @@ void loop(void)
     Serial.print(' ');
 
     imu::Vector<3> euler = bno.getQuat().toEuler();
-    Serial.print(euler.x() * 180/PI);
+    double hdg = degrees(euler.x()) - 90;
+    Serial.print(hdg < 0 ? hdg + 360 : hdg);
     Serial.print(' ');
     Serial.print(euler.y() * 180/PI);
     Serial.print(' ');
@@ -54,7 +53,7 @@ void loop(void)
 
     uint8_t s, g, a, m;
     bno.getCalibration(&s, &g, &a, &m);
-    Serial.print((s << 6) + (g << 4) + (a << 2) + m);
+    Serial.print(s + (g << 2) + (a << 4) + (m << 6));
     Serial.print(' ');
 
     Serial.print(bmp.readTemperature());
