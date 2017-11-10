@@ -5,6 +5,7 @@
 #include <string>
 #include <sstream>
 #include <vector>
+#include <bitset>
 
 #include <uav/math>
 #include <uav/algorithm>
@@ -47,9 +48,11 @@ int main(int argc, char** argv)
     */
 
     std::cout << std::left << std::fixed << std::setprecision(3);
-
+    std::cerr << std::fixed << std::setprecision(3);
     std::cout << std::setw(12) << "timestamp"
-              << std::setw(45) << "pos_gnss"
+              << std::setw(12) << "latitude"
+              << std::setw(12) << "longitude"
+              << std::setw(12) << "altitude"
               << std::setw(12) << "track_good"
               << std::setw(12) << "knots"
               << std::setw(12) << "HDOP"
@@ -62,6 +65,7 @@ int main(int argc, char** argv)
               << std::setw(12) << "heading"
               << std::setw(12) << "pitch"
               << std::setw(12) << "roll"
+              << std::setw(12) << "calib"
               << std::setw(12) << "alt1"
               << std::setw(12) << "alt2" << std::endl;
 
@@ -71,8 +75,15 @@ int main(int argc, char** argv)
     uav::freebody body;
     // uav::coordinate home = sensors.get().gps.rmc.pos;
 
+    auto start = std::chrono::steady_clock::now(), now = start;
+    auto delay = std::chrono::milliseconds(1000/freq),
+         runtime = delay * 0;
+
     while (1)
     {
+        while (now < start + runtime)
+            now = std::chrono::steady_clock::now();
+
         auto raw = sensors.get();
         auto hdg = uav::angle::degrees(90 - raw.gps.rmc.track_angle);
         double mps = raw.gps.rmc.ground_speed/2;
@@ -107,7 +118,9 @@ int main(int argc, char** argv)
         auto dec_seconds = std::chrono::duration_cast<fsec>(now - start);
 
         std::cout << std::setw(12) << dec_seconds.count() // "timestamp"
-                  << std::setw(45) << raw.gps.gga.pos // "pos_gnss"
+                  << std::setw(12) << raw.gps.gga.pos.latitude() // "pos_gnss"
+                  << std::setw(12) << raw.gps.gga.pos.longitude()
+                  << std::setw(12) << raw.gps.gga.pos.altitude()
                   << std::setw(12) << raw.gps.rmc.track_angle // "track_good"
                   << std::setw(12) << raw.gps.rmc.ground_speed // "knots"
                   << std::setw(12) << raw.gps.gga.hdop // "HDOP"
@@ -120,15 +133,16 @@ int main(int argc, char** argv)
                   << std::setw(12) << raw.ard.euler.x() // "heading"
                   << std::setw(12) << raw.ard.euler.y() // "pitch"
                   << std::setw(12) << raw.ard.euler.z() // "roll"
+                  << std::setw(12) << std::bitset<8>(raw.ard.calib) // "calib"
                   << std::setw(12) << uav::altitude(raw.ard.pres)
                   << std::setw(12) << uav::altitude(raw.bmp.pressure);
         if (argc > 1) std::cout << "    \r" << std::flush;
         else std::cout << std::endl;
 
-        if (argc == 1) std::cerr << dec_seconds.count()
-            << "      \r" << std::flush;
+        if (argc == 1) std::cerr << "  " << dec_seconds.count()
+            << "          \r" << std::flush;
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(1000/freq));
+        runtime += delay;
     }
 
     return 0;

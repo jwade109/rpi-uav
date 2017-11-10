@@ -21,7 +21,7 @@ int main()
         uav::arduino_data m = imu.get();
         std::cout << "  " << m.millis/1000.0 << "\t"
                   << m.euler.x() << "\t" << m.euler.y() << "\t"
-                  << m.euler.z() << "\t" << std::hex << (int) m.calib
+                  << m.euler.z() << "\t" << (int) m.calib
                   << std::dec << "\t" << m.pres << "\t"
                   << m.acc.x() << "\t" << m.acc.y() << "\t"
                   << m.acc.z() << "\r" << std::flush;
