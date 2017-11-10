@@ -1,0 +1,6 @@
+#include "../../algorithm/include/pid.h"
+#include "../../algorithm/include/filters.h"
+#include "../../algorithm/include/gps_baro_filter.h"
+#include "../../algorithm/include/gps_position_filter.h"
+#include "../../algorithm/include/mass_estimator.h"
+#include "../../algorithm/include/motor_director.h"

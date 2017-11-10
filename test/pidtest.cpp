@@ -9,27 +9,6 @@
 
 #include <pid.h>
 
-int main()
-{
-    imu::Vector<2> pos(0,0), vel, accel(pos), setpoint(10, -14);
-    double dt = 0.01;
-    pid_vector<2> pv(1, 0, 1.6);
-    std::cout << "Start: " << pos << std::endl;
-    while (true)
-    {
-        accel = pv.seek(pos, setpoint, dt);
-        vel += accel * dt;
-        pos += vel * dt;
-        std::cout << std::setw(30) << std::left << pos
-            << std::setw(30) << std::left << accel
-            << " " << setpoint << std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));
-    }
-    return 0;
-}
-
-/*
-
 bool verbose = false;
 bool toFile = false;
 int whack = -1;
@@ -42,7 +21,8 @@ int main(int argc, char** argv)
     typedef std::chrono::duration<double> fsec;
 
     double position = 0, setpoint = 10, P = 1, I = 0.02, D = 2;
-    auto dt = milliseconds(10);
+    const uint8_t freq = 100;
+    auto dt = milliseconds(1000/freq);
 
     for (int i = 1; i < argc; i++)
     {
@@ -118,7 +98,7 @@ int main(int argc, char** argv)
         dataFile.open("pid.txt", std::ios::out);
     }
 
-    pid_controller control(P, I, D, -1);
+    pid_controller control(freq, P, I, D);
     double vel = 0;
     int count = 0;
     
@@ -140,8 +120,7 @@ int main(int argc, char** argv)
 
     for (auto t = milliseconds(0); t < minutes(1); t += dt)
     {
-        double resp = control.seek(position, setpoint,
-                duration_cast<fsec>(dt).count());
+        double resp = control.seek(position, setpoint);
         vel += (resp - error_ext) * duration_cast<fsec>(dt).count();
         if (count == whack * 100)
         {
@@ -181,5 +160,3 @@ int main(int argc, char** argv)
         count++;
     }
 }
-
-*/

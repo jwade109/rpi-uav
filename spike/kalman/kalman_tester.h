@@ -20,27 +20,29 @@ std::string printmat(const Eigen::Matrix<rep, M, N>& m)
     return s.str();
 }
 
-template <size_t M, size_t N, typename rep>
-std::string printfilter(const kalman<M, N, rep>& k)
+template <size_t M, size_t N, size_t U, typename rep>
+std::string printfilter(const kalman<M, N, U, rep>& k)
 {
     std::stringstream s;
-    s << "X: " << printmat(k.X) << std::endl
-      << "Z: " << printmat(k.Z) << std::endl
+    s << "x: " << printmat(k.x) << std::endl
+      << "z: " << printmat(k.z) << std::endl
+      << "u: " << printmat(k.u) << std::endl
       << "P: " << printmat(k.P) << std::endl
-      << "G: " << printmat(k.G) << std::endl
-      << "F: " << printmat(k.F) << std::endl
+      << "K: " << printmat(k.K) << std::endl
+      << "A: " << printmat(k.A) << std::endl
+      << "B: " << printmat(k.B) << std::endl
       << "H: " << printmat(k.H) << std::endl
       << "R: " << printmat(k.R) << std::endl
       << "Q: " << printmat(k.Q) << std::endl;
     return s.str();
 }
 
-template <size_t M, size_t N, typename rep>
+template <size_t M, size_t N, size_t U, typename rep>
 class kalman_tester
 {
     public:
 
-    kalman_tester(kalman<M, N, rep> *kf);
+    kalman_tester(kalman<M, N, U, rep>& kf);
 
     void step(const Eigen::Matrix<rep, M, 1>& meas,
               const Eigen::Matrix<rep, N, 1>& real);
@@ -54,7 +56,7 @@ class kalman_tester
     private:
 
     Eigen::Matrix<rep, N, M> last_G;
-    kalman<M, N, rep> *filter;
+    kalman<M, N, rep>& filter;
     std::vector<Eigen::Matrix<rep, N, 1>> error;
 };
 

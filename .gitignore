@@ -1,10 +1,12 @@
 # Ignore the build
-.build
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+Makefile
+build
 
 # Ignore any executables
 bin
-*.exe
-launch
 
 # Ignore Mac specific files
 .DS_Store

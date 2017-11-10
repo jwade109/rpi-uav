@@ -5,8 +5,8 @@
 #include <string>
 #include <sstream>
 
-#include <gps.h>
-#include <filters.h>
+#include <uav/hardware>
+#include <uav/algorithm>
 
 char load()
 {
@@ -32,33 +32,32 @@ int main()
         return 1;
     }
     uav::gps_data gp{0};
-    uav::coordinate home;
 
     while (gp.gga.num_sats == 0)
     {
+        std::cout << load() << "\r" << std::flush;
         r.update(gp);
-        home = gp.gga.pos;
     }
 
-    uav::low_pass xlpf(2), ylpf(2);
+    std::cout << std::fixed << std::setprecision(2);
 
     while (1)
     {
         if (r.update(gp));
         {
-            auto rel = gp.gga.pos - home;
-
-            imu::Vector<2> rel_filt =
-                {xlpf.step(rel.x(), 0.02), ylpf.step(rel.y(), 0.02)};
+            auto hdg = uav::angle::degrees(90 - gp.rmc.track_angle);
+            double mps = gp.rmc.ground_speed/2;
+            double vx = mps*std::cos(hdg), vy = mps*std::sin(hdg);
 
             std::cout << (int) gp.rmc.month << "/"
                 << (int) gp.rmc.day << "/"
                 << (int) gp.rmc.year << " "
                 << gp.gga.utc << " "
-                << gp.gga.pos.lat << " "
-                << gp.gga.pos.lon << " "
+                << gp.gga.pos << " "
                 << (int) gp.gga.num_sats << " "
-                << "\r" << std::flush; // rel << " " << rel_filt << std::endl;
+                << "< " << vx << ", " << vy << " > "
+                << gp.gga.hdop <<  "     \r"
+                << std::flush;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
