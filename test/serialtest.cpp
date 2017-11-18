@@ -1,6 +1,7 @@
 #include <iostream>
 #include <chrono>
 #include <thread>
+#include <bitset>
 
 #include <uav/hardware>
 
@@ -15,13 +16,13 @@ int main()
     }
 
     std::cout << std::fixed << std::setprecision(2)
-        << "  time\thdg\tpitch\troll\tcal\tpres\tax\tay\taz" << std::endl;
+        << "  time\thdg\tpitch\troll\tcal\t\tpres\tax\tay\taz" << std::endl;
     while (1)
     {
         uav::arduino_data m = imu.get();
         std::cout << "  " << m.millis/1000.0 << "\t"
                   << m.euler.x() << "\t" << m.euler.y() << "\t"
-                  << m.euler.z() << "\t" << (int) m.calib
+                  << m.euler.z() << "\t" << std::bitset<8>(m.calib)
                   << std::dec << "\t" << m.pres << "\t"
                   << m.acc.x() << "\t" << m.acc.y() << "\t"
                   << m.acc.z() << "\r" << std::flush;

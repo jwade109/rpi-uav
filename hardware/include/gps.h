@@ -165,7 +165,7 @@ class gps
     pmtk_echo_5Hz, pmtk_echo_10Hz,
 
     // position fix update rate (formerly PMTK_API_SET_FIX_CTL_XXX_HERTZ)
-    pmtk_fix_100mHz, pmtk_fix_200mHz, pmtk_fix_1Hz, pmtk_fix_5Hz,
+    pmtk_fix_100mHz, pmtk_fix_200mHz, pmtk_fix_1Hz, pmtk_fix_5Hz, pmtk_fix_10Hz,
 
     // baud rate commands
     pmtk_B57600, pmtk_B9600,

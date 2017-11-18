@@ -24,41 +24,41 @@ All text above must be included in any redistribution
 namespace uav
 {
 
-const std::string gps::pmtk_echo_100mHz("$PMTK220,10000*2F");
-const std::string gps::pmtk_echo_200mHz("$PMTK220,5000*1B");
-const std::string gps::pmtk_echo_1Hz("$PMTK220,1000*1F");
-const std::string gps::pmtk_echo_5Hz("$PMTK220,200*2C");
-const std::string gps::pmtk_echo_10Hz("$PMTK220,100*2F");
+// const std::string gps::pmtk_echo_100mHz("$PMTK220,10000*2F\x0d\x0a");
+// const std::string gps::pmtk_echo_200mHz("$PMTK220,5000*1B\x0d\x0a");
+// const std::string gps::pmtk_echo_1Hz("$PMTK220,1000*1F\x0d\x0a");
+// const std::string gps::pmtk_echo_5Hz("$PMTK220,200*2C\x0d\x0a");
+// const std::string gps::pmtk_echo_10Hz("$PMTK220,100*2F\r\n");
 
-const std::string gps::pmtk_fix_100mHz("$PMTK300,10000,0,0,0,0*2C");
-const std::string gps::pmtk_fix_200mHz("$PMTK300,5000,0,0,0,0*18");
-const std::string gps::pmtk_fix_1Hz("$PMTK300,1000,0,0,0,0*1C");
-const std::string gps::pmtk_fix_5Hz("$PMTK300,200,0,0,0,0*2F");
-
-const std::string gps::pmtk_B57600("$PMTK251,57600*2C");
-const std::string gps::pmtk_B9600("$PMTK251,9600*17");
+// const std::string gps::pmtk_fix_100mHz("$PMTK300,10000,0,0,0,0*2C\x0d\x0a");
+// const std::string gps::pmtk_fix_200mHz("$PMTK300,5000,0,0,0,0*18\x0d\x0a");
+// const std::string gps::pmtk_fix_1Hz("$PMTK300,1000,0,0,0,0*1C\x0d\x0a");
+const std::string gps::pmtk_fix_5Hz("$PMTK300,200,0,0,0,0*2F\r\n");
+const std::string gps::pmtk_fix_10Hz("$PMTK300,100,0,0,0,0*2C\r\n");
+const std::string gps::pmtk_B57600("$PMTK251,57600*2C\r\n");
+const std::string gps::pmtk_B9600("$PMTK251,9600*17\x0d\x0a");
 
 const std::string gps::pmtk_nmea_gprmc
-    ("$PMTK314,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29");
+    ("$PMTK314,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*29\x0d\x0a");
 const std::string gps::pmtk_nmea_gprmc_gga
-    ("$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28");
+    ("$PMTK314,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0*28\x0d\x0a");
 const std::string gps::pmtk_nmea_all
-    ("$PMTK314,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0*28");
+    ("$PMTK314,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0*28\x0d\x0a");
 
-const std::string gps::pmtk_locus_startlog("$PMTK185,0*22");
-const std::string gps::pmtk_locus_stoplog("$PMTK185,1*23");
-const std::string gps::pmtk_locus_startstopack("$PMTK001,185,3*3C");
-const std::string gps::pmtk_locus_query_status("$PMTK183*38");
-const std::string gps::pmtk_locus_erase_flash("$PMTK184,1*22");
+const std::string gps::pmtk_locus_startlog("$PMTK185,0*22\x0d\x0a");
+const std::string gps::pmtk_locus_stoplog("$PMTK185,1*23\x0d\x0a");
+const std::string gps::pmtk_locus_startstopack("$PMTK001,185,3*3C\x0d\x0a");
+const std::string gps::pmtk_locus_query_status("$PMTK183*38\x0d\x0a");
+const std::string gps::pmtk_locus_erase_flash("$PMTK184,1*22\x0d\x0a");
 
-const std::string gps::pmtk_enable_sbas("$PMTK313,1*2E");
-const std::string gps::pmtk_enable_waas("$PMTK301,2*2E");
+const std::string gps::pmtk_enable_waas("$PMTK301,2*2E\r\n");
+const std::string gps::pmtk_enable_sbas("$PMTK313,1*2E\r\n");
 
-const std::string gps::pmtk_standby("$PMTK161,0*28");
-const std::string gps::pmtk_standby_success("$PMTK001,161,3*36");
-const std::string gps::pmtk_awake("$PMTK010,002*2D");
+const std::string gps::pmtk_standby("$PMTK161,0*28\x0d\x0a");
+const std::string gps::pmtk_standby_success("$PMTK001,161,3*36\x0d\x0a");
+const std::string gps::pmtk_awake("$PMTK010,002*2D\x0d\x0a");
 
-const std::string gps::pmtk_query_release("$PMTK605*31");
+const std::string gps::pmtk_query_release("$PMTK605*31\x0d\x0a");
 
 gps::gps() : data{0}, newflag(false), cont(false), status(0), fd(-1) { }
 
@@ -73,13 +73,50 @@ int gps::begin()
 {
     if (cont) return 0;
 
-    fd = serialOpen("/dev/ttyS0", 9600);
+    const int baudrates[] = {9600, 57600};
+    int maxcount = 0, bestbaud = baudrates[0];
+    for (int baud : baudrates)
+    {
+        int testfd = serialOpen("/dev/ttyS0", baud);
+        if (testfd < 0)
+        {
+            std::cerr << "gps: failed to detect baud rate" << std::endl;
+            return 1;
+        }
+        serialFlush(testfd);
+        int count = 0;
+        for (int i = 0; i < 100; i++)
+        {
+            int c = serialGetchar(testfd);
+            count += std::isprint(c) ? 1 : 0;
+        }
+        if (count > maxcount)
+        {
+            bestbaud = baud;
+            maxcount = count;
+        }
+        serialClose(testfd);
+    }
+
+    fd = serialOpen("/dev/ttyS0", bestbaud);
     if (fd < 0)
     {
         std::cerr << "gps: failed to open /dev/ttyS0" << std::endl;
-        return 1;
+        return 2;
     }
 
+    if (bestbaud != 57600)
+    {
+        serialPrintf(fd, pmtk_B57600.c_str());
+        serialClose(fd);
+        fd = serialOpen("/dev/ttyS0", 57600);
+    }
+    serialPrintf(fd, pmtk_fix_5Hz.c_str());
+    serialPrintf(fd, pmtk_enable_sbas.c_str());
+    serialPrintf(fd, pmtk_enable_waas.c_str());
+    serialPrintf(fd, "$PMTK501,2*28\r\n");
+    serialClose(fd);
+    fd = serialOpen("/dev/ttyS0", 57600);
     cont = true;
     reader = std::thread(&gps::dowork, this);
 
@@ -89,14 +126,14 @@ int gps::begin()
         cont = false;
         if (reader.joinable()) reader.join();
         std::cerr << "gps: connection timed out" << std::endl;
-        return 2;
+        return 3;
     }
     else if (status == -2)
     {
         cont = false;
         if (reader.joinable()) reader.join();
         std::cerr << "gps: no fix" << std::endl;
-        return 2;
+        return 4;
     }
 
     return 0;
@@ -272,16 +309,15 @@ utc_time parse_utc(const std::string& data)
 {
     if (data.empty()) return utc_time{0};
     std::stringstream ss(data);
-    double num;
-    ss >> num;
+    uint64_t num;
+    char ch;
     utc_time u;
+    ss >> num; ss >> ch; ss >> u.ms;
     u.hour = num/10000;
     num -= u.hour * 10000;
     u.minute = num/100;
     num -= u.minute * 100;
     u.second = num;
-    num -= u.second;
-    u.ms = num * 1000;
     return u;
 }
 
@@ -478,4 +514,4 @@ gpvtg parse_gpvtg(const std::string& nmea)
     return ret;
 }
 
-}
+} // namespace uav
