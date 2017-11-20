@@ -158,34 +158,6 @@ class gps
 
     void dowork();
     void update_info(std::stringstream& ss);
-
-    // position echo rate commands (formerly PMTK_SET_NMEA_UPDATE_XXX_HERTZ)
-    static const std::string
-    pmtk_echo_100mHz, pmtk_echo_200mHz, pmtk_echo_1Hz,
-    pmtk_echo_5Hz, pmtk_echo_10Hz,
-
-    // position fix update rate (formerly PMTK_API_SET_FIX_CTL_XXX_HERTZ)
-    pmtk_fix_100mHz, pmtk_fix_200mHz, pmtk_fix_1Hz, pmtk_fix_5Hz, pmtk_fix_10Hz,
-
-    // baud rate commands
-    pmtk_B57600, pmtk_B9600,
-
-    // data format commands
-    pmtk_nmea_gprmc, pmtk_nmea_gprmc_gga, pmtk_nmea_all,
-
-    pmtk_locus_startlog, pmtk_locus_stoplog, pmtk_locus_startstopack,
-    pmtk_locus_query_status, pmtk_locus_erase_flash,
-
-    pmtk_enable_sbas, pmtk_enable_waas,
-
-    // standby command & boot successful message
-    pmtk_standby, pmtk_standby_success, pmtk_awake,
-
-    // ask for the release and version
-    pmtk_query_release,
-
-    // request for updates on antenna status
-    pgcmd_antenna, pgcmd_noantenna;
 };
 
 std::ostream& operator << (std::ostream& os, const utc_time& u);

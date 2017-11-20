@@ -1,6 +1,6 @@
 include_directories("${CMAKE_CURRENT_LIST_DIR}/include/")
 
-add_library(control OBJECT
+add_library(control
     ${CMAKE_CURRENT_LIST_DIR}/src/controller.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/state.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/param.cpp
@@ -8,4 +8,8 @@ add_library(control OBJECT
 
 add_executable(launch
     ${CMAKE_CURRENT_LIST_DIR}/src/launch.cpp)
-target_link_libraries(launch uav)
+target_link_libraries(launch control algorithm logging hardware math)
+
+add_executable(bin2txt
+    ${CMAKE_CURRENT_LIST_DIR}/test/bin2txt.cpp)
+target_link_libraries(bin2txt control logging math)

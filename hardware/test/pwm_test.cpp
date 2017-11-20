@@ -17,7 +17,7 @@ int main()
     signal(SIGINT, sigint);
 
     pwm_driver pwm;
-    pwm.begin(0x40);
+    if (pwm.begin(0x40) > 0) return 1;
     pwm.reset();
     pwm.setPWMFreq(1600);
     {
