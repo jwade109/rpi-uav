@@ -81,8 +81,9 @@ int main(int argc, char** argv)
         statelog << (sl << s);
 
         std::cout << s.time[0]/1000.0 << " "
-                  << s.position << " : "
-                  << s.attitude[0] << " "
+                  << s.position << " ("
+                  << ((raw.gps.gga.fix_quality == 2) ? "SBAS" : "SP")
+                  << ") " << s.attitude[0] << " "
                   << s.attitude[1] << " "
                   << s.attitude[2] << "\r" << std::flush;
 
