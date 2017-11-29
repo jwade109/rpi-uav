@@ -188,7 +188,7 @@ void gps::dowork()
         message << ch;
         ch = serialGetchar(fd);
 
-        if (status == 0) status = data.gga.num_sats > 0;
+        if (status == 0) status = data.gga.fix_quality > 0;
     }
 }
 
