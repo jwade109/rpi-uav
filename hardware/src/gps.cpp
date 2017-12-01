@@ -54,7 +54,7 @@ const char* pmtk_awake = "$PMTK010,002*2D\r\n";
 
 const char* pmtk_query_release = "$PMTK605*31\x0d\x0a";
 
-gps::gps() : data{0}, newflag(false), cont(false), status(0), fd(-1) { }
+gps::gps() : data{0}, cont(false), status(0), fd(-1) { }
 
 gps::~gps()
 {
@@ -135,20 +135,24 @@ int gps::begin()
 
 bool gps::isnew() const
 {
-    return newflag;
+    return data.gga.newflag || data.rmc.newflag ||
+           data.gsa.newflag || data.vtg.newflag;
 }
 
 gps_data gps::get()
 {
-    newflag = false;
-    return data;
+    auto copy = data;
+    data.gga.newflag = false;
+    data.rmc.newflag = false;
+    data.gsa.newflag = false;
+    data.vtg.newflag = false;
+    return copy;
 }
 
 bool gps::update(gps_data& gp)
 {
-    if (newflag) gp = data;
-    bool changed = newflag;
-    newflag = false;
+    bool changed = isnew();
+    if (changed) gp = get();
     return changed;
 }
 
@@ -208,12 +212,13 @@ void gps::update_info(std::stringstream& nmea)
         case 1: data.gsa = parse_gpgsa(msg); break;
         case 2: data.vtg = parse_gpvtg(msg); break;
         case 3: data.rmc = parse_gprmc(msg); break;
+        /*
         case 4: auto gsv = parse_gpgsv(msg);
             if (gsv.msg_num == 1) data.gsv.clear();
             data.gsv.push_back(gsv);
             break;
+        */
     }
-    newflag |= (id > -1);
 }
 
 std::ostream& operator << (std::ostream& os, const utc_time& u)
@@ -233,8 +238,7 @@ std::ostream& operator << (std::ostream& os, const gpgga& g)
        << " fix: " << (int) g.fix_quality << std::endl
        << "sats: " << (int) g.num_sats << " hdop: " << g.hdop
        << " und: " << g.undulation << " " << g.und_unit
-       << " dgps: " << g.has_dgps
-       << " " << (int) g.corr_age << " s " << g.base_ID;
+       << " dgps: " << g.DGPS_age.get() << " s " << g.DGPS_ID.get();
     return os;
 }
 
@@ -258,7 +262,6 @@ std::ostream& operator << (std::ostream& os, const gprmc& g)
     os << "[GPRMC] ";
     os << g.utc << std::endl
        << "stat: " << g.pos_status
-       << " pos: " << g.pos
        << " spd/angl: " << g.ground_speed << " "
        << g.track_angle << std::endl
        << "d/m/y: " << (int) g.day << " " << (int) g.month << " "
@@ -349,6 +352,7 @@ gpgga parse_gpgga(const std::string& data)
     std::string token;
 
     gpgga ret;
+    ret.newflag = true;
     std::getline(ss, token, ',');
     ret.utc = parse_utc(token);
     std::getline(ss, token, ',');
@@ -375,24 +379,23 @@ gpgga parse_gpgga(const std::string& data)
     ret.und_unit = token.empty() ? '?' : token[0];
 
     std::getline(ss, token, ',');
-    // no this is not a typo - should be an assignent
-    if ((ret.has_dgps = token.length()))
+    if (token.length() > 0)
     {
-        ret.corr_age = token.empty() ? 0 : std::stoi(token);
-        std::getline(ss, ret.base_ID, ',');
+        ret.DGPS_age = token.empty() ? 0 : std::stoi(token);
+        std::getline(ss, ret.DGPS_ID.get(), ',');
     }
     else
     {
-        ret.corr_age = 0;
-        ret.base_ID = "";
+        ret.DGPS_age = make_optional(0, false);
+        ret.DGPS_ID = make_optional("", false);
     }
-
     return ret;
 }
 
 gpgsa parse_gpgsa(const std::string& nmea)
 {
     gpgsa ret;
+    ret.newflag = true;
     char ch;
     std::string token;
     std::stringstream ss(nmea);
@@ -417,6 +420,7 @@ gpgsa parse_gpgsa(const std::string& nmea)
 gprmc parse_gprmc(const std::string& nmea)
 {
     gprmc ret;
+    ret.newflag = true;
     std::string token;
     std::stringstream ss(nmea);
     char ch;
@@ -426,13 +430,13 @@ gprmc parse_gprmc(const std::string& nmea)
     ss >> ret.pos_status;
     ss >> ch;
     std::getline(ss, token, ',');
-    ret.pos.latitude() = parse_lat(token);
+    // ret.pos.latitude() = parse_lat(token);
     std::getline(ss, token, ',');
-    ret.pos.latitude() *= token == "N" ? 1 : -1;
+    // ret.pos.latitude() *= token == "N" ? 1 : -1;
     std::getline(ss, token, ',');
-    ret.pos.longitude() = parse_lon(token);
+    // ret.pos.longitude() = parse_lon(token);
     std::getline(ss, token, ',');
-    ret.pos.longitude() *= token == "E" ? 1 : -1;
+    // ret.pos.longitude() *= token == "E" ? 1 : -1;
 
     ss >> ret.ground_speed;
     ss >> ch;
@@ -455,6 +459,7 @@ gprmc parse_gprmc(const std::string& nmea)
 gpgsv parse_gpgsv(const std::string& nmea)
 {
     gpgsv ret;
+    ret.newflag = true;
     std::stringstream ss(nmea);
     std::string token;
     std::getline(ss, token, ',');
@@ -484,6 +489,7 @@ gpvtg parse_gpvtg(const std::string& nmea)
     std::stringstream ss(nmea);
     std::string token;
     gpvtg ret;
+    ret.newflag = true;
 
     std::getline(ss, token, ',');
     ret.track_true = token.empty() ? 0 : std::stod(token);

@@ -35,43 +35,25 @@ int main()
 
     while (gp.gga.num_sats == 0)
     {
-        std::cout << load() << "\r" << std::flush;
+        // std::cout << load() << "\r" << std::flush;
         r.update(gp);
     }
 
-    std::cout << std::fixed << std::setprecision(2);
-
+    std::cout << std::fixed << std::setprecision(2)
+              << "time GMT latitude longitude" << std::endl;
     while (1)
     {
-        if (r.update(gp));
+        gp = r.get();
+        if (gp.gga.newflag)
         {
             auto hdg = uav::angle::degrees(90 - gp.rmc.track_angle);
             double mps = gp.rmc.ground_speed/2;
             double vx = mps*std::cos(hdg), vy = mps*std::sin(hdg);
 
-            std::cout << gp.gga << std::endl;
-
-            for (auto gsv : gp.gsv)
-                for (auto sat : gsv.sats)
-                    std::cout << (int) sat.PRN << " ";
-            std::cout << std::endl;
-
-            for (auto prn : gp.gsa.sat_prns) std::cout << (int) prn << " ";
-            std::cout << std::endl;
-            /*
-            std::cout << (int) gp.rmc.month << "/"
-                << (int) gp.rmc.day << "/"
-                << (int) gp.rmc.year << " "
-                << gp.rmc.utc << " "
-                << gp.gga.pos << " "
-                << (int) gp.gga.num_sats << " "
-                << "< " << vx << ", " << vy << " > "
-                << gp.gga.hdop << " "
-                << (int) gp.gga.fix_quality <<  "     \r"
-                << std::flush;
-            */
+            std::cout /* << gp.gga.newflag << " " */ << gp.gga.utc
+                << " " << gp.gga.pos << " " << std::endl;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        std::this_thread::sleep_for(std::chrono::milliseconds(25));
     }
     return 0;
 }

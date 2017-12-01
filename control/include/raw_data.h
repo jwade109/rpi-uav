@@ -8,6 +8,18 @@
 namespace uav
 {
 
+template <typename T>
+archive& operator << (archive& a, const optional<T>& o)
+{
+    return a << o.get() << o.is();
+}
+
+template <typename T>
+archive& operator >> (archive& a, optional<T>& o)
+{
+    return a >> o.get() >> o.is();
+}
+
 archive& operator << (archive& a, const angle& b);
 
 archive& operator >> (archive& a, angle& b);

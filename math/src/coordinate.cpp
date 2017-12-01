@@ -96,6 +96,7 @@ bool coordinate::operator == (const coordinate& c) const
 
 std::ostream& operator << (std::ostream& os, const coordinate& c)
 {
+    /*
     uint64_t uN = std::abs(c.latitude().micros()),
              uE = std::abs(c.longitude().micros());
     
@@ -124,6 +125,13 @@ std::ostream& operator << (std::ostream& os, const coordinate& c)
        << std::setw(2) << std::setfill('0') << sE << "."
        << std::setw(6) << std::setfill('0') << uE << " " << cE << " "
        << std::fixed << std::setprecision(2) << c.altitude();
+    */
+
+    std::stringstream ss;
+    ss << std::fixed << std::setprecision(8)
+       << c.latitude().deg() << " " << c.longitude().deg() << " "
+       << std::setprecision(2) << c.altitude();
+
     return os << ss.str();
 }
 

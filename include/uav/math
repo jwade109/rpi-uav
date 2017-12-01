@@ -5,3 +5,4 @@
 #include "../../math/include/angle.h"
 #include "../../math/include/coordinate.h"
 #include "../../math/include/functions.h"
+#include "../../math/include/optional.h"

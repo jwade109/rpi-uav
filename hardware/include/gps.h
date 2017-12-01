@@ -41,6 +41,8 @@ struct utc_time
 // contains time, position and fix related data of the GNSS receiver
 struct gpgga
 {
+    bool newflag;
+
     utc_time utc;
     coordinate pos;
 
@@ -51,15 +53,16 @@ struct gpgga
     double undulation;
     char und_unit;
 
-    bool has_dgps;
-    uint8_t corr_age;
-    std::string base_ID;
+    optional<uint8_t> DGPS_age;
+    optional<std::string> DGPS_ID;
 };
 
 // contains GNSS receiver operating mode, satellites used
 // for navigation, and DOP values
 struct gpgsa
 {
+    bool newflag;
+
     char mode_char;
     uint8_t mode_num;
     // up to 12 satellites' PRN numbers
@@ -70,10 +73,11 @@ struct gpgsa
 // contains time, date, position, track made good and speed data
 struct gprmc
 {
+    bool newflag;
+
     utc_time utc;
 
     char pos_status;
-    coordinate pos;
     double ground_speed;
     double track_angle;
 
@@ -87,6 +91,8 @@ struct gprmc
 // contains the track made good and speed relative to the ground
 struct gpvtg
 {
+    bool newflag;
+
     double track_true;
     char track_indicator;
     double track_mag;
@@ -102,6 +108,8 @@ struct gpvtg
 // elevation, azimuth and SNR value
 struct gpgsv
 {
+    bool newflag;
+
     struct sat_info
     {
         uint8_t PRN;
@@ -123,14 +131,6 @@ struct gps_data
     gpgsa gsa;
     gprmc rmc;
     gpvtg vtg;
-    std::vector<gpgsv> gsv;
-};
-
-struct locus_info
-{
-    uint16_t serial, records;
-    uint8_t type, mode, config, interval,
-            distance, speed, status, percent;
 };
 
 class gps
@@ -151,7 +151,6 @@ class gps
     gps_data data;
     std::thread reader;
 
-    bool newflag;
     bool cont;
     int status;
     int fd;
