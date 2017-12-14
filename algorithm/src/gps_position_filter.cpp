@@ -3,11 +3,13 @@
 namespace uav
 {
 
-gps_position_filter::gps_position_filter(uint8_t freq) :
-    gps_position_filter(freq, 3) { }
+gps_position_filter::gps_position_filter(uint8_t frequency,
+    double kP, double kI, double kD, double minres, double maxres) :
+    freq(frequency), kP(kP), kI(kI), kD(kD),
+    minres(minres), maxres(maxres) { }
 
-gps_position_filter::gps_position_filter(uint8_t f, double rc) :
-    freq(f), rc(rc), dt(1.0/f), first(true), lpfx(rc), lpfy(rc) { }
+gps_position_filter::gps_position_filter(uint8_t freq) :
+    gps_position_filter(freq, 10, 0.01, 10, 0.1, 0.2) { }
 
 coordinate gps_position_filter::operator () (coordinate pos)
 {
