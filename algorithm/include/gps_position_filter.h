@@ -13,11 +13,10 @@ class gps_position_filter
 
     coordinate value;
     const uint8_t freq;
-    const double rc, dt;
+    const double dt, kP, kI, kD, minres, maxres;
 
-    gps_position_filter(uint8_t frequency);
-    gps_position_filter(uint8_t frequency,
-                        double rc);
+    gps_position_filter(uint8_t frequency, double kP,
+        double kI, double kD, double minres, double maxres);
 
     coordinate operator () (coordinate pos);
 
