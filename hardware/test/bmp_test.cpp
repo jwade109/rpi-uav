@@ -10,7 +10,7 @@ int main()
     int status = bmp.begin();
     if (status)
     {
-        printf("BMP init error: %d\n", status);
+        std::cout << "BMP init error: " << status << std::endl;
         return 1;
     }
 
