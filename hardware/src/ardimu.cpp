@@ -65,8 +65,6 @@ void uav::arduino::parse()
         if (serialDataAvail(fd) > 0) ch = serialGetchar(fd);
     }
 
-    status = 1;
-
     while (cont)
     {
         if (ch == '<')
@@ -94,5 +92,6 @@ void uav::arduino::parse()
         }
         if (recieved) ss << ch;
         ch = serialGetchar(fd);
+        if (data.load().pres > 0 && status < 1) status = 1;
     }
 }

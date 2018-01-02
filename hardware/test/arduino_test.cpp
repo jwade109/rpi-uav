@@ -24,6 +24,7 @@ int main()
                   << m.euler.x() << "\t" << m.euler.y() << "\t"
                   << m.euler.z() << "\t" << std::bitset<8>(m.calib)
                   << std::dec << "\t" << m.pres << "\t"
+                  << "(" << uav::altitude(m.pres) << ")\t"
                   << m.acc.x() << "\t" << m.acc.y() << "\t"
                   << m.acc.z() << "\r" << std::flush;
         std::this_thread::sleep_for(std::chrono::milliseconds(20));

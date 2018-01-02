@@ -62,17 +62,14 @@ int main(int argc, char** argv)
 
     auto home_point = gps_rec.get().gga.pos;
     double gx = 0, gy = 0, sx = 0, sy = 0, svx = 0, svy = 0;
-    Eigen::Vector3d last_disp, disp_gps;
 
     while (cont)
     {
         while (now < start + runtime)
             now = std::chrono::steady_clock::now();
 
-        last_disp = disp_gps;
-
         auto gps = gps_rec.get();
-        disp_gps = gps.gga.pos - home_point;
+        Eigen::Vector3d disp_gps = gps.gga.pos - home_point;
         double mps = gps.rmc.ground_speed/2;
         auto hdg = uav::angle::degrees(90 - gps.rmc.track_angle);
         double vx = mps*std::cos(hdg), vy = mps*std::sin(hdg);
