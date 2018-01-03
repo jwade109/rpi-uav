@@ -40,7 +40,7 @@ void print_vector(std::ostream& os, const Eigen::Vector3d& v)
     os << std::fixed << std::setprecision(3);
     for (int i = 0; i < 3; ++i)
     {
-        os << std::setw(7) << v(i) << " ";
+        os << v(i) << " ";
     }
 }
 
@@ -50,17 +50,28 @@ int main()
     uav::ins ins(freq);
     if (!ins.begin()) return 1;
 
+    std::cout << std::fixed << std::setprecision(3);
+
+    auto start = std::chrono::steady_clock::now();
+    auto runtime = std::chrono::milliseconds(0);
+    auto delay = std::chrono::milliseconds(1000/freq);
+
     while (true)
     {
+        auto now = std::chrono::steady_clock::now();
+        while (now < start + runtime)
+            now = std::chrono::steady_clock::now();
+
         ins.update();
         std::cout << ins.tow().count()/1000.0 << " ";
-        std::cout << ins.position() << " ";
-        // print_vector(std::cout, ins.displacement());
+        // std::cout << ins.position() << " ";
+        print_vector(std::cout, ins.displacement());
         print_vector(std::cout, ins.velocity());
-        // print_vector(std::cout, ins.attitude());
-        // print_vector(std::cout, ins.turn_rate());
-        std::cout << "          \r" << std::flush;
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        print_vector(std::cout, ins.attitude());
+        print_vector(std::cout, ins.turn_rate());
+        std::cout << "\n" << std::flush;
+
+        runtime += delay;
     }
 
     return 0;
