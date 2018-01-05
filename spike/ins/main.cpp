@@ -50,8 +50,11 @@ int main()
     uav::ins ins(freq);
     if (!ins.begin()) return 1;
 
-    std::cout << std::fixed << std::setprecision(3);
+    std::cout << std::fixed << std::setprecision(3) << std::boolalpha
+              << "tow position displacement drift velocity "
+              << "attitude turn_rate dynamic" << std::endl;
 
+    while (ins.tow().count() % (1000/freq) > 0) { }
     auto start = std::chrono::steady_clock::now();
     auto runtime = std::chrono::milliseconds(0);
     auto delay = std::chrono::milliseconds(1000/freq);
@@ -64,12 +67,13 @@ int main()
 
         ins.update();
         std::cout << ins.tow().count()/1000.0 << " ";
-        // std::cout << ins.position() << " ";
+        std::cout << ins.position() << " ";
         print_vector(std::cout, ins.displacement());
+        print_vector(std::cout, ins.drift());
         print_vector(std::cout, ins.velocity());
         print_vector(std::cout, ins.attitude());
         print_vector(std::cout, ins.turn_rate());
-        std::cout << "\n" << std::flush;
+        std::cout << ins.dynamic() << "\n" << std::flush;
 
         runtime += delay;
     }

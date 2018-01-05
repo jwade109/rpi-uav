@@ -32,12 +32,8 @@ class ins
                   uav::low_pass(0.05),
                   uav::low_pass(0.05)}
     {
-        reset();
-    }
-
-    void reset()
-    {
         _displacement = Eigen::Vector3d::Zero();
+        _drift = Eigen::Vector3d::Zero();
         _velocity = Eigen::Vector3d::Zero();
         _attitude = Eigen::Vector3d::Zero();
         _turn_rate = Eigen::Vector3d::Zero();
@@ -54,10 +50,43 @@ class ins
     void update()
     {
         auto data = sensors.get();
-        _position = data.gps.gga.pos;
-        if (first) _home_point = _position;
-        _displacement = _position - _home_point;
         
+        _attitude(0) = data.ard.euler.x();
+        _attitude(1) = data.ard.euler.y();
+        _attitude(2) = data.ard.euler.z();
+
+        for (int i = 0; i < 3; i++)
+        {
+            double angle = theta[i].step(_attitude(i));
+            double old_rate = omega[i].value;
+            double rate = omega[i].step(angle);
+            if (i == 0)
+            {
+                double alpha = (rate - old_rate)*_freq;
+                if (std::abs(alpha) > 100000) { omega[i].value = old_rate; }
+            }
+            _turn_rate(i) = omega_lpf[i].step(omega[i].value, 1.0/_freq);
+            if (rate == 0) _turn_rate(i) = omega_lpf[i].value = 0;
+        }
+
+        _dynamic = _turn_rate.norm() > 3;
+
+        if (first)
+        {
+            _home_point = _position = data.gps.gga.pos;
+            first = false;
+        }
+
+        if (!_dynamic)
+        {
+            _drift = data.gps.gga.pos - _position;
+            _velocity << 0, 0, 0;
+            return;
+        }
+
+        _position = data.gps.gga.pos - _drift;
+        _displacement = _position - _home_point;
+
         auto hdg = uav::angle::degrees(90 - data.gps.rmc.track_angle);
         double mps = data.gps.rmc.ground_speed/2;
         _velocity(0) = mps*std::cos(hdg);
@@ -80,29 +109,34 @@ class ins
         _displacement(0) = east_sum(easting.seek(east_sum.value, ge));
         _displacement(1) = north_sum(northing.seek(north_sum.value, gn));
         _position = _home_point + _displacement;
-
-        _attitude(0) = data.ard.euler.x();
-        _attitude(1) = data.ard.euler.y();
-        _attitude(2) = data.ard.euler.z();
-
-        for (int i = 0; i < 3; i++)
-        {
-            double angle = theta[i].step(_attitude(i));
-            double rate = omega[i].step(angle);
-            _turn_rate(i) = omega_lpf[i].step(rate, 1.0/_freq);
-            if (rate == 0) _turn_rate(i) = omega_lpf[i].value = 0;
-        }
-        first = false;
     }
 
     void declare_home()
     {
-        _home_point = sensors.get().gps.gga.pos;
+        _home_point = _position;
     }
 
     void declare_home(const uav::coordinate& home)
     {
         _home_point = home;
+    }
+
+    void reconcile_position(const uav::coordinate& pos)
+    {
+        auto _old = _displacement;
+        _position = pos;
+        _displacement = _position - _home_point;
+        _drift += _old - _displacement;
+    }
+
+    void reconcile_displacement(const Eigen::Vector3d& disp)
+    {
+        reconcile_position(_home_point + disp);
+    }
+
+    bool dynamic()
+    {
+        return _dynamic;
     }
 
     std::chrono::milliseconds tow()
@@ -119,6 +153,7 @@ class ins
     Eigen::Vector3d& displacement() { return _displacement; }
 
     uav::coordinate position() const { return _position; }
+    uav::coordinate& position() { return _position; }
 
     Eigen::Vector3d velocity() const { return _velocity; }
     Eigen::Vector3d& velocity() { return _velocity; }
@@ -129,10 +164,16 @@ class ins
     Eigen::Vector3d turn_rate() const { return _turn_rate; }
     Eigen::Vector3d& turn_rate() { return _turn_rate; }
 
+    Eigen::Vector3d drift() const { return _drift; }
+    Eigen::Vector3d& drift() { return _drift; }
+
+    uav::coordinate home_point() const { return _home_point; }
+    uav::coordinate& home_point() { return _home_point; }
+
     private:
 
     const uint8_t _freq;
-    bool first;
+    bool first, _dynamic;
     uav::sensor_hub sensors;
 
     // for smoothing gps measurements
@@ -151,7 +192,7 @@ class ins
     // member variables
     uav::coordinate _home_point;
     uav::coordinate _position;
-    Eigen::Vector3d _displacement, _velocity, _attitude, _turn_rate;
+    Eigen::Vector3d _displacement, _drift, _velocity, _attitude, _turn_rate;
 };
 
 } // namespace uav
