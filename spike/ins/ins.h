@@ -144,7 +144,7 @@ class ins
         uint64_t unix_ms = std::chrono::duration_cast
             <std::chrono::milliseconds>(std::chrono::system_clock::now()
             .time_since_epoch()).count();
-        uint64_t gps_ms = unix_ms - 315964800000 + 20000;
+        uint64_t gps_ms = unix_ms - 315964800000 + 17900;
         uint64_t gps_tow = gps_ms % 604800000;
         return std::chrono::milliseconds(gps_tow);
     }
