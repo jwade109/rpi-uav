@@ -64,14 +64,62 @@ template <size_t N> point<N> bezier_curve<N>::sample(double t)
     return condensed[0];
 }
 
+template <size_t N>
+bezier_curve<N> make_bezier(const point<N>& p0, const point<N>& d0,
+    const point<N>& p1, const point<N>& d1, double radius)
+{
+    pvector<N> ret(5);
+    ret[0] = p0;
+    ret[1] = p0 + d0.normalized()*radius;
+    ret[2] = (p0 + p1)*0.5;
+    ret[3] = p1 - d1.normalized()*radius;
+    ret[4] = p1;
+    return bezier_curve<N>(ret);
+}
+
+template <size_t N> class bezier_path
+{
+    public:
+
+    bezier_path(std::vector<bezier_curve<N>> curves);
+
+    double limit() const;
+
+    point<N> sample(double t);
+
+    private:
+
+    std::vector<bezier_curve<N>> _curves;
+};
+
+template <size_t N>
+bezier_path<N>::bezier_path(std::vector<bezier_curve<N>> curves)
+    : _curves(curves) { };
+
+template <size_t N>
+double bezier_path<N>::limit() const { return _curves.size(); }
+
+template <size_t N>
+point<N> bezier_path<N>::sample(double t)
+{
+    t = t < 0 ? 0 : t;
+    if (t >= limit()) return _curves[limit()-1].sample(1);
+    return _curves[std::floor(t)].sample(std::fmod(t, 1));
+}
+
 int main()
 {
-    point<2> p0{0, 0}, p1{1, 0}, p2{0, 1}, p3{1, 1};
-    bezier_curve<2> bc({p0, p1, p2, p3});
-    for (double t = 0; t <= 1; t += 0.001)
+    auto b1 = make_bezier<2>({0,0}, {1,0}, {8,5}, {1,-0.5}, 2);
+    auto b2 = make_bezier<2>({8,5}, {1,-0.5}, {12,-1}, {0,-1}, 2);
+    auto b3 = make_bezier<2>({12,-1}, {0,-1}, {1,4}, {-1,2}, 2);
+
+    bezier_path<2> bp({b1, b2, b3});
+
+    for (double t = -1; t < bp.limit() + 1; t += 0.001)
     {
-        auto x = bc.sample(t);
-        std::cout << x(0) << " " << x(1) << std::endl;
+        auto x = bp.sample(t);
+        std::cout << t << " " << x(0) << " " << x(1) << std::endl;
     }
+
     return 0;
 }
