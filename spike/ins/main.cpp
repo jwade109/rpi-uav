@@ -35,9 +35,13 @@ std::string make_ins(uint64_t msow, double x, double y, double z,
     return "$" + ss.str();
 }
 
+void print_quat(std::ostream& os, const Eigen::Quaterniond& q)
+{
+    os << q.w() << " " << q.x() << " " << q.y() << " " << q.z() << " ";
+}
+
 void print_vector(std::ostream& os, const Eigen::Vector3d& v)
 {
-    os << std::fixed << std::setprecision(3);
     for (int i = 0; i < 3; ++i)
     {
         os << v(i) << " ";
@@ -67,13 +71,15 @@ int main()
 
         ins.update();
         std::cout << ins.tow().count()/1000.0 << " ";
-        std::cout << ins.position() << " ";
-        print_vector(std::cout, ins.displacement());
-        print_vector(std::cout, ins.drift());
-        print_vector(std::cout, ins.velocity());
+        // std::cout << ins.position() << " ";
+        // print_vector(std::cout, ins.displacement());
+        // print_vector(std::cout, ins.drift());
+        // print_vector(std::cout, ins.velocity());
         print_vector(std::cout, ins.attitude());
-        print_vector(std::cout, ins.turn_rate());
-        std::cout << ins.dynamic() << "\n" << std::flush;
+        // print_vector(std::cout, ins.turn_rate());
+        print_quat(std::cout, ins.quat());
+        print_vector(std::cout, uav::quat2deg(ins.quat()));
+        std::cout << ins.dynamic() << "   \r" << std::flush;
 
         runtime += delay;
     }

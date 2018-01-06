@@ -111,6 +111,11 @@ class ins
         _position = _home_point + _displacement;
     }
 
+    Eigen::Quaterniond quat()
+    {
+        return uav::deg2quat(_attitude);
+    }
+
     void declare_home()
     {
         _home_point = _position;
