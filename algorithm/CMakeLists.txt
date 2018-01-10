@@ -11,6 +11,8 @@ add_library(algorithm
 add_executable(ins_test ${CMAKE_CURRENT_LIST_DIR}/test/ins_test.cpp)
 target_link_libraries(ins_test hardware algorithm math)
 
+add_executable(motor_ctrl ${CMAKE_CURRENT_LIST_DIR}/src/motor_control.cpp)
+
 # add_executable(filter_test
 #     ${CMAKE_CURRENT_LIST_DIR}/test/filter_test.cpp)
 # target_link_libraries(filter_test algorithm hardware math)
