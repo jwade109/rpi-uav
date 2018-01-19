@@ -12,7 +12,6 @@ include_directories("${PROJECT_SOURCE_DIR}/include/")
 include_directories("/usr/local/include/eigen3/")
 
 add_subdirectory(hardware)
-add_subdirectory(logging)
 add_subdirectory(math)
 add_subdirectory(algorithm)
 add_subdirectory(control)
